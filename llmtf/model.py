@@ -197,7 +197,9 @@ class HuggingFaceLLM(LLM):
         eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
         
         eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])[0] if type(eos_token) == str else eos_token
-        eos_token = self.tokenizer.convert_ids_to_tokens([eos_token_id])[0]
+        print(self.tokenizer.convert_tokens_to_ids([eos_token]))
+        print(self.tokenizer.encode(eos_token, add_special_tokens=False))
+        eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)[0]
         print(eos_token)
         print(eos_token_id)
 
