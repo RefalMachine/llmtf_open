@@ -195,8 +195,10 @@ class HuggingFaceLLM(LLM):
         self.tokenizer.padding_side = 'left'
         
         eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
-        print(eos_token)
+        
         eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])[0] if type(eos_token) == str else eos_token
+        eos_token = self.tokenizer.convert_ids_to_tokens([eos_token_id])[0]
+        print(eos_token)
         print(eos_token_id)
 
         self.tokenizer.pad_token = eos_token
@@ -394,7 +396,7 @@ class HuggingFaceLLM(LLM):
     def _check_if_lora(self, model_dir):
         if os.path.exists(model_dir):
             adapter_config_exists = os.path.exists(os.path.join(model_dir, 'adapter_config.json'))
-            adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensorts'))
+            adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensors'))
 
             return adapter_config_exists and adapter_model_exists
 

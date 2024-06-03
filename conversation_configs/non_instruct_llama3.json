@@ -1,0 +1,13 @@
+{
+    "system_prompt": "",
+    "system_message_template": "{content} ",
+    "user_message_template": "{content} ",
+    "bot_message_template": "{content}<|end_of_text|>",
+    "bot_message_template_incomplete": "{content}",
+    "user_role": "user",
+    "bot_role": "bot",
+    "system_role": "system",
+    "global_prefix": "<|begin_of_text|>",
+    "suffix": "",
+    "add_special_tokens": true
+}
