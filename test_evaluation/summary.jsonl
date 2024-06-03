@@ -1,0 +1,14 @@
+{
+    "task_name": "darumeru/MultiQ",
+    "results": {
+        "f1": 0.440798317268857,
+        "em": 0.361376673040153
+    }
+}
+{
+    "task_name": "darumeru/RCB",
+    "results": {
+        "acc": 0.5409090909090909,
+        "f1_macro": 0.4905195370865565
+    }
+}

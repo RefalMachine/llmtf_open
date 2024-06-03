@@ -1,0 +1,14 @@
+{
+    "system_prompt": "",
+    "system_message_template": "{role} {content}<|end_of_turn|>",
+    "user_message_template": "{role} {content}<|end_of_turn|>",
+    "bot_message_template": "{role} {content}<|end_of_turn|>",
+    "bot_message_template_incomplete": "{role} {content}",
+    "user_role": "GPT4 Correct User:",
+    "bot_role": "GPT4 Correct Assistant:",
+    "system_role": "GPT4 Correct System:",
+    "global_prefix": "<s>",
+    "suffix": "GPT4 Correct Assistant:",
+    "add_special_tokens": false,
+    "eos_token": "<|end_of_turn|>"
+}

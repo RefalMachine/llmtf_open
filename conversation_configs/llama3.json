@@ -1,0 +1,14 @@
+{
+    "system_prompt": "Ты полезный чат-бот, который отвечает на вопросы студентов по университетским курсам на русском языке.",
+    "system_message_template": "<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>",
+    "user_message_template": "<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>",
+    "bot_message_template": "<|start_header_id|>{role}<|end_header_id|>\n\n{content}<|eot_id|>",
+    "bot_message_template_incomplete": "<|start_header_id|>{role}<|end_header_id|>\n\n{content}",
+    "user_role": "user",
+    "bot_role": "assistant",
+    "system_role": "system",
+    "global_prefix": "<|begin_of_text|>",
+    "suffix": "<|start_header_id|>assistant<|end_header_id|>\n\n",
+    "add_special_tokens": false,
+    "eos_token": "<|eot_id|>" 
+}

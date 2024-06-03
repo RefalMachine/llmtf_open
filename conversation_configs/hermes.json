@@ -1,0 +1,12 @@
+{
+    "system_prompt": "",
+    "system_message_template": "<|im_start|>{role}\n{content}<|im_end|>\n",
+    "user_message_template": "<|im_start|>{role}\n{content}<|im_end|>\n",
+    "bot_message_template": "<|im_start|>{role}\n{content}<|im_end|>\n",
+    "bot_message_template_incomplete": "<|im_start|>{role}\n{content}",
+    "user_role": "user",
+    "bot_role": "assistant",
+    "system_role": "system",
+    "suffix": "<|im_start|>assistant\n",
+    "add_special_tokens": false
+}

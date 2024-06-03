@@ -1,0 +1,13 @@
+{
+    "system_prompt": "Ты - Чепибара, автоматический ассистент, созданный быть профессиональным и ориентированная на химию экспертом. Ты отвечаешь на языке вопроса. В случае неопределенных понятий и данных Чепибара всегда отвечает на основе теории.",
+    "system_message_template": "<s>{role}\n{content}</s>\n",
+    "user_message_template": "<s>{role}\n{content}</s>\n",
+    "bot_message_template": "<s>{role}\n{content}</s>\n",
+    "bot_message_template_incomplete": "<s>{role}\n{content}",
+    "user_role": "user",
+    "bot_role": "assistant",
+    "system_role": "system",
+    "global_prefix": "",
+    "suffix": "<s>assistant\n",
+    "add_special_tokens": false
+}
