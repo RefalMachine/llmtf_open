@@ -1,13 +1,14 @@
 {
     "system_prompt": "",
-    "system_message_template": "{content} ",
-    "user_message_template": "{content} ",
-    "bot_message_template": "{content}<|end_of_text|>",
-    "bot_message_template_incomplete": "{content}",
+    "system_message_template": "{content}",
+    "user_message_template": "<|begin_of_text|>{content}<|end_of_text|>",
+    "bot_message_template": "<|begin_of_text|>{content}<|end_of_text|>",
+    "bot_message_template_incomplete": "<|begin_of_text|>{content}",
     "user_role": "user",
     "bot_role": "bot",
     "system_role": "system",
-    "global_prefix": "<|begin_of_text|>",
+    "global_prefix": "",
     "suffix": "",
-    "add_special_tokens": true
+    "add_special_tokens": true,
+    "eos_token": "<|end_of_text|>"
 }

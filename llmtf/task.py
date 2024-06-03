@@ -60,7 +60,13 @@ class Task(abc.ABC):
 
             messages = few_shot_messages + messages
             successful += 1
+
+        self._fix_double_slash_n(messages)
         return messages
+
+    def _fix_double_slash_n(self, messages):
+        for i in range(len(messages)):
+            messages[i]['content'] = messages[i]['content'].replace('\\n', '\n')
     
 class MultiQ(Task):
     def __init__(self):
@@ -281,6 +287,7 @@ class ruTiE(Task):
             if messages_len >= max_len:
                 #log this
                 pass
+            self._fix_double_slash_n(messages)
             all_dataset_messages.append({'messages': messages, 'sample': s})
 
         return all_dataset_messages
