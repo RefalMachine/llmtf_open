@@ -48,13 +48,14 @@ class Evaluator():
         if datasets_names == 'all':
             datasets_names = list(self.dataset_types.keys())
 
-        summary_logger = SimpleTaskLogger(output_dir, 'summary', append=True)
-        with summary_logger:
-            for dataset_name in datasets_names:
-                task = self.dataset_types[dataset_name]()
-                self.evaluate_dataset(task, model, output_dir, summary_logger, max_len, few_shot_count, generation_config, batch_size)
+        for dataset_name in datasets_names:
+            task = self.dataset_types[dataset_name]()
+            self.evaluate_dataset(task, model, output_dir, max_len, few_shot_count, generation_config, batch_size)
 
-    def evaluate_dataset(self, task, model, output_dir, summary_logger_open, max_len, few_shot_count, generation_config, batch_size):
+        self.create_report(output_dir)
+
+
+    def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size):
         logger = SimpleTaskLogger(output_dir, task.name)
         messages, samples = task.load_dataset(model, max_len, few_shot_count)
 
@@ -79,6 +80,32 @@ class Evaluator():
                     logger.log_sample(samples[i], y_preds[j], prompts[j], metrics[-1])
         
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
+        logger = SimpleTaskLogger(output_dir, task.name + '_total')
+        with logger:
+            logger.log_json({'task_name': task.name, 'results': metrics_res})
         print(task.name)
         print(metrics_res)
-        summary_logger_open.log_json({'task_name': task.name, 'results': metrics_res})
+
+    def create_report(self, output_dir):
+        reports = {}
+        for file_name in os.listdir(output_dir):
+            if file_name.endswith('_total.jsonl'):
+                with codecs.open(os.path.join(output_dir, file_name), 'r', 'utf-8') as file:
+                    task_report = json.load(file)
+                reports[task_report['task_name']] = task_report['results']
+        task_names = sorted(list(reports.keys()))
+        with codecs.open(os.path.join(output_dir, 'evaluation_results.txt'), 'w', 'utf-8') as file:
+            file.write('\t'.join(task_names) + '\n')
+            file.write('\t'.join([self._pretty_metrics(reports[t]) for t in task_names]))
+
+    #def log_parameters(self, output_dir)
+
+    def _pretty_metrics(self, metric):
+        metric_str = []
+        for m in metric:
+            metric_str.append(f'{metric[m]:.3f}')
+        return '|'.join(metric_str)
+
+
+                
+

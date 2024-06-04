@@ -190,24 +190,33 @@ class HuggingFaceLLM(LLM):
 
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
+        self._check_if_leading_space()
+        print(f'Leading space: {self.leading_space}')
 
         self.tokenizer.truncation_side = 'left'
         self.tokenizer.padding_side = 'left'
         
         eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
-        
-        eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])[0] if type(eos_token) == str else eos_token
-        print(self.tokenizer.convert_tokens_to_ids([eos_token]))
-        print(self.tokenizer.encode(eos_token, add_special_tokens=False))
-        eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)[0]
-        print(eos_token)
-        print(eos_token_id)
+        eos_token_id = eos_token
+        if type(eos_token) == str:
+            eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)
+            if len(eos_token_id) == 2 and self.leading_space and eos_token_id[0] == self.tokenizer.convert_tokens_to_ids([' '])[0]:
+                eos_token_ids = eos_token_ids[1:]
+            assert len(eos_token_id) == 1
+            eos_token_id = eos_token_id[0]
 
-        self.tokenizer.pad_token = eos_token
+        #eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])[0] if type(eos_token) == str else eos_token
+        #print(self.tokenizer.convert_tokens_to_ids([eos_token]))
+        #print(self.tokenizer.encode(eos_token, add_special_tokens=False))
+        eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)[0]
+
+
+        #self.tokenizer.pad_token = eos_token
         self.tokenizer.pad_token_id = eos_token_id
 
         self.generation_config.bos_token_id = self.tokenizer.bos_token_id
-        self.generation_config.eos_token_id = eos_token_id
+        self.generation_config.eos_token_id = [eos_token_id, self.tokenizer.encode('\n', add_special_tokens=False)[-1]]
+        #print(self.generation_config.eos_token_id)
         self.generation_config.pad_token_id = eos_token_id
         self.generation_config.do_sample = True
         self.generation_config.max_new_tokens = 256
@@ -219,6 +228,10 @@ class HuggingFaceLLM(LLM):
 
         print(self.generation_config)
 
+        
+        #print(self.tokenizer.convert_ids_to_tokens([270, 276]))
+        #print(self.tokenizer.convert_ids_to_tokens([28740, 28750]))
+
     def load_from_mem(self, model, tokenizer, generation_config):
         self.model = model
         self.model.eval()
@@ -228,6 +241,18 @@ class HuggingFaceLLM(LLM):
         self.tokenizer.padding_side = 'left'
 
         self.generation_config = generation_config
+
+    def _check_if_leading_space(self):
+        self.leading_space = False
+        char = '1'
+        tokens = self.tokenizer(char, add_special_tokens=False)['input_ids']
+        if len(tokens) > 1:
+            self.leading_space = True
+        else:
+            if len(model.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
+                self.leading_space = True
+        
+
 
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
         prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
@@ -300,7 +325,6 @@ class HuggingFaceLLM(LLM):
 
         next_token_probs = torch.nn.functional.softmax(next_token_logits, dim=-1).cpu()  # all probs over vocab
         assert torch.isclose(next_token_probs.sum(), torch.tensor(1.0).to(next_token_probs.dtype), atol=1e-03)  # dtype for half/nothalf, -03 for float16
-        
         probs = next_token_probs[tokens_of_interest_ids].tolist()
         probs = dict(zip(tokens_of_interest, probs))
         return prompt, probs
@@ -367,11 +391,16 @@ class HuggingFaceLLM(LLM):
         )['input_ids'])
 
     def _calculate_tokens_of_interest_ids_and_addition_spaces(self, prompt, tokens_of_interest):
+        assert prompt[-1] != ' '
+
         shift = len(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids)
         tokens_of_interest_ids = []
         add_spaces = []
         for token_str in tokens_of_interest:
-            prompt_check = prompt + ' ' + token_str
+            if prompt.endswith('\n'):
+                prompt_check = prompt + token_str
+            else:
+                prompt_check = prompt + ' ' + token_str
             tokens_rest = self.tokenizer(prompt_check, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids[shift:]
             skip = 0
             is_ok = False
@@ -390,10 +419,12 @@ class HuggingFaceLLM(LLM):
     def _load_model(self, model_dir):
         if self._check_if_lora(model_dir):
             self._load_lora(model_dir)
+            self.model = self.model.merge_and_unload()
+            self.model.train(False)
         else:
             self._load_plain_model(model_dir)
 
-        self.tokenizer.truncation_side = 'left'
+        self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
 
     def _check_if_lora(self, model_dir):
         if os.path.exists(model_dir):
@@ -431,7 +462,7 @@ class HuggingFaceLLM(LLM):
         except:
             self.generation_config = GenerationConfig.from_dict({})
 
-        self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
+        #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
 
     def _load_lora(self, model_dir):
         config = PeftConfig.from_pretrained(model_dir)
@@ -455,4 +486,4 @@ class HuggingFaceLLM(LLM):
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
         self.generation_config = GenerationConfig.from_pretrained(model_dir)
 
-        self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
+        #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")

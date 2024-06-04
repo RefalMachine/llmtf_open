@@ -61,7 +61,7 @@ class Task(abc.ABC):
             messages = few_shot_messages + messages
             successful += 1
 
-        self._fix_double_slash_n(messages)
+        #self._fix_double_slash_n(messages)
         return messages
 
     def _fix_double_slash_n(self, messages):
@@ -267,6 +267,7 @@ class ruTiE(Task):
     def _prepare_messages(self, samples: List, model: LLM, max_len: int) -> List:
         samples = sorted(samples, key=lambda x: x['meta']['question_id'])
         all_dataset_messages = []
+        dialog_shift = 0
         for s in samples:
             sample = copy.deepcopy(s)
             query_id = int(sample["meta"]["question_id"])
@@ -279,15 +280,23 @@ class ruTiE(Task):
                     }
                 )
                 + f"\nОтвет: {elem['outputs']}"
-                for i, elem in enumerate(samples[:query_id])
+                for i, elem in enumerate(samples[dialog_shift:query_id])
             ]
+            
             sample['inputs']['context'] = "\n".join(context)
             messages = self._apply_inputs(sample['messages'], sample.get('inputs', {}))
             messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
+            while messages_len >= max_len:
+                context = context[1:]
+                sample['inputs']['context'] = "\n".join(context)
+                messages = self._apply_inputs(sample['messages'], sample.get('inputs', {}))
+                messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
+                dialog_shift += 1
+
             if messages_len >= max_len:
                 #log this
                 pass
-            self._fix_double_slash_n(messages)
+            #self._fix_double_slash_n(messages)
             all_dataset_messages.append({'messages': messages, 'sample': s})
 
         return all_dataset_messages
@@ -373,7 +382,7 @@ class USE(Task):
         variant = sample["meta"]["variant"]
         answer = sample["outputs"]
 
-        score = self.get_scores(task_type, id_task, answer, y_pred)
+        score = self.get_scores(task_type, id_task, answer, y_pred.strip())
 
         return {
             "grade_norm": (score, variant)
