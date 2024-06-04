@@ -18,5 +18,5 @@ if __name__ == '__main__':
     model = HuggingFaceLLM(args.conv_path, device_map=args.device_map)
     model.from_pretrained(args.model_name_or_path)
 
-    evaluator = Evaluator(max_sample_per_dataset=args.max_sample_per_dataset)
-    evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size)
+    evaluator = Evaluator()
+    evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset)

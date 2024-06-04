@@ -27,7 +27,7 @@ class SimpleTaskLogger():
         self.file.write(json.dumps(json_data, ensure_ascii=False, indent=indent) + '\n')
  
 class Evaluator():
-    def __init__(self, max_sample_per_dataset):
+    def __init__(self):
         self.dataset_types = {
             'MultiQ': MultiQ,
             'PARus': PARus,
@@ -39,29 +39,28 @@ class Evaluator():
             'RWSD': RWSD,
             'USE': USE
         }
-        self.max_sample_per_dataset = max_sample_per_dataset
 
-    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1):
+    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=1000000):
         #TODO: max_len setter
         model.generation_config.max_length = max_len
+        if generation_config is not None:
+            generation_config.max_length = max_len
 
         if datasets_names == 'all':
             datasets_names = list(self.dataset_types.keys())
-
+        
         for dataset_name in datasets_names:
             task = self.dataset_types[dataset_name]()
-            self.evaluate_dataset(task, model, output_dir, max_len, few_shot_count, generation_config, batch_size)
-
+            self.evaluate_dataset(task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
+        
         self.create_report(output_dir)
 
 
-    def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size):
-        logger = SimpleTaskLogger(output_dir, task.name)
+    def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset):
         messages, samples = task.load_dataset(model, max_len, few_shot_count)
-
         metrics = []
-        with logger:
-            for i in tqdm(range(0, min(self.max_sample_per_dataset, len(messages)), batch_size)):
+        with SimpleTaskLogger(output_dir, task.name) as logger:
+            for i in tqdm(range(0, min(max_sample_per_dataset, len(messages)), batch_size)):
                 messages_batch = messages[i:i+batch_size]
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
                 if generation_config is not None:
@@ -80,9 +79,16 @@ class Evaluator():
                     logger.log_sample(samples[i], y_preds[j], prompts[j], metrics[-1])
         
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
-        logger = SimpleTaskLogger(output_dir, task.name + '_total')
-        with logger:
+        with SimpleTaskLogger(output_dir, task.name + '_total') as logger:
             logger.log_json({'task_name': task.name, 'results': metrics_res})
+
+        with SimpleTaskLogger(output_dir, task.name + '_params') as logger:
+            params = {}
+            params['custom_generation_config'] = generation_config
+            params['model_params'] = model.get_params()
+            params['task_params'] = {'max_len': max_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': task.method}
+            logger.log_json(params)
+
         print(task.name)
         print(metrics_res)
 
@@ -94,17 +100,12 @@ class Evaluator():
                     task_report = json.load(file)
                 reports[task_report['task_name']] = task_report['results']
         task_names = sorted(list(reports.keys()))
+        task_metrics = [np.mean([reports[t][m] for m in reports[t]]) for t in task_names]
+        task_names = ['mean'] + task_names
+        task_metrics = [np.mean(task_metrics)] + task_metrics
         with codecs.open(os.path.join(output_dir, 'evaluation_results.txt'), 'w', 'utf-8') as file:
             file.write('\t'.join(task_names) + '\n')
-            file.write('\t'.join([self._pretty_metrics(reports[t]) for t in task_names]))
-
-    #def log_parameters(self, output_dir)
-
-    def _pretty_metrics(self, metric):
-        metric_str = []
-        for m in metric:
-            metric_str.append(f'{metric[m]:.3f}')
-        return '|'.join(metric_str)
+            file.write('\t'.join([f'{m:.3f}' for m in task_metrics]))
 
 
                 

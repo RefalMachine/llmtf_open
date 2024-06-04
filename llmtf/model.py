@@ -171,6 +171,10 @@ class LLM(abc.ABC):
     def count_tokens_for_prompt(self, **kwargs):
         pass
 
+    @abstractmethod
+    def get_params(self):
+        pass
+
 class HuggingFaceLLM(LLM):
     def __init__(self, conversation_template_path, load_in_8bit=False, load_in_4bit=False, torch_dtype='auto', device_map='auto', use_flash_attention_2=True, use_fast_tokenizer=True):
         super().__init__()
@@ -184,6 +188,21 @@ class HuggingFaceLLM(LLM):
         with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
             template = json.load(file)
         self.conversation_template = template
+
+    def get_params(self):
+        return {
+            'model_name_or_path': self.model_name_or_path,
+            'params_count': self.params_count,
+            'generation_config': json.loads(self.generation_config.to_json_string(use_diff=True)),
+            'conversation_template': self.conversation_template,
+            'load_in_8bit': self.load_in_8bit,
+            'load_in_4bit': self.load_in_4bit,
+            'torch_dtype': self.torch_dtype,
+            'use_flash_attention_2': self.use_flash_attention_2,
+            'device_map': self.device_map,
+            'use_fast_tokenizer': self.use_fast_tokenizer,
+            'leading_space': self.leading_space
+        }
 
     def support_method(self, method):
         return method in ['generate', 'calculate_token_interest_probs']
@@ -417,14 +436,15 @@ class HuggingFaceLLM(LLM):
         return tokens_of_interest_ids, add_spaces[0]
     
     def _load_model(self, model_dir):
+        self.model_name_or_path = model_dir
         if self._check_if_lora(model_dir):
             self._load_lora(model_dir)
             self.model = self.model.merge_and_unload()
             self.model.train(False)
         else:
             self._load_plain_model(model_dir)
-
-        self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
+        self.params_count = self.model.num_parameters()
+        self.logger.info(f"Model id: {model_dir}, params: {self.params_count}, dtype: {self.model.dtype}")
 
     def _check_if_lora(self, model_dir):
         if os.path.exists(model_dir):
