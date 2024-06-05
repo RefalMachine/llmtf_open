@@ -9,8 +9,13 @@ import json
 from typing import List
 import os
 import requests
+import numpy as np
 
-
+try:
+    from vllm import LLM as vLLM
+    from vllm import SamplingParams
+except:
+    pass
 DEFAULT_MESSAGE_TEMPLATE = "<s>{role}\n{content}</s>\n"
 DEFAULT_SYSTEM_PROMPT = "Ты — Сайга, русскоязычный автоматический ассистент. Ты разговариваешь с людьми и помогаешь им."
 
@@ -441,10 +446,19 @@ class HuggingFaceLLM(LLM):
         self.model_name_or_path = model_dir
         if self._check_if_lora(model_dir):
             self._load_lora(model_dir)
-            self.model = self.model.merge_and_unload()
-            self.model.train(False)
         else:
             self._load_plain_model(model_dir)
+
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
+        except:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer)
+
+        try:
+            self.generation_config = GenerationConfig.from_pretrained(model_dir)
+        except:
+            self.generation_config = GenerationConfig.from_dict({})
+
         self.params_count = self.model.num_parameters()
         self.logger.info(f"Model id: {model_dir}, params: {self.params_count}, dtype: {self.model.dtype}")
 
@@ -474,16 +488,7 @@ class HuggingFaceLLM(LLM):
             use_flash_attention_2=self.use_flash_attention_2
         )
         self.model.eval()
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
-        except:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer)
-
-        try:
-            self.generation_config = GenerationConfig.from_pretrained(model_dir)
-        except:
-            self.generation_config = GenerationConfig.from_dict({})
-
+        
         #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
 
     def _load_lora(self, model_dir):
@@ -503,9 +508,270 @@ class HuggingFaceLLM(LLM):
             model_dir,
             torch_dtype=torch_dtype
         )
+
+        self.model = self.model.merge_and_unload()
+        self.model.train(False)
+
         self.model.eval()
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
-        self.generation_config = GenerationConfig.from_pretrained(model_dir)
+        #self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
+        #self.generation_config = GenerationConfig.from_pretrained(model_dir)
 
         #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
+
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+#TODO: слишком много копипасты, вынести в отдельные функции
+class VLLMModel(LLM):
+    def __init__(self, conversation_template_path, use_fast_tokenizer=True, device_map='auto'):
+        super().__init__()
+        with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
+            template = json.load(file)
+        self.conversation_template = template
+        self.use_fast_tokenizer = use_fast_tokenizer
+        self.device_map = device_map
+
+    def support_method(self, method):
+        return method in ['generate', 'calculate_token_interest_probs']
+
+    def from_pretrained(self, model_dir):
+        self._load_model(model_dir)
+        self._check_if_leading_space()
+        print(f'Leading space: {self.leading_space}')
+
+        self.tokenizer.truncation_side = 'left'
+        self.tokenizer.padding_side = 'left'
+        self.eos_tokens = [self.conversation_template.get('eos_token', self.tokenizer.eos_token), '\n']
+        '''
+        eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
+        eos_token_id = eos_token
+        if type(eos_token) == str:
+            print(eos_token)
+            eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)
+            print(eos_token_id)
+            if len(eos_token_id) == 2 and self.leading_space and eos_token_id[0] == self.tokenizer.convert_tokens_to_ids([' '])[0]:
+                eos_token_ids = eos_token_ids[1:]
+            assert len(eos_token_id) == 1
+            eos_token_id = eos_token_id[0]
+
+        eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)[0]
+
+        self.tokenizer.pad_token_id = eos_token_id
+
+        self.generation_config.bos_token_id = self.tokenizer.bos_token_id
+        self.generation_config.eos_token_id = [eos_token_id, self.tokenizer.encode('\n', add_special_tokens=False)[-1]]
+        self.generation_config.pad_token_id = eos_token_id
+        '''
+        self.generation_config.do_sample = True
+        self.generation_config.max_new_tokens = 256
+        self.generation_config.max_length = 2048
+        self.generation_config.repetition_penalty = 1.0
+        self.generation_config.temperature = 0.1
+        self.generation_config.top_k = 40
+        self.generation_config.top_p = 0.9
+
+        print(self.generation_config)
+
+    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
+        # vllm automatically adds bos
+        prompts, outputs = self.generate_batch([messages], generation_config=None, incomplete_last_bot_message=True)
+        return prompts[0], outputs[0]
+
+    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
+        global_prefix = self.conversation_template['global_prefix']
+        assert global_prefix == self.tokenizer.bos_token
+
+        self.conversation_template['global_prefix'] = ''
+        prompts = []
+        for _messages in messages:
+            prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
+        self.conversation_template['global_prefix'] = global_prefix
+
+        generation_config = self.generation_config if generation_config is None else generation_config
+        sampling_params = SamplingParams(
+            temperature=generation_config.temperature,
+            top_p=generation_config.top_p,
+            top_k=generation_config.top_k,
+            max_tokens=generation_config.max_new_tokens,
+            repetition_penalty=generation_config.repetition_penalty,
+            stop=self.eos_tokens
+        )
+
+        vllm_response = self.model.generate(prompts, sampling_params, use_tqdm=False)
+        prompts_vllm = []
+        outputs = []
+        for response in vllm_response:
+            prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
+            outputs.append(response.outputs[0].text)
+
+        return prompts_vllm, outputs
+
+    def calculate_token_interest_probs(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+        prompts, probs = self.calculate_token_interest_probs_batch([messages], [tokens_of_interest], incomplete_last_bot_message)
+        return prompts[0], probs[0]
+
+    def calculate_token_interest_probs_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+        global_prefix = self.conversation_template['global_prefix']
+        assert global_prefix == self.tokenizer.bos_token
+
+        self.conversation_template['global_prefix'] = ''
+        prompts_batch = []
+        tokens_of_interest_ids_batch = []
+        for _messages, _tokens_of_interest in zip(*[messages, tokens_of_interest]):
+            prompt, tokens_of_interest_ids = self._get_tokens_of_interest_ids_modify_prompt(_messages, _tokens_of_interest, incomplete_last_bot_message)
+            prompts_batch.append(prompt)
+            tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
+        self.conversation_template['global_prefix'] = global_prefix
+
+        sampling_params = SamplingParams(
+            temperature=0,
+            logprobs=10,
+            max_tokens=1,
+            repetition_penalty=1.0
+        )
+        
+        vllm_response = self.model.generate(prompts_batch, sampling_params, use_tqdm=False)
+        prompts_vllm = []
+        probs_batch = []
+        for i, response in enumerate(vllm_response):
+            prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
+            logprobs = response.outputs[0].logprobs[-1]
+            tokens = [lp for lp in logprobs]
+            probs = np.exp([logprobs[lp].logprob for lp in logprobs])
+            token2prob = {tokens[i]: probs[i] for i in range(len(tokens))}
+            token2prob = {tokens_of_interest[i][j]: token2prob[token] if token in token2prob else 0.0 for j, token in enumerate(tokens_of_interest_ids_batch[i])}
+            probs_batch.append(token2prob)
+
+        return prompts_vllm, probs_batch
+
+    def get_params(self):
+        return {}
+
+    def _load_model(self, model_dir):
+        self.model_name_or_path = model_dir
+        if self._check_if_lora(model_dir):
+            self._load_lora(model_dir)
+        else:
+            self._load_plain_model(model_dir)
+
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
+        except:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer)
+
+        try:
+            self.generation_config = GenerationConfig.from_pretrained(model_dir)
+        except:
+            self.generation_config = GenerationConfig.from_dict({})
+
+        #self.params_count = self.model.num_parameters()
+        self.logger.info(f"Model id: {model_dir}, vllm")
+
+
+    def _load_plain_model(self, model_dir):
+        self.model = vLLM(model=model_dir, device=self.device_map, max_model_len=8192, max_seq_len_to_capture=8192, gpu_memory_utilization=0.9, max_logprobs=1000000)
+
+        #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
+
+    def _load_lora(self, model_dir):
+        raise NotImplementedError
+        '''
+        config = PeftConfig.from_pretrained(model_dir)
+        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path)
+        torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            config.base_model_name_or_path,
+            load_in_8bit=self.load_in_8bit,
+            torch_dtype=torch_dtype,
+            device_map=self.device_map,
+            use_flash_attention_2=self.use_flash_attention_2
+        )
+        self.model = PeftModel.from_pretrained(
+            self.model,
+            model_dir,
+            torch_dtype=torch_dtype
+        )
+
+        self.model = self.model.merge_and_unload()
+        self.model.train(False)
+
+        self.model.eval()
+        '''
+
+    ## COPY!!!!
+
+    def _check_if_lora(self, model_dir):
+        if os.path.exists(model_dir):
+            adapter_config_exists = os.path.exists(os.path.join(model_dir, 'adapter_config.json'))
+            adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensors'))
+
+            return adapter_config_exists and adapter_model_exists
+
+        if_lora = False
+        try:
+            PeftConfig.from_pretrained(model_dir)
+            if_lora = True
+        except:
+            pass
+        return if_lora 
+
+    def _check_if_leading_space(self):
+        self.leading_space = False
+        char = '1'
+        tokens = self.tokenizer(char, add_special_tokens=False)['input_ids']
+        if len(tokens) > 1:
+            self.leading_space = True
+        else:
+            if len(self.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
+                self.leading_space = True
+
+    def _get_tokens_of_interest_ids_modify_prompt(self, messages, tokens_of_interest, incomplete_last_bot_message):
+        prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
+        tokens_of_interest_ids, add_space = self._calculate_tokens_of_interest_ids_and_addition_spaces(prompt, tokens_of_interest)
+        if add_space:
+            prompt += ' '
+        return prompt, tokens_of_interest_ids
+
+    def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
+        conv = Conversation(**self.conversation_template)
+        for m in messages:
+            if m['role'] == 'user':
+                conv.add_user_message(m['content'])
+            elif m['role'] == 'bot':
+                conv.add_bot_message(m['content'])
+            else:
+                role = m['role']
+                raise Exception(f'Unknown role {role}')
+        return conv.get_prompt(self.tokenizer, incomplete_last_bot_message=incomplete_last_bot_message)
+    
+    def count_tokens_for_prompt(self, prompt):
+        return len(self.tokenizer(
+            prompt,
+            add_special_tokens=self.conversation_template['add_special_tokens']
+        )['input_ids'])
+
+    def _calculate_tokens_of_interest_ids_and_addition_spaces(self, prompt, tokens_of_interest):
+        assert prompt[-1] != ' '
+
+        shift = len(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids)
+        tokens_of_interest_ids = []
+        add_spaces = []
+        for token_str in tokens_of_interest:
+            if prompt.endswith('\n'):
+                prompt_check = prompt + token_str
+            else:
+                prompt_check = prompt + ' ' + token_str
+            tokens_rest = self.tokenizer(prompt_check, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids[shift:]
+            skip = 0
+            is_ok = False
+            for token in tokens_rest:
+                if len(self.tokenizer.decode([token]).strip()) > 0 and token_str.startswith(self.tokenizer.decode([token]).strip()):
+                    is_ok = True
+                    break
+                skip += 1
+
+            assert skip <= 1 and is_ok
+            tokens_of_interest_ids.append(token)
+            add_spaces.append(skip > 0)
+        assert sum(add_spaces) == 0 or sum(add_spaces) == len(add_spaces)
+        return tokens_of_interest_ids, add_spaces[0]
