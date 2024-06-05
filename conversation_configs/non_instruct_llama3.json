@@ -10,5 +10,5 @@
     "global_prefix": "<|begin_of_text|>",
     "suffix": "Response:",
     "add_special_tokens": false,
-    "eos_token": "\n"
+    "eos_token": "<|end_of_text|>"
 }

@@ -218,7 +218,9 @@ class HuggingFaceLLM(LLM):
         eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
         eos_token_id = eos_token
         if type(eos_token) == str:
+            print(eos_token)
             eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)
+            print(eos_token_id)
             if len(eos_token_id) == 2 and self.leading_space and eos_token_id[0] == self.tokenizer.convert_tokens_to_ids([' '])[0]:
                 eos_token_ids = eos_token_ids[1:]
             assert len(eos_token_id) == 1
@@ -268,7 +270,7 @@ class HuggingFaceLLM(LLM):
         if len(tokens) > 1:
             self.leading_space = True
         else:
-            if len(model.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
+            if len(self.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
                 self.leading_space = True
         
 
