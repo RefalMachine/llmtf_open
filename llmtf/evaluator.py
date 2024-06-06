@@ -91,7 +91,7 @@ class Evaluator():
 
                 for j in range(len(y_preds)):
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
-                    logger.log_sample(samples[i], y_preds[j], prompts[j], metrics[-1])
+                    logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1])
         
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
         with SimpleTaskLogger(output_dir, task.name + '_total') as logger:

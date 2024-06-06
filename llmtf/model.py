@@ -10,14 +10,15 @@ from typing import List
 import os
 import requests
 import numpy as np
+from vllm.lora.request import LoRARequest
 
 try:
     from vllm import LLM as vLLM
     from vllm import SamplingParams
 except:
     pass
-DEFAULT_MESSAGE_TEMPLATE = "<s>{role}\n{content}</s>\n"
-DEFAULT_SYSTEM_PROMPT = "Ты — Сайга, русскоязычный автоматический ассистент. Ты разговариваешь с людьми и помогаешь им."
+DEFAULT_MESSAGE_TEMPLATE = "{content}\n"
+DEFAULT_SYSTEM_PROMPT = ""
 
 
 class Conversation:
@@ -198,23 +199,14 @@ class LocalHostedLLM(LLM):
         except:
             self.generation_config = GenerationConfig.from_dict({})
 
-        #self.params_count = self.model.num_parameters()
         self.logger.info(f"Model id: {self.model_name_or_path}")
 
     def _check_if_lora(self, model_dir):
         if os.path.exists(model_dir):
             adapter_config_exists = os.path.exists(os.path.join(model_dir, 'adapter_config.json'))
             adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensors'))
-
-            return adapter_config_exists and adapter_model_exists
-
-        if_lora = False
-        try:
-            PeftConfig.from_pretrained(model_dir)
-            if_lora = True
-        except:
-            pass
-        return if_lora 
+            self.if_lora = adapter_config_exists and adapter_model_exists
+            return self.if_lora
 
     def _check_if_leading_space(self):
         self.leading_space = False
@@ -294,7 +286,6 @@ class HuggingFaceLLM(LocalHostedLLM):
     def get_params(self):
         return {
             'model_name_or_path': self.model_name_or_path,
-            #'params_count': self.params_count,
             'generation_config': json.loads(self.generation_config.to_json_string(use_diff=True)),
             'conversation_template': self.conversation_template,
             'load_in_8bit': self.load_in_8bit,
@@ -316,9 +307,8 @@ class HuggingFaceLLM(LocalHostedLLM):
 
         self.tokenizer.truncation_side = 'left'
         self.tokenizer.padding_side = 'left'
-        
+        eos_token_id = self.tokenizer.eos_token_id
         eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
-        eos_token_id = eos_token
         if type(eos_token) == str:
             print(eos_token)
             eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)
@@ -328,19 +318,14 @@ class HuggingFaceLLM(LocalHostedLLM):
             assert len(eos_token_id) == 1
             eos_token_id = eos_token_id[0]
 
-        #eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])[0] if type(eos_token) == str else eos_token
-        #print(self.tokenizer.convert_tokens_to_ids([eos_token]))
-        #print(self.tokenizer.encode(eos_token, add_special_tokens=False))
         eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)[0]
-
-
-        #self.tokenizer.pad_token = eos_token
         self.tokenizer.pad_token_id = eos_token_id
 
         self.generation_config.bos_token_id = self.tokenizer.bos_token_id
         self.generation_config.eos_token_id = [eos_token_id, self.tokenizer.encode('\n', add_special_tokens=False)[-1]]
-        #print(self.generation_config.eos_token_id)
+
         self.generation_config.pad_token_id = eos_token_id
+        
         self.generation_config.do_sample = True
         self.generation_config.max_new_tokens = 256
         self.generation_config.max_length = 2048
@@ -584,7 +569,7 @@ class VLLMModel(LocalHostedLLM):
             stop=self.eos_tokens
         )
 
-        vllm_response = self.model.generate(prompts, sampling_params, use_tqdm=False)
+        vllm_response = self.model.generate(prompts, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         prompts_vllm = []
         outputs = []
         for response in vllm_response:
@@ -618,7 +603,7 @@ class VLLMModel(LocalHostedLLM):
             repetition_penalty=1.0
         )
         
-        vllm_response = self.model.generate(prompts_batch, sampling_params, use_tqdm=False)
+        vllm_response = self.model.generate(prompts_batch, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         prompts_vllm = []
         probs_batch = []
         for i, response in enumerate(vllm_response):
@@ -633,6 +618,7 @@ class VLLMModel(LocalHostedLLM):
         return prompts_vllm, probs_batch
 
     def get_params(self):
+        # TODO: params
         return {}
 
     def _load_plain_model(self, model_dir):
@@ -645,4 +631,24 @@ class VLLMModel(LocalHostedLLM):
         #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
 
     def _load_lora(self, model_dir):
-        raise NotImplementedError
+        # TODO: не работает с modules_to_save
+        config = PeftConfig.from_pretrained(model_dir)
+        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path, trust_remote_code=True)
+        #torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
+
+        self.model = vLLM(
+            model=config.base_model_name_or_path, device=self.device_map,
+            max_model_len=4096, max_seq_len_to_capture=4096, 
+            gpu_memory_utilization=0.9, max_logprobs=1000000,
+            disable_sliding_window=True, enable_prefix_caching=True, 
+            enable_lora=True, trust_remote_code=True, max_lora_rank=self._get_max_lora_rank(config))
+
+    def _get_lora_request(self):
+        if not self.if_lora:
+            return None
+
+        return LoRARequest("lora", 1, self.model_name_or_path)
+
+    def _get_max_lora_rank(self, lora_config):
+        # TODO: not default rank
+        return lora_config.r
