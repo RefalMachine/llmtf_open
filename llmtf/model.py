@@ -294,7 +294,7 @@ class HuggingFaceLLM(LocalHostedLLM):
     def get_params(self):
         return {
             'model_name_or_path': self.model_name_or_path,
-            'params_count': self.params_count,
+            #'params_count': self.params_count,
             'generation_config': json.loads(self.generation_config.to_json_string(use_diff=True)),
             'conversation_template': self.conversation_template,
             'load_in_8bit': self.load_in_8bit,

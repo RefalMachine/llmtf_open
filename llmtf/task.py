@@ -292,7 +292,7 @@ class ruWorldTree(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
-        self.dataset_name = 'ruwordtree'
+        self.dataset_name = 'ruworldtree'
 
     @property
     def name(self):

@@ -1,0 +1,6 @@
+eval_results_all/
+dump*
+test*
+__pycache__/
+*.pyc
+run_evaluate*
