@@ -18,6 +18,16 @@ import re
 DARUMERU_HF_PATH = 'RefalMachine/darumeru'
 
 class Task(abc.ABC):
+    @property
+    def log(self, text):
+        if self.logger is None:
+            self.init_logger()
+        return self.logger
+
+    @abstractmethod
+    def init_logger(self, **kwargs):
+        pass
+
     @abstractmethod
     def load_dataset(self, **kwargs) -> List:
         pass
@@ -48,7 +58,7 @@ class Task(abc.ABC):
         zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
         if zero_shot_messages_len >= max_len:
             #TODO: logger ...
-            print(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+            self.log.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
         
         messages = copy.deepcopy(zero_shot_messages)
         successful = 0
@@ -95,6 +105,9 @@ class MultiQ(Task):
             "f1": f1,
             "em": em,
         }
+
+    def init_logger(self):
+        self.logger = 
     
 class PARus(Task):
     def __init__(self):

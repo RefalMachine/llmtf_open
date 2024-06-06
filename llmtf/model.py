@@ -180,7 +180,104 @@ class LLM(abc.ABC):
     def get_params(self):
         pass
 
-class HuggingFaceLLM(LLM):
+class LocalHostedLLM(LLM):
+    def _load_model(self, model_dir):
+        self.model_name_or_path = model_dir
+        if self._check_if_lora(model_dir):
+            self._load_lora(model_dir)
+        else:
+            self._load_plain_model(model_dir)
+
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
+        except:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer)
+
+        try:
+            self.generation_config = GenerationConfig.from_pretrained(model_dir)
+        except:
+            self.generation_config = GenerationConfig.from_dict({})
+
+        #self.params_count = self.model.num_parameters()
+        self.logger.info(f"Model id: {self.model_name_or_path}")
+
+    def _check_if_lora(self, model_dir):
+        if os.path.exists(model_dir):
+            adapter_config_exists = os.path.exists(os.path.join(model_dir, 'adapter_config.json'))
+            adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensors'))
+
+            return adapter_config_exists and adapter_model_exists
+
+        if_lora = False
+        try:
+            PeftConfig.from_pretrained(model_dir)
+            if_lora = True
+        except:
+            pass
+        return if_lora 
+
+    def _check_if_leading_space(self):
+        self.leading_space = False
+        char = '1'
+        tokens = self.tokenizer(char, add_special_tokens=False)['input_ids']
+        if len(tokens) > 1:
+            self.leading_space = True
+        else:
+            if len(self.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
+                self.leading_space = True
+
+    def _get_tokens_of_interest_ids_modify_prompt(self, messages, tokens_of_interest, incomplete_last_bot_message):
+        prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
+        tokens_of_interest_ids, add_space = self._calculate_tokens_of_interest_ids_and_addition_spaces(prompt, tokens_of_interest)
+        if add_space:
+            prompt += ' '
+        return prompt, tokens_of_interest_ids
+
+    def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
+        conv = Conversation(**self.conversation_template)
+        for m in messages:
+            if m['role'] == 'user':
+                conv.add_user_message(m['content'])
+            elif m['role'] == 'bot':
+                conv.add_bot_message(m['content'])
+            else:
+                role = m['role']
+                raise Exception(f'Unknown role {role}')
+        return conv.get_prompt(self.tokenizer, incomplete_last_bot_message=incomplete_last_bot_message)
+    
+    def count_tokens_for_prompt(self, prompt):
+        return len(self.tokenizer(
+            prompt,
+            add_special_tokens=self.conversation_template['add_special_tokens']
+        )['input_ids'])
+
+    def _calculate_tokens_of_interest_ids_and_addition_spaces(self, prompt, tokens_of_interest):
+        assert prompt[-1] != ' '
+
+        shift = len(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids)
+        tokens_of_interest_ids = []
+        add_spaces = []
+        for token_str in tokens_of_interest:
+            if prompt.endswith('\n'):
+                prompt_check = prompt + token_str
+            else:
+                prompt_check = prompt + ' ' + token_str
+            tokens_rest = self.tokenizer(prompt_check, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids[shift:]
+            skip = 0
+            is_ok = False
+            for token in tokens_rest:
+                if len(self.tokenizer.decode([token]).strip()) > 0 and token_str.startswith(self.tokenizer.decode([token]).strip()):
+                    is_ok = True
+                    break
+                skip += 1
+
+            assert skip <= 1 and is_ok
+            tokens_of_interest_ids.append(token)
+            add_spaces.append(skip > 0)
+        assert sum(add_spaces) == 0 or sum(add_spaces) == len(add_spaces)
+        return tokens_of_interest_ids, add_spaces[0]
+
+class HuggingFaceLLM(LocalHostedLLM):
     def __init__(self, conversation_template_path, load_in_8bit=False, load_in_4bit=False, torch_dtype='auto', device_map='auto', use_flash_attention_2=True, use_fast_tokenizer=True):
         super().__init__()
         self.load_in_8bit = load_in_8bit
@@ -253,33 +350,7 @@ class HuggingFaceLLM(LLM):
         self.generation_config.top_p = 0.9
 
         print(self.generation_config)
-
         
-        #print(self.tokenizer.convert_ids_to_tokens([270, 276]))
-        #print(self.tokenizer.convert_ids_to_tokens([28740, 28750]))
-
-    def load_from_mem(self, model, tokenizer, generation_config):
-        self.model = model
-        self.model.eval()
-
-        self.tokenizer = tokenizer
-        self.tokenizer.truncation_side = 'left'
-        self.tokenizer.padding_side = 'left'
-
-        self.generation_config = generation_config
-
-    def _check_if_leading_space(self):
-        self.leading_space = False
-        char = '1'
-        tokens = self.tokenizer(char, add_special_tokens=False)['input_ids']
-        if len(tokens) > 1:
-            self.leading_space = True
-        else:
-            if len(self.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
-                self.leading_space = True
-        
-
-
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
         prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
         #print(f'INPUT: {prompt}')
@@ -389,93 +460,6 @@ class HuggingFaceLLM(LLM):
             probs = dict(zip(tokens_of_interest[i], probs))
             probs_batch.append(probs)
         return prompts_batch, probs_batch
-    
-    def _get_tokens_of_interest_ids_modify_prompt(self, messages, tokens_of_interest, incomplete_last_bot_message):
-        prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
-        tokens_of_interest_ids, add_space = self._calculate_tokens_of_interest_ids_and_addition_spaces(prompt, tokens_of_interest)
-        if add_space:
-            prompt += ' '
-        return prompt, tokens_of_interest_ids
-
-
-    def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
-        conv = Conversation(**self.conversation_template)
-        for m in messages:
-            if m['role'] == 'user':
-                conv.add_user_message(m['content'])
-            elif m['role'] == 'bot':
-                conv.add_bot_message(m['content'])
-            else:
-                role = m['role']
-                raise Exception(f'Unknown role {role}')
-        return conv.get_prompt(self.tokenizer, incomplete_last_bot_message=incomplete_last_bot_message)
-    
-    def count_tokens_for_prompt(self, prompt):
-        return len(self.tokenizer(
-            prompt,
-            add_special_tokens=self.conversation_template['add_special_tokens']
-        )['input_ids'])
-
-    def _calculate_tokens_of_interest_ids_and_addition_spaces(self, prompt, tokens_of_interest):
-        assert prompt[-1] != ' '
-
-        shift = len(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids)
-        tokens_of_interest_ids = []
-        add_spaces = []
-        for token_str in tokens_of_interest:
-            if prompt.endswith('\n'):
-                prompt_check = prompt + token_str
-            else:
-                prompt_check = prompt + ' ' + token_str
-            tokens_rest = self.tokenizer(prompt_check, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids[shift:]
-            skip = 0
-            is_ok = False
-            for token in tokens_rest:
-                if len(self.tokenizer.decode([token]).strip()) > 0 and token_str.startswith(self.tokenizer.decode([token]).strip()):
-                    is_ok = True
-                    break
-                skip += 1
-
-            assert skip <= 1 and is_ok
-            tokens_of_interest_ids.append(token)
-            add_spaces.append(skip > 0)
-        assert sum(add_spaces) == 0 or sum(add_spaces) == len(add_spaces)
-        return tokens_of_interest_ids, add_spaces[0]
-    
-    def _load_model(self, model_dir):
-        self.model_name_or_path = model_dir
-        if self._check_if_lora(model_dir):
-            self._load_lora(model_dir)
-        else:
-            self._load_plain_model(model_dir)
-
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
-        except:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer)
-
-        try:
-            self.generation_config = GenerationConfig.from_pretrained(model_dir)
-        except:
-            self.generation_config = GenerationConfig.from_dict({})
-
-        self.params_count = self.model.num_parameters()
-        self.logger.info(f"Model id: {model_dir}, params: {self.params_count}, dtype: {self.model.dtype}")
-
-    def _check_if_lora(self, model_dir):
-        if os.path.exists(model_dir):
-            adapter_config_exists = os.path.exists(os.path.join(model_dir, 'adapter_config.json'))
-            adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensors'))
-
-            return adapter_config_exists and adapter_model_exists
-
-        if_lora = False
-        try:
-            PeftConfig.from_pretrained(model_dir)
-            if_lora = True
-        except:
-            pass
-        return if_lora 
 
     def _load_plain_model(self, model_dir):
         base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=True)
@@ -521,7 +505,7 @@ class HuggingFaceLLM(LLM):
 
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 #TODO: слишком много копипасты, вынести в отдельные функции
-class VLLMModel(LLM):
+class VLLMModel(LocalHostedLLM):
     def __init__(self, conversation_template_path, use_fast_tokenizer=True, device_map='auto'):
         super().__init__()
         with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
@@ -646,132 +630,14 @@ class VLLMModel(LLM):
     def get_params(self):
         return {}
 
-    def _load_model(self, model_dir):
-        self.model_name_or_path = model_dir
-        if self._check_if_lora(model_dir):
-            self._load_lora(model_dir)
-        else:
-            self._load_plain_model(model_dir)
-
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
-        except:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer)
-
-        try:
-            self.generation_config = GenerationConfig.from_pretrained(model_dir)
-        except:
-            self.generation_config = GenerationConfig.from_dict({})
-
-        #self.params_count = self.model.num_parameters()
-        self.logger.info(f"Model id: {model_dir}, vllm")
-
-
     def _load_plain_model(self, model_dir):
-        self.model = vLLM(model=model_dir, device=self.device_map, max_model_len=8192, max_seq_len_to_capture=8192, gpu_memory_utilization=0.9, max_logprobs=1000000)
+        self.model = vLLM(
+            model=model_dir, device=self.device_map,
+            max_model_len=4096, max_seq_len_to_capture=4096, 
+            gpu_memory_utilization=0.9, max_logprobs=1000000,
+            disable_sliding_window=True, enable_prefix_caching=True)
 
         #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
 
     def _load_lora(self, model_dir):
         raise NotImplementedError
-        '''
-        config = PeftConfig.from_pretrained(model_dir)
-        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path)
-        torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
-
-        self.model = AutoModelForCausalLM.from_pretrained(
-            config.base_model_name_or_path,
-            load_in_8bit=self.load_in_8bit,
-            torch_dtype=torch_dtype,
-            device_map=self.device_map,
-            use_flash_attention_2=self.use_flash_attention_2
-        )
-        self.model = PeftModel.from_pretrained(
-            self.model,
-            model_dir,
-            torch_dtype=torch_dtype
-        )
-
-        self.model = self.model.merge_and_unload()
-        self.model.train(False)
-
-        self.model.eval()
-        '''
-
-    ## COPY!!!!
-
-    def _check_if_lora(self, model_dir):
-        if os.path.exists(model_dir):
-            adapter_config_exists = os.path.exists(os.path.join(model_dir, 'adapter_config.json'))
-            adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensors'))
-
-            return adapter_config_exists and adapter_model_exists
-
-        if_lora = False
-        try:
-            PeftConfig.from_pretrained(model_dir)
-            if_lora = True
-        except:
-            pass
-        return if_lora 
-
-    def _check_if_leading_space(self):
-        self.leading_space = False
-        char = '1'
-        tokens = self.tokenizer(char, add_special_tokens=False)['input_ids']
-        if len(tokens) > 1:
-            self.leading_space = True
-        else:
-            if len(self.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
-                self.leading_space = True
-
-    def _get_tokens_of_interest_ids_modify_prompt(self, messages, tokens_of_interest, incomplete_last_bot_message):
-        prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
-        tokens_of_interest_ids, add_space = self._calculate_tokens_of_interest_ids_and_addition_spaces(prompt, tokens_of_interest)
-        if add_space:
-            prompt += ' '
-        return prompt, tokens_of_interest_ids
-
-    def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
-        conv = Conversation(**self.conversation_template)
-        for m in messages:
-            if m['role'] == 'user':
-                conv.add_user_message(m['content'])
-            elif m['role'] == 'bot':
-                conv.add_bot_message(m['content'])
-            else:
-                role = m['role']
-                raise Exception(f'Unknown role {role}')
-        return conv.get_prompt(self.tokenizer, incomplete_last_bot_message=incomplete_last_bot_message)
-    
-    def count_tokens_for_prompt(self, prompt):
-        return len(self.tokenizer(
-            prompt,
-            add_special_tokens=self.conversation_template['add_special_tokens']
-        )['input_ids'])
-
-    def _calculate_tokens_of_interest_ids_and_addition_spaces(self, prompt, tokens_of_interest):
-        assert prompt[-1] != ' '
-
-        shift = len(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids)
-        tokens_of_interest_ids = []
-        add_spaces = []
-        for token_str in tokens_of_interest:
-            if prompt.endswith('\n'):
-                prompt_check = prompt + token_str
-            else:
-                prompt_check = prompt + ' ' + token_str
-            tokens_rest = self.tokenizer(prompt_check, add_special_tokens=self.conversation_template['add_special_tokens']).input_ids[shift:]
-            skip = 0
-            is_ok = False
-            for token in tokens_rest:
-                if len(self.tokenizer.decode([token]).strip()) > 0 and token_str.startswith(self.tokenizer.decode([token]).strip()):
-                    is_ok = True
-                    break
-                skip += 1
-
-            assert skip <= 1 and is_ok
-            tokens_of_interest_ids.append(token)
-            add_spaces.append(skip > 0)
-        assert sum(add_spaces) == 0 or sum(add_spaces) == len(add_spaces)
-        return tokens_of_interest_ids, add_spaces[0]
