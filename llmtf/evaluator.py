@@ -97,7 +97,7 @@ class Evaluator():
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1])
         
-        model.reset_stop_tokens()
+        
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
         with SimpleTaskLogger(output_dir, task.name + '_total') as logger:
             logger.log_json({'task_name': task.name, 'results': metrics_res})
@@ -109,8 +109,9 @@ class Evaluator():
             params['task_params'] = {'max_len': max_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': task.method}
             logger.log_json(params)
 
-        print(task.name)
-        print(metrics_res)
+        model.reset_stop_tokens()
+        task.logger.info(f'Results for {task.name}:')
+        task.logger.info(str(metrics_res))
 
     def create_report(self, output_dir):
         reports = {}

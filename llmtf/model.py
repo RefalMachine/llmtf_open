@@ -199,9 +199,9 @@ class LocalHostedLLM(LLM):
             self._load_plain_model(model_dir)
 
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer, trust_remote_code=True)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer, trust_remote_code=self.trust_remote_code)
         except:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer, trust_remote_code=True)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer, trust_remote_code=self.trust_remote_code)
 
         self.tokenizer.truncation_side = 'left'
         self.tokenizer.padding_side = 'left'
@@ -209,7 +209,7 @@ class LocalHostedLLM(LLM):
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
         try:
-            self.generation_config = GenerationConfig.from_pretrained(model_dir, trust_remote_code=True)
+            self.generation_config = GenerationConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)
         except:
             self.generation_config = GenerationConfig.from_dict({})
         self._init_default_gen_params()
@@ -345,14 +345,20 @@ class LocalHostedLLM(LLM):
         self.generation_config.eos_token_id = self.generation_config.eos_token_id[0]
 
 class HFModel(LocalHostedLLM):
-    def __init__(self, conversation_template_path, load_in_8bit=False, torch_dtype='auto', device_map='auto', use_flash_attention_2=True, use_fast_tokenizer=True):
+    def __init__(
+            self, conversation_template_path, 
+            load_in_8bit=False, 
+            torch_dtype='auto', device_map='auto', 
+            use_flash_attention_2=True, use_fast_tokenizer=True, 
+            trust_remote_code=False
+        ):
         super().__init__()
         self.load_in_8bit = load_in_8bit
         self.torch_dtype = torch_dtype
         self.use_flash_attention_2 = use_flash_attention_2
         self.device_map = device_map
         self.use_fast_tokenizer = use_fast_tokenizer
-
+        self.trust_remote_code=trust_remote_code,
         with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
             template = json.load(file)
         self.conversation_template = template
@@ -368,7 +374,8 @@ class HFModel(LocalHostedLLM):
             'device_map': self.device_map,
             'use_fast_tokenizer': self.use_fast_tokenizer,
             'leading_space': self.leading_space,
-            'space_token': self.space_token
+            'space_token': self.space_token,
+            'trust_remote_code': self.trust_remote_code
         }
         
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
@@ -440,7 +447,7 @@ class HFModel(LocalHostedLLM):
         return prompts_batch, probs_batch
 
     def _load_plain_model(self, model_dir):
-        base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=True)
+        base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)
         torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
         self.model = AutoModelForCausalLM.from_pretrained(
             model_dir,
@@ -448,13 +455,13 @@ class HFModel(LocalHostedLLM):
             load_in_8bit=self.load_in_8bit,
             device_map=self.device_map,
             use_flash_attention_2=self.use_flash_attention_2, 
-            trust_remote_code=True
+            trust_remote_code=self.trust_remote_code
         )
         self.model.eval()
 
     def _load_lora(self, model_dir):
         config = PeftConfig.from_pretrained(model_dir)
-        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path, trust_remote_code=True)
+        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path, trust_remote_code=self.trust_remote_code)
         torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
 
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -463,7 +470,7 @@ class HFModel(LocalHostedLLM):
             torch_dtype=torch_dtype,
             device_map=self.device_map,
             use_flash_attention_2=self.use_flash_attention_2, 
-            trust_remote_code=True
+            trust_remote_code=self.trust_remote_code
         )
         self.model = PeftModel.from_pretrained(
             self.model,
@@ -477,13 +484,31 @@ class HFModel(LocalHostedLLM):
         self.model.eval()
 
 class VLLMModel(LocalHostedLLM):
-    def __init__(self, conversation_template_path, use_fast_tokenizer=True, device_map='auto'):
+    def __init__(
+            self, 
+            conversation_template_path, 
+            use_fast_tokenizer=True, 
+            device_map='auto',
+            max_model_len=4096, max_seq_len_to_capture=4096,
+            gpu_memory_utilization=0.9,
+            disable_sliding_window=True,
+            enable_prefix_caching=True,
+            trust_remote_code=False,
+            calculate_tokens_proba_logprobs_count=100
+        ):
         super().__init__()
         with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
             template = json.load(file)
         self.conversation_template = template
         self.use_fast_tokenizer = use_fast_tokenizer
         self.device_map = device_map
+        self.max_model_len = max_model_len
+        self.max_seq_len_to_capture = max_seq_len_to_capture 
+        self.gpu_memory_utilization = gpu_memory_utilization
+        self.disable_sliding_window = disable_sliding_window
+        self.enable_prefix_caching = enable_prefix_caching
+        self.trust_remote_code = trust_remote_code
+        self.calculate_tokens_proba_logprobs_count = calculate_tokens_proba_logprobs_count
 
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
@@ -567,6 +592,13 @@ class VLLMModel(LocalHostedLLM):
             'use_fast_tokenizer': self.use_fast_tokenizer,
             'leading_space': self.leading_space,
             'space_token': self.space_token,
+            'max_model_len': self.max_model_len,
+            'max_seq_len_to_capture': self.max_seq_len_to_capture,
+            'gpu_memory_utilization': self.gpu_memory_utilization,
+            'disable_sliding_window': self.disable_sliding_window,
+            'enable_prefix_caching': self.enable_prefix_caching,
+            'trust_remote_code': self.trust_remote_code,
+            'calculate_tokens_proba_logprobs_count': self.calculate_tokens_proba_logprobs_count,
             'vllm': True
         }
 
@@ -586,19 +618,21 @@ class VLLMModel(LocalHostedLLM):
         #TODO: параметры вынести в конфиг, в инит или еще куда
         self.model = vLLM(
             model=model_dir, device=self.device_map,
-            max_model_len=4096, max_seq_len_to_capture=4096, 
-            gpu_memory_utilization=0.9, max_logprobs=1000000,
-            disable_sliding_window=True, enable_prefix_caching=True, trust_remote_code=True)
+            max_model_len=self.max_model_len, max_seq_len_to_capture=self.max_seq_len_to_capture, 
+            gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
+            disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching, 
+            trust_remote_code=self.trust_remote_code
+        )
 
     def _load_lora(self, model_dir):
         # TODO: не работает с modules_to_save, и вообще пока не тестил
         config = PeftConfig.from_pretrained(model_dir)
         self.model = vLLM(
             model=config.base_model_name_or_path, device=self.device_map,
-            max_model_len=4096, max_seq_len_to_capture=4096, 
-            gpu_memory_utilization=0.9, max_logprobs=1000000,
-            disable_sliding_window=True, enable_prefix_caching=True, 
-            enable_lora=True, trust_remote_code=True, max_lora_rank=self._get_max_lora_rank(config))
+            max_model_len=self.max_model_len, max_seq_len_to_capture=self.max_seq_len_to_capture, 
+            gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
+            disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching,
+            enable_lora=True, trust_remote_code=self.trust_remote_code, max_lora_rank=self._get_max_lora_rank(config))
 
     def _get_lora_request(self):
         if not self.if_lora:
