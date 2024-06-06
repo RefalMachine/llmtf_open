@@ -189,12 +189,12 @@ class LocalHostedLLM(LLM):
             self._load_plain_model(model_dir)
 
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer, trust_remote_code=True)
         except:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer, trust_remote_code=True)
 
         try:
-            self.generation_config = GenerationConfig.from_pretrained(model_dir)
+            self.generation_config = GenerationConfig.from_pretrained(model_dir, trust_remote_code=True)
         except:
             self.generation_config = GenerationConfig.from_dict({})
 
@@ -469,7 +469,8 @@ class HuggingFaceLLM(LocalHostedLLM):
             torch_dtype=torch_dtype,
             load_in_8bit=self.load_in_8bit,
             device_map=self.device_map,
-            use_flash_attention_2=self.use_flash_attention_2
+            use_flash_attention_2=self.use_flash_attention_2, 
+            trust_remote_code=True
         )
         self.model.eval()
         
@@ -477,7 +478,7 @@ class HuggingFaceLLM(LocalHostedLLM):
 
     def _load_lora(self, model_dir):
         config = PeftConfig.from_pretrained(model_dir)
-        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path)
+        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path, trust_remote_code=True)
         torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
 
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -485,7 +486,8 @@ class HuggingFaceLLM(LocalHostedLLM):
             load_in_8bit=self.load_in_8bit,
             torch_dtype=torch_dtype,
             device_map=self.device_map,
-            use_flash_attention_2=self.use_flash_attention_2
+            use_flash_attention_2=self.use_flash_attention_2, 
+            trust_remote_code=True
         )
         self.model = PeftModel.from_pretrained(
             self.model,
@@ -522,6 +524,7 @@ class VLLMModel(LocalHostedLLM):
         self._check_if_leading_space()
         print(f'Leading space: {self.leading_space}')
 
+        #print(self.tokenizer.bos_token)
         self.tokenizer.truncation_side = 'left'
         self.tokenizer.padding_side = 'left'
         self.eos_tokens = [self.conversation_template.get('eos_token', self.tokenizer.eos_token), '\n']
@@ -562,7 +565,8 @@ class VLLMModel(LocalHostedLLM):
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
         global_prefix = self.conversation_template['global_prefix']
-        assert global_prefix == self.tokenizer.bos_token
+        global_prefix_check = None if global_prefix == '' else global_prefix
+        assert global_prefix_check == self.tokenizer.bos_token
 
         self.conversation_template['global_prefix'] = ''
         prompts = []
@@ -595,7 +599,8 @@ class VLLMModel(LocalHostedLLM):
 
     def calculate_token_interest_probs_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
         global_prefix = self.conversation_template['global_prefix']
-        assert global_prefix == self.tokenizer.bos_token
+        global_prefix_check = None if global_prefix == '' else global_prefix
+        assert global_prefix_check == self.tokenizer.bos_token
 
         self.conversation_template['global_prefix'] = ''
         prompts_batch = []
@@ -635,7 +640,7 @@ class VLLMModel(LocalHostedLLM):
             model=model_dir, device=self.device_map,
             max_model_len=4096, max_seq_len_to_capture=4096, 
             gpu_memory_utilization=0.9, max_logprobs=1000000,
-            disable_sliding_window=True, enable_prefix_caching=True)
+            disable_sliding_window=True, enable_prefix_caching=True, trust_remote_code=True)
 
         #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
 

@@ -4,6 +4,7 @@ import json
 from tqdm import tqdm
 import codecs
 import inspect
+import time
 
 class SimpleTaskLogger():
     def __init__(self, output_dir, task_name, append=False):
@@ -25,6 +26,19 @@ class SimpleTaskLogger():
     
     def log_json(self, json_data, indent=4):
         self.file.write(json.dumps(json_data, ensure_ascii=False, indent=indent) + '\n')
+
+class CustomTimer():
+    def __init__(self, logger, prefix):
+        self.logger = logger
+        self.prefix = prefix
+        self.start_time = None
+
+    def __enter__(self):
+        self.start_time = time.time()
+
+    def __exit__(self, *args):
+        time_passed = time.time() - self.start_time
+        self.logger.info(f'{self.prefix}: {time_passed:.2f}s')
  
 class Evaluator():
     def __init__(self):
@@ -57,10 +71,11 @@ class Evaluator():
 
 
     def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset):
-        messages, samples = task.load_dataset(model, max_len, few_shot_count)
+        with CustomTimer(task.logger, 'Loading Dataset'):
+            messages, samples = task.load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
         metrics = []
-        with SimpleTaskLogger(output_dir, task.name) as logger:
-            for i in tqdm(range(0, min(max_sample_per_dataset, len(messages)), batch_size)):
+        with SimpleTaskLogger(output_dir, task.name) as logger, CustomTimer(task.logger, 'Processing Dataset'):
+            for i in tqdm(range(0, len(messages), batch_size)):
                 messages_batch = messages[i:i+batch_size]
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
                 if generation_config is not None:

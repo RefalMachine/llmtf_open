@@ -10,28 +10,22 @@ from abc import abstractmethod
 import abc
 from datasets import DatasetDict, load_dataset
 from llmtf.model import LLM
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score
 import transformers.data.metrics.squad_metrics as squad_metrics
 import re
+import logging
 
 DARUMERU_HF_PATH = 'RefalMachine/darumeru'
 
 class Task(abc.ABC):
+    def __init__(self):
+        self.init_logger()
+
     @property
-    def log(self, text):
-        if self.logger is None:
-            self.init_logger()
-        return self.logger
+    def logger(self):
+        return self.backend_logger
 
-    @abstractmethod
-    def init_logger(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def load_dataset(self, **kwargs) -> List:
-        pass
-    
     @abstractmethod
     def evaluate(self, **kwargs) -> Dict:
         pass
@@ -40,30 +34,56 @@ class Task(abc.ABC):
     def aggregation(self, **kwargs) -> Dict:
         pass
 
-    def _load_dataset(self, dataset: DatasetDict, model: LLM, max_len: int, few_shot_count: int) -> List:
-        assert model.support_method(self.method)
-        samples = [{'messages': self._prepare_messages(sample, model, max_len, few_shot_count, dataset['prompt']), 'sample': sample} for sample in tqdm(dataset['test'])]
-        return samples
+    @abstractmethod
+    def load_dataset(self, **kwargs) -> Tuple[List[Dict], List[Dict]]:
+        pass
 
-    def _apply_inputs(self, messages, inputs):
+    def init_logger(self):
+        logging.basicConfig(level=logging.INFO)
+        self.backend_logger = logging.getLogger(__name__ + '/' + self.name)
+
+    def apply_inputs(self, messages, inputs):
         prepared_messages = copy.deepcopy(messages)
         for m in prepared_messages:
             m['content'] = m['content'].format(**inputs)
         return prepared_messages
+    
+class DarumeruTask(Task):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
+    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+        dataset = load_dataset(DARUMERU_HF_PATH, self.dataset_name)
+        samples = self._load_dataset(dataset, model, max_len, max_sample_per_dataset, few_shot_count)
+        messages = [{'messages': s['messages']} for s in samples]
+        samples = [{'sample': s['sample']} for s in samples]
+
+        if self.method == 'calculate_token_interest_probs':
+            for m in messages:
+                m['tokens_of_interest'] = self.choices
+        return messages, samples
+    
+    def _load_dataset(self, dataset: DatasetDict, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+        assert model.support_method(self.method)
+        samples = []
+        for i, sample in enumerate(tqdm(dataset['test'])):
+            if i >= max_sample_per_dataset:
+                break
+            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, dataset['prompt']), 'sample': sample})
+        return samples
+        
     def _prepare_messages(self, sample: Dict, model: LLM, max_len: int, few_shot_count: int, few_shot_samples: List) -> List:
         k = min(few_shot_count, len(few_shot_samples))
 
-        zero_shot_messages = self._apply_inputs(sample['messages'], sample.get('inputs', {}))
+        zero_shot_messages = self.apply_inputs(sample['messages'], sample.get('inputs', {}))
         zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
         if zero_shot_messages_len >= max_len:
-            #TODO: logger ...
-            self.log.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
         
         messages = copy.deepcopy(zero_shot_messages)
         successful = 0
         for i in range(k):
-            few_shot_messages = self._apply_inputs(few_shot_samples[i]['messages'], few_shot_samples[i].get('inputs', {}))
+            few_shot_messages = self.apply_inputs(few_shot_samples[i]['messages'], few_shot_samples[i].get('inputs', {}))
             few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(few_shot_messages + messages))
             if few_shot_messages_len >= max_len:
                 break
@@ -71,27 +91,17 @@ class Task(abc.ABC):
             messages = few_shot_messages + messages
             successful += 1
 
-        #self._fix_double_slash_n(messages)
         return messages
 
-    def _fix_double_slash_n(self, messages):
-        for i in range(len(messages)):
-            messages[i]['content'] = messages[i]['content'].replace('\\n', '\n')
-    
-class MultiQ(Task):
-    def __init__(self):
+class MultiQ(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'generate'
+        self.dataset_name = 'multiq'
 
     @property
     def name(self):
         return 'darumeru/MultiQ'
-    
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'multiq')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        return messages, samples
 
     def aggregation(self) -> Dict:
         return {"f1": mean, "em": mean}
@@ -106,25 +116,17 @@ class MultiQ(Task):
             "em": em,
         }
 
-    def init_logger(self):
-        self.logger = 
-    
-class PARus(Task):
-    def __init__(self):
+#class SimpleMultipleChoiceTask(abc.ABC):
+
+class PARus(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
+        self.dataset_name = 'parus'
 
     @property
     def name(self):
         return 'darumeru/PARus'
-
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'parus')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
-        return messages, samples
     
     @property
     def choices(self):
@@ -139,23 +141,16 @@ class PARus(Task):
         return {"acc": y_true == y_pred}
 
 
-class RCB(Task):
-    def __init__(self):
+class RCB(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
+        self.dataset_name = 'rcb'
 
     @property
     def name(self):
         return 'darumeru/RCB'
-    
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'rcb')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
-        return messages, samples
-    
+
     @property
     def choices(self):
         return ["1", "2", "3"]
@@ -168,22 +163,15 @@ class RCB(Task):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
 
-class ruMMLU(Task):
-    def __init__(self):
+class ruMMLU(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
+        self.dataset_name = 'rummlu'
 
     @property
     def name(self):
         return 'darumeru/ruMMLU'
-    
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'rummlu')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
-        return messages, samples
 
     @property
     def choices(self):
@@ -214,22 +202,15 @@ class ruMMLU(Task):
         #criteria = sample["meta"]["domain"]
         return {"acc": res}#, f"acc.{criteria}": res}
 
-class ruOpenBookQA(Task):
-    def __init__(self):
+class ruOpenBookQA(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
+        self.dataset_name = 'ruopenbookqa'
 
     @property
     def name(self):
         return 'darumeru/ruOpenBookQA'
-    
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'ruopenbookqa')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
-        return messages, samples
 
     @property
     def choices(self):
@@ -243,23 +224,16 @@ class ruOpenBookQA(Task):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
 
-class ruTiE(Task):
-    def __init__(self):
+class ruTiE(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
+        self.dataset_name = 'rutie'
     
     @property
     def name(self):
         return 'darumeru/ruTiE'
 
-    def load_dataset(self, model: LLM, max_len: int, *inputs, **kwargs) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'rutie')
-        samples = self._load_dataset(dataset, model, max_len)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
-        return messages, samples
-    
     @property
     def choices(self):
         return ["1", "2"]
@@ -272,16 +246,16 @@ class ruTiE(Task):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred}
     
-    def _load_dataset(self, dataset: DatasetDict, model: LLM, max_len: int) -> List:
+    def _load_dataset(self, dataset: DatasetDict, model: LLM, max_len: int, max_sample_per_dataset: int, *args, **kwargs) -> List:
         assert model.support_method(self.method)
-        samples = self._prepare_messages(dataset['test'], model, max_len)
+        samples = self._prepare_messages(dataset['test'], model, max_len, max_sample_per_dataset)
         return samples
     
-    def _prepare_messages(self, samples: List, model: LLM, max_len: int) -> List:
+    def _prepare_messages(self, samples: List, model: LLM, max_len: int, max_sample_per_dataset: int) -> List:
         samples = sorted(samples, key=lambda x: x['meta']['question_id'])
         all_dataset_messages = []
         dialog_shift = 0
-        for s in samples:
+        for s in samples[:max_sample_per_dataset]:
             sample = copy.deepcopy(s)
             query_id = int(sample["meta"]["question_id"])
             context = [
@@ -297,12 +271,12 @@ class ruTiE(Task):
             ]
             
             sample['inputs']['context'] = "\n".join(context)
-            messages = self._apply_inputs(sample['messages'], sample.get('inputs', {}))
+            messages = self.apply_inputs(sample['messages'], sample.get('inputs', {}))
             messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
             while messages_len >= max_len:
                 context = context[1:]
                 sample['inputs']['context'] = "\n".join(context)
-                messages = self._apply_inputs(sample['messages'], sample.get('inputs', {}))
+                messages = self.apply_inputs(sample['messages'], sample.get('inputs', {}))
                 messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
                 dialog_shift += 1
 
@@ -314,22 +288,15 @@ class ruTiE(Task):
 
         return all_dataset_messages
 
-class ruWorldTree(Task):
-    def __init__(self):
+class ruWorldTree(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
+        self.dataset_name = 'ruwordtree'
 
     @property
     def name(self):
         return 'darumeru/ruWorldTree'
-    
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'ruworldtree')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
-        return messages, samples
 
     @property
     def choices(self):
@@ -343,23 +310,15 @@ class ruWorldTree(Task):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
 
-class RWSD(Task):
-    def __init__(self):
+class RWSD(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'calculate_token_interest_probs'
+        self.dataset_name = 'rwsd'
 
     @property
     def name(self):
         return 'darumeru/RWSD'
-
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'rwsd')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
-        return messages, samples
-
     @property
     def choices(self):
         return ["Да", "Нет"]
@@ -373,21 +332,16 @@ class RWSD(Task):
         return {"acc": y_true.startswith(y_pred)}
 
 
-class USE(Task):
-    def __init__(self):
+class USE(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.method = 'generate'
+        self.dataset_name = 'use'
         self.max_grade_point = 34
 
     @property
     def name(self):
         return 'darumeru/USE'
-    
-    def load_dataset(self, model: LLM, max_len: int, few_shot_count: int) -> List:
-        dataset = load_dataset(DARUMERU_HF_PATH, 'use')
-        samples = self._load_dataset(dataset, model, max_len, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-        return messages, samples
 
     def evaluate(self, sample, y_pred) -> Dict:
         id_task = sample["meta"]["id_task"]
