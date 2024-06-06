@@ -1,2 +1,0 @@
-python evaluate_model.py --model_name_or_path openchat/openchat-3.5-1210 --conv_path conversation_configs/openchat_3.5_1210.json --output_dir evaluate_results_opecnhat_1210_k5 --few_shot_count 5 --max_sample_per_dataset 50 --max_len 8000
-python evaluate_model.py --model_name_or_path NousResearch/Meta-Llama-3-8B-Instruct --conv_path conversation_configs/llama3.json --output_dir evaluate_results_llama3-8b-instruct_k5 --few_shot_count 5 --max_sample_per_dataset 50 --max_len 8000
