@@ -158,11 +158,11 @@ class LLM(abc.ABC):
         pass
 
     @abstractmethod
-    def calculate_token_interest_probs(self, **kwargs):
+    def calculate_tokens_proba(self, **kwargs):
         pass
 
     @abstractmethod
-    def calculate_token_interest_probs_batch(self, **kwargs):
+    def calculate_tokens_proba_batch(self, **kwargs):
         pass
 
     @abstractmethod
@@ -182,6 +182,15 @@ class LLM(abc.ABC):
         pass
 
 class LocalHostedLLM(LLM):
+    def support_method(self, method):
+        return method in ['generate', 'calculate_tokens_proba']
+
+    def from_pretrained(self, model_dir):
+        self._load_model(model_dir)
+        self._check_if_leading_space()
+        self.logger.info(f'Leading space: {self.leading_space}')
+        self.logger.info(self.generation_config)
+
     def _load_model(self, model_dir):
         self.model_name_or_path = model_dir
         if self._check_if_lora(model_dir):
@@ -194,28 +203,46 @@ class LocalHostedLLM(LLM):
         except:
             self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer, trust_remote_code=True)
 
+        self.tokenizer.truncation_side = 'left'
+        self.tokenizer.padding_side = 'left'
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+
         try:
             self.generation_config = GenerationConfig.from_pretrained(model_dir, trust_remote_code=True)
         except:
             self.generation_config = GenerationConfig.from_dict({})
-
+        self._init_default_gen_params()
         self.logger.info(f"Model id: {self.model_name_or_path}")
 
     def _check_if_lora(self, model_dir):
+        self.if_lora = False
         if os.path.exists(model_dir):
             adapter_config_exists = os.path.exists(os.path.join(model_dir, 'adapter_config.json'))
             adapter_model_exists = os.path.exists(os.path.join(model_dir, 'adapter_model.bin')) or os.path.exists(os.path.join(model_dir, 'adapter_model.safetensors'))
             self.if_lora = adapter_config_exists and adapter_model_exists
             return self.if_lora
+        try:
+            PeftConfig.from_pretrained(model_dir)
+            self.if_lora  = True
+        except:
+            pass
+        return self.if_lora 
 
     def _check_if_leading_space(self):
         self.leading_space = False
+        self.space_token = None
         char = '1'
         tokens = self.tokenizer(char, add_special_tokens=False)['input_ids']
         if len(tokens) > 1:
+            self.logger.info(f'_check_if_leading_space: \"{tokens}\"')
+            self.space_token = tokens[0]
             self.leading_space = True
         else:
-            if len(self.tokenizer.convert_ids_to_tokens(tokens)[0]) != 1:
+            token_str = self.tokenizer.convert_ids_to_tokens(tokens)[0]
+            if len(token_str) != 1:
+                self.logger.info(f'_check_if_leading_space: \"{token_str}\"')
+                self.space_token = token_str[0]
                 self.leading_space = True
 
     def _get_tokens_of_interest_ids_modify_prompt(self, messages, tokens_of_interest, incomplete_last_bot_message):
@@ -269,11 +296,58 @@ class LocalHostedLLM(LLM):
         assert sum(add_spaces) == 0 or sum(add_spaces) == len(add_spaces)
         return tokens_of_interest_ids, add_spaces[0]
 
-class HuggingFaceLLM(LocalHostedLLM):
-    def __init__(self, conversation_template_path, load_in_8bit=False, load_in_4bit=False, torch_dtype='auto', device_map='auto', use_flash_attention_2=True, use_fast_tokenizer=True):
+    def _init_default_gen_params(self):
+        self.generation_config.bos_token_id = self.tokenizer.bos_token_id
+        self.generation_config.eos_token_id = self.tokenizer.eos_token_id
+        self.generation_config.pad_token_id = self.tokenizer.pad_token_id
+        self.generation_config.do_sample = True
+        self.generation_config.max_new_tokens = 64
+        self.generation_config.max_length = 4096
+        self.generation_config.repetition_penalty = 1.0
+        self.generation_config.temperature = 0.1
+        self.generation_config.top_k = 40
+        self.generation_config.top_p = 0.9
+        #self.generation_config.stop_strings = [] #does not work 
+
+        self._override_eos_token_conv_template()
+
+    def _override_eos_token_conv_template(self):
+        eos_token = self.conversation_template.get('eos_token', None)
+        if eos_token is not None and len(eos_token) > 0:
+            eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])
+            assert len(eos_token_id) == 1 and eos_token_id[0] != None
+            eos_token_id = eos_token_id[0]
+            eos_token_id_old = self.generation_config.eos_token_id
+            self.generation_config.eos_token_id = eos_token_id
+            self.logger.info(f'Override eos_token_id in generation_config from {eos_token_id_old} to {eos_token_id}')
+
+        global_prefix = self.conversation_template.get('global_prefix', None)
+        if global_prefix is None or len(global_prefix) == 0:
+            global_prefix = self.tokenizer.decode([self.tokenizer.bos_token_id])
+            self.conversation_template['global_prefix'] = global_prefix
+            self.logger.info(f'Set global prefix {global_prefix} to conv config')
+
+    def add_stop_token(self, stop_token):
+        if type(self.generation_config.eos_token_id) != list:
+            self.generation_config.eos_token_id = [self.generation_config.eos_token_id]
+
+        # есть способ получше обработать принудительный пробел вначале в некоторых токенайзерах?
+        stop_token_id = self.tokenizer.encode(stop_token, add_special_tokens=False)
+        if len(stop_token_id) == 2 and self.leading_space and stop_token_id[0] == self.space_token:
+            stop_token_id = stop_token_id[1:]
+        
+        self.logger.info(f'Updating generation_config.eos_token_id: add {stop_token_id}')
+        assert len(stop_token_id) == 1
+        self.generation_config.eos_token_id.append(stop_token_id[0])
+        self.logger.info(f'generation_config.eos_token_id: {self.generation_config.eos_token_id}')
+
+    def reset_stop_tokens(self):
+        self.generation_config.eos_token_id = self.generation_config.eos_token_id[0]
+
+class HFModel(LocalHostedLLM):
+    def __init__(self, conversation_template_path, load_in_8bit=False, torch_dtype='auto', device_map='auto', use_flash_attention_2=True, use_fast_tokenizer=True):
         super().__init__()
         self.load_in_8bit = load_in_8bit
-        self.load_in_4bit = load_in_4bit and not load_in_8bit
         self.torch_dtype = torch_dtype
         self.use_flash_attention_2 = use_flash_attention_2
         self.device_map = device_map
@@ -289,79 +363,17 @@ class HuggingFaceLLM(LocalHostedLLM):
             'generation_config': json.loads(self.generation_config.to_json_string(use_diff=True)),
             'conversation_template': self.conversation_template,
             'load_in_8bit': self.load_in_8bit,
-            'load_in_4bit': self.load_in_4bit,
             'torch_dtype': self.torch_dtype,
             'use_flash_attention_2': self.use_flash_attention_2,
             'device_map': self.device_map,
             'use_fast_tokenizer': self.use_fast_tokenizer,
-            'leading_space': self.leading_space
+            'leading_space': self.leading_space,
+            'space_token': self.space_token
         }
-
-    def support_method(self, method):
-        return method in ['generate', 'calculate_token_interest_probs']
-
-    def from_pretrained(self, model_dir):
-        self._load_model(model_dir)
-        self._check_if_leading_space()
-        print(f'Leading space: {self.leading_space}')
-
-        self.tokenizer.truncation_side = 'left'
-        self.tokenizer.padding_side = 'left'
-        eos_token_id = self.tokenizer.eos_token_id
-        eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
-        if type(eos_token) == str:
-            print(eos_token)
-            eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)
-            print(eos_token_id)
-            if len(eos_token_id) == 2 and self.leading_space and eos_token_id[0] == self.tokenizer.convert_tokens_to_ids([' '])[0]:
-                eos_token_ids = eos_token_ids[1:]
-            assert len(eos_token_id) == 1
-            eos_token_id = eos_token_id[0]
-
-        eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)[0]
-        self.tokenizer.pad_token_id = eos_token_id
-
-        self.generation_config.bos_token_id = self.tokenizer.bos_token_id
-        self.generation_config.eos_token_id = [eos_token_id, self.tokenizer.encode('\n', add_special_tokens=False)[-1]]
-
-        self.generation_config.pad_token_id = eos_token_id
-        
-        self.generation_config.do_sample = True
-        self.generation_config.max_new_tokens = 256
-        self.generation_config.max_length = 2048
-        self.generation_config.repetition_penalty = 1.0
-        self.generation_config.temperature = 0.1
-        self.generation_config.top_k = 40
-        self.generation_config.top_p = 0.9
-
-        print(self.generation_config)
         
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
-        #print(f'INPUT: {prompt}')
-        data = self.tokenizer(
-            prompt,
-            return_tensors="pt",
-            truncation=True,
-            add_special_tokens=self.conversation_template['add_special_tokens'], 
-            max_length=self.generation_config.max_length
-        )
-        data = {k: v.to(self.model.device) for k, v in data.items()}
-        with torch.no_grad():
-            output_ids = self.model.generate(
-                **data,
-                generation_config=self.generation_config if generation_config is None else generation_config
-            )
-        outputs = []
-        for sample_output_ids, sample_input_ids in zip(output_ids, data["input_ids"]):
-            sample_output_ids = sample_output_ids[len(sample_input_ids):]
-            sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
-            outputs.append(sample_output)
-        
-        if len(outputs) == 1:
-            outputs = outputs[0]
-
-        return prompt, outputs
+        prompts, outputs = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message)
+        return prompts[0], outputs[0]
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
         prompts = []
@@ -386,32 +398,14 @@ class HuggingFaceLLM(LocalHostedLLM):
             sample_output_ids = sample_output_ids[len(sample_input_ids):]
             sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
             outputs.append(sample_output)
-        
-        if len(outputs) == 1:
-            outputs = outputs[0]
 
         return prompts, outputs
     
-    def calculate_token_interest_probs(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        prompt, tokens_of_interest_ids = self._get_tokens_of_interest_ids_modify_prompt(messages, tokens_of_interest, incomplete_last_bot_message)
-        data = self.tokenizer(prompt, return_tensors="pt", truncation=True, add_special_tokens=self.conversation_template['add_special_tokens'], max_length=self.generation_config.max_length)
-        data = {k: v.to(self.model.device) for k, v in data.items()}
+    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+        prompts, probs = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message=incomplete_last_bot_message)
+        return prompts[0], probs[0]
     
-        with torch.no_grad():
-            outputs = self.model(**data)
-        logits = outputs.logits  # shape (batch_size, sequence_length, vocab_size)
-        next_token_logits = logits[:, -1, :]  # shape (batch_size, vocab_size)
-
-        next_token_logits = next_token_logits.flatten()
-        assert next_token_logits.shape == torch.Size((self.model.config.vocab_size, ))
-
-        next_token_probs = torch.nn.functional.softmax(next_token_logits, dim=-1).cpu()  # all probs over vocab
-        assert torch.isclose(next_token_probs.sum(), torch.tensor(1.0).to(next_token_probs.dtype), atol=1e-03)  # dtype for half/nothalf, -03 for float16
-        probs = next_token_probs[tokens_of_interest_ids].tolist()
-        probs = dict(zip(tokens_of_interest, probs))
-        return prompt, probs
-    
-    def calculate_token_interest_probs_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
         prompts_batch = []
         tokens_of_interest_ids_batch = []
         for _messages, _tokens_of_interest in zip(*[messages, tokens_of_interest]):
@@ -431,15 +425,14 @@ class HuggingFaceLLM(LocalHostedLLM):
         logits = outputs.logits  # shape (batch_size, sequence_length, vocab_size)
         next_token_logits_batch = logits[:, -1, :]  # shape (batch_size, vocab_size)
 
-        #print(next_token_logits.shape)
         probs_batch = []
         for i in range(next_token_logits_batch.shape[0]):
             next_token_logits = next_token_logits_batch[i]
             next_token_logits = next_token_logits.flatten()
             assert next_token_logits.shape == torch.Size((self.model.config.vocab_size, ))
 
-            next_token_probs = torch.nn.functional.softmax(next_token_logits, dim=-1).cpu()  # all probs over vocab
-            assert torch.isclose(next_token_probs.sum(), torch.tensor(1.0).to(next_token_probs.dtype), atol=1e-03)  # dtype for half/nothalf, -03 for float16
+            next_token_probs = torch.nn.functional.softmax(next_token_logits, dim=-1).cpu()
+            assert torch.isclose(next_token_probs.sum(), torch.tensor(1.0).to(next_token_probs.dtype), atol=1e-03)
         
             probs = next_token_probs[tokens_of_interest_ids_batch[i]].tolist()
             probs = dict(zip(tokens_of_interest[i], probs))
@@ -458,8 +451,6 @@ class HuggingFaceLLM(LocalHostedLLM):
             trust_remote_code=True
         )
         self.model.eval()
-        
-        #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
 
     def _load_lora(self, model_dir):
         config = PeftConfig.from_pretrained(model_dir)
@@ -485,13 +476,6 @@ class HuggingFaceLLM(LocalHostedLLM):
 
         self.model.eval()
 
-        #self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=self.use_fast_tokenizer)
-        #self.generation_config = GenerationConfig.from_pretrained(model_dir)
-
-        #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
-
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
-#TODO: слишком много копипасты, вынести в отдельные функции
 class VLLMModel(LocalHostedLLM):
     def __init__(self, conversation_template_path, use_fast_tokenizer=True, device_map='auto'):
         super().__init__()
@@ -501,63 +485,24 @@ class VLLMModel(LocalHostedLLM):
         self.use_fast_tokenizer = use_fast_tokenizer
         self.device_map = device_map
 
-    def support_method(self, method):
-        return method in ['generate', 'calculate_token_interest_probs']
-
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
         self._check_if_leading_space()
-        print(f'Leading space: {self.leading_space}')
-
-        #print(self.tokenizer.bos_token)
-        self.tokenizer.truncation_side = 'left'
-        self.tokenizer.padding_side = 'left'
-        self.eos_tokens = [self.conversation_template.get('eos_token', self.tokenizer.eos_token), '\n']
-        '''
-        eos_token = self.conversation_template.get('eos_token', self.tokenizer.eos_token_id)
-        eos_token_id = eos_token
-        if type(eos_token) == str:
-            print(eos_token)
-            eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)
-            print(eos_token_id)
-            if len(eos_token_id) == 2 and self.leading_space and eos_token_id[0] == self.tokenizer.convert_tokens_to_ids([' '])[0]:
-                eos_token_ids = eos_token_ids[1:]
-            assert len(eos_token_id) == 1
-            eos_token_id = eos_token_id[0]
-
-        eos_token_id = self.tokenizer.encode(eos_token, add_special_tokens=False)[0]
-
-        self.tokenizer.pad_token_id = eos_token_id
-
-        self.generation_config.bos_token_id = self.tokenizer.bos_token_id
-        self.generation_config.eos_token_id = [eos_token_id, self.tokenizer.encode('\n', add_special_tokens=False)[-1]]
-        self.generation_config.pad_token_id = eos_token_id
-        '''
-        self.generation_config.do_sample = True
-        self.generation_config.max_new_tokens = 256
-        self.generation_config.max_length = 2048
-        self.generation_config.repetition_penalty = 1.0
-        self.generation_config.temperature = 0.1
-        self.generation_config.top_k = 40
-        self.generation_config.top_p = 0.9
-
-        print(self.generation_config)
+        self._conv_template_bos_vllm_crutch()
+        self.reset_stop_tokens()
+        self.logger.info(f'Leading space: {self.leading_space}')
+        self.logger.info(self.generation_config)
 
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        # vllm automatically adds bos
         prompts, outputs = self.generate_batch([messages], generation_config=None, incomplete_last_bot_message=True)
         return prompts[0], outputs[0]
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        global_prefix = self.conversation_template['global_prefix']
-        global_prefix_check = None if global_prefix == '' else global_prefix
-        assert global_prefix_check == self.tokenizer.bos_token
-
         self.conversation_template['global_prefix'] = ''
         prompts = []
         for _messages in messages:
             prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
-        self.conversation_template['global_prefix'] = global_prefix
+        self.conversation_template['global_prefix'] = self.global_prefix
 
         generation_config = self.generation_config if generation_config is None else generation_config
         sampling_params = SamplingParams(
@@ -566,7 +511,7 @@ class VLLMModel(LocalHostedLLM):
             top_k=generation_config.top_k,
             max_tokens=generation_config.max_new_tokens,
             repetition_penalty=generation_config.repetition_penalty,
-            stop=self.eos_tokens
+            stop=generation_config.stop_strings
         )
 
         vllm_response = self.model.generate(prompts, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
@@ -578,15 +523,11 @@ class VLLMModel(LocalHostedLLM):
 
         return prompts_vllm, outputs
 
-    def calculate_token_interest_probs(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        prompts, probs = self.calculate_token_interest_probs_batch([messages], [tokens_of_interest], incomplete_last_bot_message)
+    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+        prompts, probs = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message)
         return prompts[0], probs[0]
 
-    def calculate_token_interest_probs_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        global_prefix = self.conversation_template['global_prefix']
-        global_prefix_check = None if global_prefix == '' else global_prefix
-        assert global_prefix_check == self.tokenizer.bos_token
-
+    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
         self.conversation_template['global_prefix'] = ''
         prompts_batch = []
         tokens_of_interest_ids_batch = []
@@ -594,11 +535,11 @@ class VLLMModel(LocalHostedLLM):
             prompt, tokens_of_interest_ids = self._get_tokens_of_interest_ids_modify_prompt(_messages, _tokens_of_interest, incomplete_last_bot_message)
             prompts_batch.append(prompt)
             tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
-        self.conversation_template['global_prefix'] = global_prefix
+        self.conversation_template['global_prefix'] = self.global_prefix
 
         sampling_params = SamplingParams(
             temperature=0,
-            logprobs=10,
+            logprobs=100, #TODO: to params
             max_tokens=1,
             repetition_penalty=1.0
         )
@@ -618,24 +559,40 @@ class VLLMModel(LocalHostedLLM):
         return prompts_vllm, probs_batch
 
     def get_params(self):
-        # TODO: params
-        return {}
+        return {
+            'model_name_or_path': self.model_name_or_path,
+            'generation_config': json.loads(self.generation_config.to_json_string(use_diff=True)),
+            'conversation_template': self.conversation_template,
+            'device_map': self.device_map,
+            'use_fast_tokenizer': self.use_fast_tokenizer,
+            'leading_space': self.leading_space,
+            'space_token': self.space_token,
+            'vllm': True
+        }
+
+    def add_stop_token(self, stop_token):
+        self.generation_config.stop_strings.append(stop_token)
+        self.logger.info(f'Updating generation_config.eos_token_id: {self.generation_config.stop_strings}')
+
+    def reset_stop_tokens(self):
+        self.generation_config.stop_strings = []
+
+    def _conv_template_bos_vllm_crutch(self):
+        self.global_prefix = self.conversation_template['global_prefix']
+        global_prefix_check = None if self.global_prefix  == '' else self.global_prefix 
+        assert global_prefix_check == self.tokenizer.bos_token
 
     def _load_plain_model(self, model_dir):
+        #TODO: параметры вынести в конфиг, в инит или еще куда
         self.model = vLLM(
             model=model_dir, device=self.device_map,
             max_model_len=4096, max_seq_len_to_capture=4096, 
             gpu_memory_utilization=0.9, max_logprobs=1000000,
             disable_sliding_window=True, enable_prefix_caching=True, trust_remote_code=True)
 
-        #self.logger.info(f"Model id: {model_dir}, params: {self.model.num_parameters()}, dtype: {self.model.dtype}")
-
     def _load_lora(self, model_dir):
-        # TODO: не работает с modules_to_save
+        # TODO: не работает с modules_to_save, и вообще пока не тестил
         config = PeftConfig.from_pretrained(model_dir)
-        base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path, trust_remote_code=True)
-        #torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
-
         self.model = vLLM(
             model=config.base_model_name_or_path, device=self.device_map,
             max_model_len=4096, max_seq_len_to_capture=4096, 
@@ -646,9 +603,8 @@ class VLLMModel(LocalHostedLLM):
     def _get_lora_request(self):
         if not self.if_lora:
             return None
-
         return LoRARequest("lora", 1, self.model_name_or_path)
 
     def _get_max_lora_rank(self, lora_config):
-        # TODO: not default rank
+        # TODO: случай с наличием не дефолтного ранга
         return lora_config.r

@@ -1,5 +1,5 @@
 import argparse
-from llmtf.model import HuggingFaceLLM, VLLMModel
+from llmtf.model import HFModel, VLLMModel
 from llmtf.evaluator import Evaluator
 
 if __name__ == '__main__':
@@ -9,14 +9,14 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir')
     parser.add_argument('--dataset_names', nargs='+', default='all')
     parser.add_argument('--device_map', type=str, default='auto')
-    parser.add_argument('--max_len', type=int, default=2048)
+    parser.add_argument('--max_len', type=int, default=4000)
     parser.add_argument('--few_shot_count', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--max_sample_per_dataset', type=int, default=10000000000000)
     parser.add_argument('--vllm', action='store_true')
     args = parser.parse_args()
 
-    MODEL_CLASS = VLLMModel if args.vllm else HuggingFaceLLM
+    MODEL_CLASS = VLLMModel if args.vllm else HFModel
     model = MODEL_CLASS(args.conv_path, device_map=args.device_map)
     model.from_pretrained(args.model_name_or_path)
 

@@ -73,6 +73,10 @@ class Evaluator():
     def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset):
         with CustomTimer(task.logger, 'Loading Dataset'):
             messages, samples = task.load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
+
+        for stop_token in task.additional_stop_tokens:
+            model.add_stop_token(stop_token)
+
         metrics = []
         with SimpleTaskLogger(output_dir, task.name) as logger, CustomTimer(task.logger, 'Processing Dataset'):
             for i in tqdm(range(0, len(messages), batch_size)):
@@ -93,6 +97,7 @@ class Evaluator():
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1])
         
+        model.reset_stop_tokens()
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
         with SimpleTaskLogger(output_dir, task.name + '_total') as logger:
             logger.log_json({'task_name': task.name, 'results': metrics_res})

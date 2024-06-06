@@ -16,11 +16,11 @@ import transformers.data.metrics.squad_metrics as squad_metrics
 import re
 import logging
 
-DARUMERU_HF_PATH = 'RefalMachine/darumeru'
 
 class Task(abc.ABC):
     def __init__(self):
         self.init_logger()
+        self.additional_stop_tokens = []
 
     @property
     def logger(self):
@@ -49,16 +49,19 @@ class Task(abc.ABC):
         return prepared_messages
     
 class DarumeruTask(Task):
+    DARUMERU_HF_PATH = 'RefalMachine/darumeru'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.additional_stop_tokens.append('\n')
+        
 
     def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
-        dataset = load_dataset(DARUMERU_HF_PATH, self.dataset_name)
+        dataset = load_dataset(self.DARUMERU_HF_PATH, self.dataset_name)
         samples = self._load_dataset(dataset, model, max_len, max_sample_per_dataset, few_shot_count)
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
 
-        if self.method == 'calculate_token_interest_probs':
+        if self.method == 'calculate_tokens_proba':
             for m in messages:
                 m['tokens_of_interest'] = self.choices
         return messages, samples
@@ -116,12 +119,10 @@ class MultiQ(DarumeruTask):
             "em": em,
         }
 
-#class SimpleMultipleChoiceTask(abc.ABC):
-
 class PARus(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = 'calculate_token_interest_probs'
+        self.method = 'calculate_tokens_proba'
         self.dataset_name = 'parus'
 
     @property
@@ -144,7 +145,7 @@ class PARus(DarumeruTask):
 class RCB(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = 'calculate_token_interest_probs'
+        self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rcb'
 
     @property
@@ -166,7 +167,7 @@ class RCB(DarumeruTask):
 class ruMMLU(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = 'calculate_token_interest_probs'
+        self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rummlu'
 
     @property
@@ -205,7 +206,7 @@ class ruMMLU(DarumeruTask):
 class ruOpenBookQA(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = 'calculate_token_interest_probs'
+        self.method = 'calculate_tokens_proba'
         self.dataset_name = 'ruopenbookqa'
 
     @property
@@ -227,7 +228,7 @@ class ruOpenBookQA(DarumeruTask):
 class ruTiE(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = 'calculate_token_interest_probs'
+        self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rutie'
     
     @property
@@ -291,7 +292,7 @@ class ruTiE(DarumeruTask):
 class ruWorldTree(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = 'calculate_token_interest_probs'
+        self.method = 'calculate_tokens_proba'
         self.dataset_name = 'ruworldtree'
 
     @property
@@ -313,7 +314,7 @@ class ruWorldTree(DarumeruTask):
 class RWSD(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.method = 'calculate_token_interest_probs'
+        self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rwsd'
 
     @property
