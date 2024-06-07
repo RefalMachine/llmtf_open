@@ -1,0 +1,11 @@
+{
+    "system_message_template": "{content}\n",
+    "user_message_template": "{content}\n",
+    "bot_message_template": "{content}\n\n",
+    "bot_message_template_incomplete": "{content}",
+    "user_role": "user",
+    "bot_role": "bot",
+    "system_role": "system",
+    "suffix": "",
+    "add_special_tokens": false
+}

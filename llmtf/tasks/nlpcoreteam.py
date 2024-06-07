@@ -70,7 +70,7 @@ SUBCATEGORIES = {
     "world_religions": ["philosophy"],
 }
 
-categories = {
+CATEGORIES = {
     "STEM": ["physics", "chemistry", "biology", "computer science", "math", "engineering"],
     "humanities": ["history", "philosophy", "law"],
     "social sciences": ["politics", "culture", "economics", "geography", "psychology"],
@@ -169,12 +169,32 @@ class MMLU(Task):
 
     def _per_category_mean(self, results: Dict) -> Dict:
         categories = set([res['category'] for res in results])
+        '''
         matric_per_category = {}
         for category in categories:
             matric_per_category[category] = mean([res['val'] for res in results if res['category'] == category])
-        self.logger.info(str(matric_per_category))
+        '''
+        subjects = set([res['subject'] for res in results])
+        assert len(subjects) == 57
+        metric_per_subject = {}
+        for subject in subjects:
+            metric_per_subject[subject] = mean([res['val'] for res in results if res['subject'] == subject])
+        #self.logger.info(str(matric_per_category))
+        #self.logger.info(str(metric_per_subject))
 
-        return mean([v for v in matric_per_category.values()])
+        category_to_main_category = {value: key for key, sublist in CATEGORIES.items() for value in sublist}
+        subcategories2categories = {key: category_to_main_category[value[0]] for key, value in SUBCATEGORIES.items()}
+        subjects = sorted(list(subjects))
+        df = pd.DataFrame()
+        df['subject'] = subjects
+        df['metric'] = [metric_per_subject[s] for s in subjects]
+        self.logger.info(df.groupby('subject').mean())
+        df['subject'] = df['subject'].apply(lambda x: subcategories2categories[x])
+        df = df.groupby('subject').mean()
+        self.logger.info(df)
+        self.logger.info(df.mean())
+
+        return float(df.mean())
 
     def aggregation(self) -> Dict:
         return {"acc": self._per_category_mean}
@@ -183,7 +203,7 @@ class MMLU(Task):
         y_true = sample['answer']
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         res = y_true == y_pred
-        return {'acc': {'val' : res, 'category': sample['category']}}
+        return {'acc': {'val' : res, 'category': sample['category'], 'subject': sample['subject']}}
 
     def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         messages = []
@@ -252,8 +272,8 @@ class MMLU(Task):
         assert len(domain) == 1
         domain = domain[0]
         category = None
-        for cat in categories:
-            if domain in categories[cat]:
+        for cat in CATEGORIES:
+            if domain in CATEGORIES[cat]:
                 category = cat
                 break
         assert category is not None

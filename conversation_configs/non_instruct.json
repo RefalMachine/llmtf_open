@@ -1,7 +1,7 @@
 {
     "system_message_template": "{content}\n",
     "user_message_template": "Query: {content}\n",
-    "bot_message_template": "Response: {content}\n",
+    "bot_message_template": "Response: {content}\n\n",
     "bot_message_template_incomplete": "Response: {content}",
     "user_role": "user",
     "bot_role": "bot",
