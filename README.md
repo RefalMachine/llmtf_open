@@ -1,4 +1,14 @@
+#TODO: max len???
+
+#TODO: Task должна создавать некоторый контекст для LLM (задавая некоторые параметры generation_config и тп). Контекст менеджер?
+
+#TODO: aggregation per category, not per subject
+
+#TODO: в vllm generate сразу корректные инпуты, а не строки. Должно помочь убрать костыли с bos.
+
 #TODO: добавить mmlu_ru/mmlu_en из https://github.com/NLP-Core-Team/mmlu_ru с воспроизведением качества.
+
+#TODO: vllm батчинг + логпробы = ?? проблемы были не всегда, но в некоторых случаях (mmlu_en для ruadapt_llama3_bpe_extended_part1-2_vo_1e4_bs256). Другие не проверял. Генерацию не проверял.
 
 #TODO: распараллелить препроцессинг датасетов, более корректно реализовать учет max_sample_per_dataset
 
@@ -8,7 +18,7 @@
 
 #TODO: typing!
 
-#TODO: vllm lora
+#TODO: vllm lora (не работает в общем случае, если есть modules_to_save). Добавить это в ограничение применения фреймворка + корректно извлечь макс ранг.
 
 #TODO: ООП и другие приколы питона (где бы найти норм кодстайл?)
 

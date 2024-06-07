@@ -4,7 +4,6 @@ import sklearn
 def mean(arr):
     return sum(arr) / max(len(arr), 1)
 
-
 def f1_macro_score(items):
     unzipped_list = list(zip(*items))
     golds = unzipped_list[0]

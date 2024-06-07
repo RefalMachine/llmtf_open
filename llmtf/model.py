@@ -328,6 +328,7 @@ class LocalHostedLLM(LLM):
             self.logger.info(f'Set global prefix {global_prefix} to conv config')
 
     def add_stop_token(self, stop_token):
+        # TODO: переделать всю логику по поводу стоп токенов. Позволить генерировать пока не будет достигнут stop criteria, но потом просто обрезать результат до stop_string.
         if type(self.generation_config.eos_token_id) != list:
             self.generation_config.eos_token_id = [self.generation_config.eos_token_id]
 
@@ -336,13 +337,16 @@ class LocalHostedLLM(LLM):
         if len(stop_token_id) == 2 and self.leading_space and stop_token_id[0] == self.space_token:
             stop_token_id = stop_token_id[1:]
         
+        if len(stop_token_id) > 1:
+            self.logger.warning(f'Can\'t stop on sequence {stop_token_id} with HF model. Try --vvlm for correct behaviour. Will stop on {stop_token_id[0]}')
+            stop_token_id = stop_token_id[0]
         self.logger.info(f'Updating generation_config.eos_token_id: add {stop_token_id}')
         assert len(stop_token_id) == 1
         self.generation_config.eos_token_id.append(stop_token_id[0])
         self.logger.info(f'generation_config.eos_token_id: {self.generation_config.eos_token_id}')
 
     def reset_stop_tokens(self):
-        self.generation_config.eos_token_id = self.generation_config.eos_token_id[0]
+        self.generation_config.eos_token_id = self.generation_config.eos_token_id[0] if type(self.generation_config.eos_token_id) == list else self.generation_config.eos_token_id
 
 class HFModel(LocalHostedLLM):
     def __init__(
@@ -517,13 +521,19 @@ class VLLMModel(LocalHostedLLM):
         self.reset_stop_tokens()
         self.logger.info(f'Leading space: {self.leading_space}')
         self.logger.info(self.generation_config)
+        self.logger.info(f'For calculate_tokens_proba batch always will be 1 because of possible errors in logprobs') # TODO: verify
+
+        tokenizer = self.model.get_tokenizer()
+        tokenizer.pad_token_id = self.tokenizer.pad_token_id
+        tokenizer.padding_side = self.tokenizer.padding_side
+        tokenizer.truncation_side = self.tokenizer.truncation_side
 
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
         prompts, outputs = self.generate_batch([messages], generation_config=None, incomplete_last_bot_message=True)
         return prompts[0], outputs[0]
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        self.conversation_template['global_prefix'] = ''
+        self.conversation_template['global_prefix'] = '' if self.vllm_adds_bos else self.conversation_template['global_prefix']
         prompts = []
         for _messages in messages:
             prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
@@ -538,7 +548,7 @@ class VLLMModel(LocalHostedLLM):
             repetition_penalty=generation_config.repetition_penalty,
             stop=generation_config.stop_strings
         )
-
+        # TODO: prompt_token_ids to generate
         vllm_response = self.model.generate(prompts, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         prompts_vllm = []
         outputs = []
@@ -553,7 +563,8 @@ class VLLMModel(LocalHostedLLM):
         return prompts[0], probs[0]
 
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        self.conversation_template['global_prefix'] = ''
+        # TODO: prompt_token_ids to generate
+        self.conversation_template['global_prefix'] = '' if self.vllm_adds_bos else self.conversation_template['global_prefix']
         prompts_batch = []
         tokens_of_interest_ids_batch = []
         for _messages, _tokens_of_interest in zip(*[messages, tokens_of_interest]):
@@ -564,15 +575,20 @@ class VLLMModel(LocalHostedLLM):
 
         sampling_params = SamplingParams(
             temperature=0,
-            logprobs=100, #TODO: to params
+            logprobs=10, #TODO: to params
             max_tokens=1,
             repetition_penalty=1.0
         )
-        
-        vllm_response = self.model.generate(prompts_batch, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+
+        # TODO: Verify: batching + logprobs can be incorrect in some cases.
+        vllm_responses = []
+        for prompt in prompts_batch:
+            vllm_response = self.model.generate(prompt, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+            vllm_responses += vllm_response
+
         prompts_vllm = []
         probs_batch = []
-        for i, response in enumerate(vllm_response):
+        for i, response in enumerate(vllm_responses):
             prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
             logprobs = response.outputs[0].logprobs[-1]
             tokens = [lp for lp in logprobs]
@@ -604,7 +620,7 @@ class VLLMModel(LocalHostedLLM):
 
     def add_stop_token(self, stop_token):
         self.generation_config.stop_strings.append(stop_token)
-        self.logger.info(f'Updating generation_config.eos_token_id: {self.generation_config.stop_strings}')
+        self.logger.info(f'Updating generation_config.stop_strings: {self.generation_config.stop_strings}')
 
     def reset_stop_tokens(self):
         self.generation_config.stop_strings = []
@@ -614,8 +630,17 @@ class VLLMModel(LocalHostedLLM):
         global_prefix_check = None if self.global_prefix  == '' else self.global_prefix 
         assert global_prefix_check == self.tokenizer.bos_token
 
+        sampling_params = SamplingParams(
+            temperature=0,
+            max_tokens=1,
+            repetition_penalty=1.0
+        )
+        vllm_response = self.model.generate(['Тестовый запрос'], sampling_params, use_tqdm=False, lora_request=self._get_lora_request())[0]
+        self.vllm_adds_bos = vllm_response.prompt_token_ids[0] == self.tokenizer.bos_token_id
+        self.logger.info(f'global_prefix = {self.global_prefix}')
+        self.logger.info(f'vllm_adds_bos = {self.vllm_adds_bos}')
+
     def _load_plain_model(self, model_dir):
-        #TODO: параметры вынести в конфиг, в инит или еще куда
         self.model = vLLM(
             model=model_dir, device=self.device_map,
             max_model_len=self.max_model_len, max_seq_len_to_capture=self.max_seq_len_to_capture, 

@@ -1,4 +1,3 @@
-import abc
 import codecs
 import json
 import copy
@@ -6,54 +5,26 @@ from collections import OrderedDict, defaultdict
 import numpy as np
 from tqdm import tqdm
 import os
-from abc import abstractmethod
-import abc
 from datasets import DatasetDict, load_dataset
 from llmtf.model import LLM
 from typing import Dict, List, Tuple
 from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score
 import transformers.data.metrics.squad_metrics as squad_metrics
 import re
-import logging
+from llmtf.base import Task
 
-
-class Task(abc.ABC):
-    def __init__(self):
-        self.init_logger()
-        self.additional_stop_tokens = []
-
-    @property
-    def logger(self):
-        return self.backend_logger
-
-    @abstractmethod
-    def evaluate(self, **kwargs) -> Dict:
-        pass
-
-    @abstractmethod
-    def aggregation(self, **kwargs) -> Dict:
-        pass
-
-    @abstractmethod
-    def load_dataset(self, **kwargs) -> Tuple[List[Dict], List[Dict]]:
-        pass
-
-    def init_logger(self):
-        logging.basicConfig(level=logging.INFO)
-        self.backend_logger = logging.getLogger(__name__ + '/' + self.name)
-
-    def apply_inputs(self, messages, inputs):
-        prepared_messages = copy.deepcopy(messages)
-        for m in prepared_messages:
-            m['content'] = m['content'].format(**inputs)
-        return prepared_messages
-    
 class DarumeruTask(Task):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.additional_stop_tokens.append('\n')
+        self.additional_stop_tokens.append('\n\n')
         
+    def apply_inputs(self, messages, inputs):
+        prepared_messages = copy.deepcopy(messages)
+        for m in prepared_messages:
+            m['content'] = m['content'].format(**inputs)
+        return prepared_messages
 
     def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         dataset = load_dataset(self.DARUMERU_HF_PATH, self.dataset_name)

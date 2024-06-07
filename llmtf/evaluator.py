@@ -1,10 +1,14 @@
-from llmtf.task import *
+#from llmtf.task import *
+from llmtf.tasks import TASK_REGISTRY
+from llmtf.base import Task
 import os
 import json
 from tqdm import tqdm
 import codecs
 import inspect
 import time
+import numpy as np
+
 
 class SimpleTaskLogger():
     def __init__(self, output_dir, task_name, append=False):
@@ -42,17 +46,11 @@ class CustomTimer():
  
 class Evaluator():
     def __init__(self):
-        self.dataset_types = {
-            'MultiQ': MultiQ,
-            'PARus': PARus,
-            'RCB': RCB,
-            'ruMMLU': ruMMLU,
-            'ruOpenBookQA': ruOpenBookQA,
-            'ruTiE': ruTiE,
-            'ruWorldTree': ruWorldTree,
-            'RWSD': RWSD,
-            'USE': USE
-        }
+        pass
+
+    def add_new_task(self, task_name, task_cls):
+        assert issubclass(task_cls, Task)
+        TASK_REGISTRY[task_name] = task_cls
 
     def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=1000000):
         #TODO: max_len setter
@@ -61,10 +59,10 @@ class Evaluator():
             generation_config.max_length = max_len
 
         if datasets_names == 'all':
-            datasets_names = list(self.dataset_types.keys())
+            datasets_names = list(TASK_REGISTRY.keys())
         
         for dataset_name in datasets_names:
-            task = self.dataset_types[dataset_name]()
+            task = TASK_REGISTRY[dataset_name]()
             self.evaluate_dataset(task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
         
         self.create_report(output_dir)
@@ -98,6 +96,7 @@ class Evaluator():
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1])
         
         
+        task.logger.info(f'Results for {task.name}:')
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
         with SimpleTaskLogger(output_dir, task.name + '_total') as logger:
             logger.log_json({'task_name': task.name, 'results': metrics_res})
@@ -110,7 +109,6 @@ class Evaluator():
             logger.log_json(params)
 
         model.reset_stop_tokens()
-        task.logger.info(f'Results for {task.name}:')
         task.logger.info(str(metrics_res))
 
     def create_report(self, output_dir):
