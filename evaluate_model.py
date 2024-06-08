@@ -14,10 +14,12 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--max_sample_per_dataset', type=int, default=10000000000000)
     parser.add_argument('--vllm', action='store_true')
+    parser.add_argument('--disable_sliding_window', action='store_true')
+    parser.add_argument('--disable_prefix_caching', action='store_true')
     args = parser.parse_args()
 
     MODEL_CLASS = VLLMModel if args.vllm else HFModel
-    model = MODEL_CLASS(args.conv_path, device_map=args.device_map)
+    model = MODEL_CLASS(args.conv_path, device_map=args.device_map, disable_sliding_window=args.disable_sliding_window, enable_prefix_caching=not args.disable_prefix_caching)
     model.from_pretrained(args.model_name_or_path)
 
     evaluator = Evaluator()

@@ -6,12 +6,11 @@ import numpy as np
 from tqdm import tqdm
 import os
 from datasets import DatasetDict, load_dataset
-from llmtf.model import LLM
 from typing import Dict, List, Tuple
 from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score
 import transformers.data.metrics.squad_metrics as squad_metrics
 import re
-from llmtf.base import Task
+from llmtf.base import Task, LLM
 
 class DarumeruTask(Task):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
@@ -19,6 +18,7 @@ class DarumeruTask(Task):
         super().__init__(**kwargs)
         self.additional_stop_tokens.append('\n')
         self.additional_stop_tokens.append('\n\n')
+        self._max_new_tokens = 64
         
     def apply_inputs(self, messages, inputs):
         prepared_messages = copy.deepcopy(messages)

@@ -7,7 +7,6 @@
     "user_role": "user",
     "bot_role": "bot",
     "system_role": "system",
-    "global_prefix": "",
     "suffix": "Response:",
     "add_special_tokens": false,
     "eos_token": "<|endoftext|>"

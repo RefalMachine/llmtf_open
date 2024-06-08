@@ -10,11 +10,12 @@ from typing import List
 import os
 import requests
 import numpy as np
-from vllm.lora.request import LoRARequest
-
+from llmtf.base import LLM
 try:
     from vllm import LLM as vLLM
     from vllm import SamplingParams
+    from vllm.lora.request import LoRARequest
+    from vllm.attention.backends.flash_attn import FlashAttentionBackend
 except:
     pass
 DEFAULT_MESSAGE_TEMPLATE = "{content}\n"
@@ -143,44 +144,6 @@ class Conversation:
             })
         self.messages[-1]['content'] = self.messages[-1]['content'].rstrip()
 
-
-class LLM(abc.ABC):
-    def __init__(self):
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
-
-    @abstractmethod
-    def generate(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def generate_batch(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def calculate_tokens_proba(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def calculate_tokens_proba_batch(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def apply_model_prompt(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def support_method(self, **kwargs):
-        pass
-    
-    @abstractmethod
-    def count_tokens_for_prompt(self, **kwargs):
-        pass
-
-    @abstractmethod
-    def get_params(self):
-        pass
-
 class LocalHostedLLM(LLM):
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']
@@ -189,7 +152,6 @@ class LocalHostedLLM(LLM):
         self._load_model(model_dir)
         self._check_if_leading_space()
         self.logger.info(f'Leading space: {self.leading_space}')
-        self.logger.info(self.generation_config)
 
     def _load_model(self, model_dir):
         self.model_name_or_path = model_dir
@@ -302,7 +264,7 @@ class LocalHostedLLM(LLM):
         self.generation_config.pad_token_id = self.tokenizer.pad_token_id
         self.generation_config.do_sample = True
         self.generation_config.max_new_tokens = 64
-        self.generation_config.max_length = 4096
+        self.generation_config.max_length = self.get_max_model_len()
         self.generation_config.repetition_penalty = 1.0
         self.generation_config.temperature = 0.1
         self.generation_config.top_k = 40
@@ -322,10 +284,13 @@ class LocalHostedLLM(LLM):
             self.logger.info(f'Override eos_token_id in generation_config from {eos_token_id_old} to {eos_token_id}')
 
         global_prefix = self.conversation_template.get('global_prefix', None)
-        if global_prefix is None or len(global_prefix) == 0:
+        if global_prefix is None:
             global_prefix = self.tokenizer.decode([self.tokenizer.bos_token_id])
             self.conversation_template['global_prefix'] = global_prefix
             self.logger.info(f'Set global prefix {global_prefix} to conv config')
+
+        if len(global_prefix) == 0:
+            self.logger.warning(f'Global prefix is equal to empty string!')
 
     def add_stop_token(self, stop_token):
         # TODO: переделать всю логику по поводу стоп токенов. Позволить генерировать пока не будет достигнут stop criteria, но потом просто обрезать результат до stop_string.
@@ -354,7 +319,8 @@ class HFModel(LocalHostedLLM):
             load_in_8bit=False, 
             torch_dtype='auto', device_map='auto', 
             use_flash_attention_2=True, use_fast_tokenizer=True, 
-            trust_remote_code=False
+            trust_remote_code=False,
+            **kwargs
         ):
         super().__init__()
         self.load_in_8bit = load_in_8bit
@@ -379,12 +345,13 @@ class HFModel(LocalHostedLLM):
             'use_fast_tokenizer': self.use_fast_tokenizer,
             'leading_space': self.leading_space,
             'space_token': self.space_token,
-            'trust_remote_code': self.trust_remote_code
+            'trust_remote_code': self.trust_remote_code,
+            'max_model_len': self.get_max_model_len()
         }
         
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        prompts, outputs = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message)
-        return prompts[0], outputs[0]
+        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message)
+        return prompts[0], outputs[0], infos[0]
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
         prompts = []
@@ -405,16 +372,25 @@ class HFModel(LocalHostedLLM):
                 generation_config=self.generation_config if generation_config is None else generation_config
             )
         outputs = []
+        infos = []
         for sample_output_ids, sample_input_ids in zip(output_ids, data["input_ids"]):
             sample_output_ids = sample_output_ids[len(sample_input_ids):]
             sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
             outputs.append(sample_output)
 
-        return prompts, outputs
+            infos.append(
+                {
+                    'prompt_len': len(data['input_ids']), 
+                    'generated_len': len(sample_output_ids), 
+                    'generated_cumulative_logprob': 'TODO: calculate for hf model'
+                }
+            )
+
+        return prompts, outputs, infos
     
     def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        prompts, probs = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message=incomplete_last_bot_message)
-        return prompts[0], probs[0]
+        prompts, probs, infos = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message=incomplete_last_bot_message)
+        return prompts[0], probs[0], infos[0]
     
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
         prompts_batch = []
@@ -437,6 +413,7 @@ class HFModel(LocalHostedLLM):
         next_token_logits_batch = logits[:, -1, :]  # shape (batch_size, vocab_size)
 
         probs_batch = []
+        infos = []
         for i in range(next_token_logits_batch.shape[0]):
             next_token_logits = next_token_logits_batch[i]
             next_token_logits = next_token_logits.flatten()
@@ -448,7 +425,17 @@ class HFModel(LocalHostedLLM):
             probs = next_token_probs[tokens_of_interest_ids_batch[i]].tolist()
             probs = dict(zip(tokens_of_interest[i], probs))
             probs_batch.append(probs)
-        return prompts_batch, probs_batch
+
+            infos.append(
+                {
+                    'prompt_len': len(data['input_ids']), 
+                    'generated_len': 1, 
+                    'generated_cumulative_logprob': 'TODO: calculate for hf model', 
+                    'generated_token': tokenizer.decode([next_token_probs.argmax()])
+                }
+            )
+
+        return prompts_batch, probs_batch, infos
 
     def _load_plain_model(self, model_dir):
         base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)
@@ -487,18 +474,22 @@ class HFModel(LocalHostedLLM):
 
         self.model.eval()
 
+    def get_max_model_len(self):
+        return self.model.config.max_position_embeddings
+
 class VLLMModel(LocalHostedLLM):
     def __init__(
             self, 
             conversation_template_path, 
             use_fast_tokenizer=True, 
             device_map='auto',
-            max_model_len=4096, max_seq_len_to_capture=4096,
+            max_seq_len_to_capture=8192,
             gpu_memory_utilization=0.9,
-            disable_sliding_window=True,
+            disable_sliding_window=False,
             enable_prefix_caching=True,
             trust_remote_code=False,
-            calculate_tokens_proba_logprobs_count=100
+            calculate_tokens_proba_logprobs_count=100,
+            **kwargs
         ):
         super().__init__()
         with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
@@ -506,7 +497,6 @@ class VLLMModel(LocalHostedLLM):
         self.conversation_template = template
         self.use_fast_tokenizer = use_fast_tokenizer
         self.device_map = device_map
-        self.max_model_len = max_model_len
         self.max_seq_len_to_capture = max_seq_len_to_capture 
         self.gpu_memory_utilization = gpu_memory_utilization
         self.disable_sliding_window = disable_sliding_window
@@ -517,10 +507,9 @@ class VLLMModel(LocalHostedLLM):
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
         self._check_if_leading_space()
-        self._conv_template_bos_vllm_crutch()
+        self._conv_template_bos_vllm_test()
         self.reset_stop_tokens()
         self.logger.info(f'Leading space: {self.leading_space}')
-        self.logger.info(self.generation_config)
         self.logger.info(f'For calculate_tokens_proba batch always will be 1 because of possible errors in logprobs') # TODO: verify
 
         tokenizer = self.model.get_tokenizer()
@@ -528,16 +517,18 @@ class VLLMModel(LocalHostedLLM):
         tokenizer.padding_side = self.tokenizer.padding_side
         tokenizer.truncation_side = self.tokenizer.truncation_side
 
+        self.attn_backend = self.model.llm_engine.model_executor.driver_worker.model_runner.attn_backend
+        self.special_attn_warning_complete = False
+
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        prompts, outputs = self.generate_batch([messages], generation_config=None, incomplete_last_bot_message=True)
-        return prompts[0], outputs[0]
+        prompts, outputs, infos = self.generate_batch([messages], generation_config=None, incomplete_last_bot_message=True)
+        return prompts[0], outputs[0], infos[0]
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        self.conversation_template['global_prefix'] = '' if self.vllm_adds_bos else self.conversation_template['global_prefix']
-        prompts = []
+        prompts_tokens_batch = []
         for _messages in messages:
-            prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
-        self.conversation_template['global_prefix'] = self.global_prefix
+            prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
+            prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=False)['input_ids'])
 
         generation_config = self.generation_config if generation_config is None else generation_config
         sampling_params = SamplingParams(
@@ -548,48 +539,63 @@ class VLLMModel(LocalHostedLLM):
             repetition_penalty=generation_config.repetition_penalty,
             stop=generation_config.stop_strings
         )
-        # TODO: prompt_token_ids to generate
-        vllm_response = self.model.generate(prompts, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+
         prompts_vllm = []
         outputs = []
-        for response in vllm_response:
+        infos = []
+        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+        for response in vllm_responses:
+            infos.append(
+                {
+                    'prompt_len': len(response.prompt_token_ids), 
+                    'generated_len': len(response.outputs[0].token_ids), 
+                    'generated_cumulative_logprob': response.outputs[0].cumulative_logprob
+                }
+            )
             prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
             outputs.append(response.outputs[0].text)
 
-        return prompts_vllm, outputs
+        return prompts_vllm, outputs, infos
 
     def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        prompts, probs = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message)
-        return prompts[0], probs[0]
+        prompts, probs, infos = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message)
+        return prompts[0], probs[0], infos[0]
 
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        # TODO: prompt_token_ids to generate
-        self.conversation_template['global_prefix'] = '' if self.vllm_adds_bos else self.conversation_template['global_prefix']
-        prompts_batch = []
+        if len(messages) > 1 and self.attn_backend == FlashAttentionBackend:
+            if not self.special_attn_warning_complete:
+                self.logger.warning('Flash Attention 2 most probably can work incorrectly with logproba and batch size > 1 (because of padding).\nHighly recommended to use Xformer backend in this case (set VLLM_ATTENTION_BACKEND env var to XFORMERS) or batch size=1.')
+                self.special_attn_warning_complete = True
+
+        prompts_tokens_batch = []
         tokens_of_interest_ids_batch = []
         for _messages, _tokens_of_interest in zip(*[messages, tokens_of_interest]):
             prompt, tokens_of_interest_ids = self._get_tokens_of_interest_ids_modify_prompt(_messages, _tokens_of_interest, incomplete_last_bot_message)
-            prompts_batch.append(prompt)
+            prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=False)['input_ids'])
             tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
-        self.conversation_template['global_prefix'] = self.global_prefix
 
         sampling_params = SamplingParams(
             temperature=0,
-            logprobs=10, #TODO: to params
+            logprobs=self.calculate_tokens_proba_logprobs_count,
             max_tokens=1,
             repetition_penalty=1.0
         )
 
-        # TODO: Verify: batching + logprobs can be incorrect in some cases.
-        vllm_responses = []
-        for prompt in prompts_batch:
-            vllm_response = self.model.generate(prompt, sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
-            vllm_responses += vllm_response
-
         prompts_vllm = []
         probs_batch = []
+        infos = []
+        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         for i, response in enumerate(vllm_responses):
+            infos.append(
+                {
+                    'prompt_len': len(response.prompt_token_ids), 
+                    'generated_len': len(response.outputs[0].token_ids), 
+                    'generated_cumulative_logprob': response.outputs[0].cumulative_logprob, 
+                    'generated_token': response.outputs[0].text
+                }
+            )
             prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
+
             logprobs = response.outputs[0].logprobs[-1]
             tokens = [lp for lp in logprobs]
             probs = np.exp([logprobs[lp].logprob for lp in logprobs])
@@ -597,7 +603,7 @@ class VLLMModel(LocalHostedLLM):
             token2prob = {tokens_of_interest[i][j]: token2prob[token] if token in token2prob else 0.0 for j, token in enumerate(tokens_of_interest_ids_batch[i])}
             probs_batch.append(token2prob)
 
-        return prompts_vllm, probs_batch
+        return prompts_vllm, probs_batch, infos
 
     def get_params(self):
         return {
@@ -608,7 +614,7 @@ class VLLMModel(LocalHostedLLM):
             'use_fast_tokenizer': self.use_fast_tokenizer,
             'leading_space': self.leading_space,
             'space_token': self.space_token,
-            'max_model_len': self.max_model_len,
+            'max_model_len': self.get_max_model_len(),
             'max_seq_len_to_capture': self.max_seq_len_to_capture,
             'gpu_memory_utilization': self.gpu_memory_utilization,
             'disable_sliding_window': self.disable_sliding_window,
@@ -624,11 +630,12 @@ class VLLMModel(LocalHostedLLM):
 
     def reset_stop_tokens(self):
         self.generation_config.stop_strings = []
+        self.logger.info(f'Resetting generation_config.stop_strings to []')
 
-    def _conv_template_bos_vllm_crutch(self):
+    def _conv_template_bos_vllm_test(self):
         self.global_prefix = self.conversation_template['global_prefix']
         global_prefix_check = None if self.global_prefix  == '' else self.global_prefix 
-        assert global_prefix_check == self.tokenizer.bos_token
+        #assert global_prefix_check == self.tokenizer.bos_token
 
         sampling_params = SamplingParams(
             temperature=0,
@@ -642,8 +649,8 @@ class VLLMModel(LocalHostedLLM):
 
     def _load_plain_model(self, model_dir):
         self.model = vLLM(
-            model=model_dir, device=self.device_map,
-            max_model_len=self.max_model_len, max_seq_len_to_capture=self.max_seq_len_to_capture, 
+            model=model_dir, device=self.device_map, #max_model_len=self.max_model_len,
+            max_seq_len_to_capture=self.max_seq_len_to_capture, 
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching, 
             trust_remote_code=self.trust_remote_code
@@ -667,3 +674,6 @@ class VLLMModel(LocalHostedLLM):
     def _get_max_lora_rank(self, lora_config):
         # TODO: случай с наличием не дефолтного ранга
         return lora_config.r
+
+    def get_max_model_len(self):
+        return min(self.model.llm_engine.model_config.max_model_len, self.max_seq_len_to_capture)

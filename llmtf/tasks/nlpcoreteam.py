@@ -1,15 +1,16 @@
-from llmtf.base import Task
+from llmtf.base import Task, LLM
 from llmtf.metrics import mean
-from llmtf.model import LLM
 from typing import Dict, List, Tuple
 from datasets import DatasetDict, load_dataset, Dataset
 import pandas as pd
 from tqdm import tqdm
 import copy
 from multiprocessing import Pool
+import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Data preparation taken from https://github.com/NLP-Core-Team/mmlu_ru
-# TODO: per subject aggregation
 SUBCATEGORIES = {
     "abstract_algebra": ["math"],
     "anatomy": ["health"],
@@ -162,29 +163,24 @@ class MMLU(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
+        self._max_new_tokens = 64
 
     @property
     def choices(self):
         return ["A", "B", "C", "D"]
 
     def _per_category_mean(self, results: Dict) -> Dict:
-        categories = set([res['category'] for res in results])
-        '''
-        matric_per_category = {}
-        for category in categories:
-            matric_per_category[category] = mean([res['val'] for res in results if res['category'] == category])
-        '''
         subjects = set([res['subject'] for res in results])
         assert len(subjects) == 57
         metric_per_subject = {}
         for subject in subjects:
             metric_per_subject[subject] = mean([res['val'] for res in results if res['subject'] == subject])
-        #self.logger.info(str(matric_per_category))
-        #self.logger.info(str(metric_per_subject))
+
 
         category_to_main_category = {value: key for key, sublist in CATEGORIES.items() for value in sublist}
         subcategories2categories = {key: category_to_main_category[value[0]] for key, value in SUBCATEGORIES.items()}
         subjects = sorted(list(subjects))
+
         df = pd.DataFrame()
         df['subject'] = subjects
         df['metric'] = [metric_per_subject[s] for s in subjects]
@@ -192,7 +188,6 @@ class MMLU(Task):
         df['subject'] = df['subject'].apply(lambda x: subcategories2categories[x])
         df = df.groupby('subject').mean()
         self.logger.info(df)
-        self.logger.info(df.mean())
 
         return float(df.mean())
 
@@ -203,7 +198,7 @@ class MMLU(Task):
         y_true = sample['answer']
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         res = y_true == y_pred
-        return {'acc': {'val' : res, 'category': sample['category'], 'subject': sample['subject']}}
+        return {'acc': {'val' : res, 'subject': sample['subject']}}
 
     def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         messages = []
@@ -213,9 +208,9 @@ class MMLU(Task):
         subject_datasets = load_dataset_multiprocessing(subjects, 12) #TODO: to params
         for i, dataset in enumerate(tqdm(subject_datasets)):
             subject = subjects[i]
-            #dataset = load_dataset(self.NLPCORE_HF_PATH, name=subject, download_mode='reuse_dataset_if_exists')
-            dataset_test = dataset['test']#self._get_df_in_hendrycks_format(subject, 'test')
-            dataset_dev = dataset['dev']#self._get_df_in_hendrycks_format(subject, 'dev')
+
+            dataset_test = dataset['test']
+            dataset_dev = dataset['dev']
 
             subject_samples = self._load_dataset(subject, dataset_test, dataset_dev, model, max_len, max_samples_per_subject, few_shot_count)
 
@@ -267,17 +262,6 @@ class MMLU(Task):
 
         sample['answer'] = int2str(sample['answer'])
         sample['subject'] = subject
-
-        domain = SUBCATEGORIES[subject]
-        assert len(domain) == 1
-        domain = domain[0]
-        category = None
-        for cat in CATEGORIES:
-            if domain in CATEGORIES[cat]:
-                category = cat
-                break
-        assert category is not None
-        sample['category'] = category
 
         return {'messages': messages, 'sample': sample}
 

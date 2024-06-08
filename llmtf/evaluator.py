@@ -1,6 +1,7 @@
 #from llmtf.task import *
 from llmtf.tasks import TASK_REGISTRY
 from llmtf.base import Task
+from llmtf.utils import CustomTimer, SimpleTaskLogger, MaxLenContext
 import os
 import json
 from tqdm import tqdm
@@ -8,41 +9,9 @@ import codecs
 import inspect
 import time
 import numpy as np
+import logging
+from logging import FileHandler
 
-
-class SimpleTaskLogger():
-    def __init__(self, output_dir, task_name, append=False):
-        self.output_dir = output_dir
-        self.task_name = task_name.replace('/', '_')
-        self.append = append
-
-    def __enter__(self):
-        if not os.path.exists(self.output_dir):
-            os.mkdir(self.output_dir)
-        self.file = codecs.open(os.path.join(self.output_dir, self.task_name + '.jsonl'), 'a' if self.append else 'w', 'utf-8')
-        return self
- 
-    def __exit__(self, *args):
-        self.file.close()
-
-    def log_sample(self, sample, pred, prompt, metric):
-        self.log_json({'metric': metric, 'predict': pred, 'sample': sample, 'prompt': prompt})
-    
-    def log_json(self, json_data, indent=4):
-        self.file.write(json.dumps(json_data, ensure_ascii=False, indent=indent) + '\n')
-
-class CustomTimer():
-    def __init__(self, logger, prefix):
-        self.logger = logger
-        self.prefix = prefix
-        self.start_time = None
-
-    def __enter__(self):
-        self.start_time = time.time()
-
-    def __exit__(self, *args):
-        time_passed = time.time() - self.start_time
-        self.logger.info(f'{self.prefix}: {time_passed:.2f}s')
  
 class Evaluator():
     def __init__(self):
@@ -52,18 +21,18 @@ class Evaluator():
         assert issubclass(task_cls, Task)
         TASK_REGISTRY[task_name] = task_cls
 
-    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=1000000):
-        #TODO: max_len setter
-        model.generation_config.max_length = max_len
-        if generation_config is not None:
-            generation_config.max_length = max_len
+    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000):
+        self.init_logger(output_dir)
+        model.init_logger()
 
         if datasets_names == 'all':
             datasets_names = list(TASK_REGISTRY.keys())
         
         for dataset_name in datasets_names:
             task = TASK_REGISTRY[dataset_name]()
-            self.evaluate_dataset(task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
+            task.init_logger()
+            with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
+                self.evaluate_dataset(task, model, output_dir, prompt_max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
         
         self.create_report(output_dir)
 
@@ -82,18 +51,11 @@ class Evaluator():
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
                 if generation_config is not None:
                     messages_batch['generation_config'] = generation_config
-
-                if batch_size == 1:
-                    messages_batch = {k: messages_batch[k][0] if type(messages_batch[k]) == list else messages_batch[k] for k in messages_batch}
-                    prompt, y_pred = getattr(model, task.method)(**messages[i])
-                    prompts = [prompt]
-                    y_preds = [y_pred]
-                else:    
-                    prompts, y_preds = getattr(model, task.method + '_batch')(**messages_batch)
-
+    
+                prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
                 for j in range(len(y_preds)):
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
-                    logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1])
+                    logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
         
         
         task.logger.info(f'Results for {task.name}:')
@@ -125,6 +87,23 @@ class Evaluator():
         with codecs.open(os.path.join(output_dir, 'evaluation_results.txt'), 'w', 'utf-8') as file:
             file.write('\t'.join(task_names) + '\n')
             file.write('\t'.join([f'{m:.3f}' for m in task_metrics]))
+
+    def init_logger(self, output_dir):
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+
+        default_log_name = 'evaluation_log.txt'
+        logger = logging.getLogger('llmtf')
+
+        for handler in logger.handlers:
+            if handler.__class__ == logging.FileHandler and handler.baseFilename.endswith(default_log_name):
+                logger.removeHandler(handler)
+
+        fh = FileHandler(os.path.join(output_dir, default_log_name))
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(levelname)s: %(asctime)s: %(name)s: %(message)s')
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
 
 
                 
