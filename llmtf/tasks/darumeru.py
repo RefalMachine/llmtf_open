@@ -329,7 +329,10 @@ class USE(DarumeruTask):
 
     @staticmethod
     def multiple_choice_score(answer: str, prediction: str, is_task16=False) -> int:
-        pred = prediction.split(",")
+        # Отличие от исходной меры. Добавлен .strip().
+        # TODO: отразить отличие в readme
+
+        pred = [p.strip() for p in prediction.split(",")]
         ans = answer.split(",")
         if is_task16:
             while len(pred) < len(ans):
@@ -345,7 +348,10 @@ class USE(DarumeruTask):
 
     @staticmethod
     def matching_score(answer: str, prediction: str) -> int:
-        pred = prediction.split(",")
+        # Отличие от исходной меры. Добавлен .strip().
+        # TODO: отразить отличие в readme
+
+        pred = [p.strip() for p in prediction.split(",")]
         ans = answer.split(",")
         score = 0
         if len(ans) != len(pred):

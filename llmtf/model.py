@@ -299,12 +299,12 @@ class LocalHostedLLM(LLM):
 
         # есть способ получше обработать принудительный пробел вначале в некоторых токенайзерах?
         stop_token_id = self.tokenizer.encode(stop_token, add_special_tokens=False)
-        if len(stop_token_id) == 2 and self.leading_space and stop_token_id[0] == self.space_token:
+        if self.leading_space and stop_token_id[0] == self.space_token:
             stop_token_id = stop_token_id[1:]
         
         if len(stop_token_id) > 1:
             self.logger.warning(f'Can\'t stop on sequence {stop_token_id} with HF model. Try --vvlm for correct behaviour. Will stop on {stop_token_id[0]}')
-            stop_token_id = stop_token_id[0]
+            stop_token_id = stop_token_id[:1]
         self.logger.info(f'Updating generation_config.eos_token_id: add {stop_token_id}')
         assert len(stop_token_id) == 1
         self.generation_config.eos_token_id.append(stop_token_id[0])
@@ -431,7 +431,7 @@ class HFModel(LocalHostedLLM):
                     'prompt_len': len(data['input_ids']), 
                     'generated_len': 1, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model', 
-                    'generated_token': tokenizer.decode([next_token_probs.argmax()])
+                    'generated_token': self.tokenizer.decode([next_token_probs.argmax()])
                 }
             )
 
@@ -510,7 +510,7 @@ class VLLMModel(LocalHostedLLM):
         self._conv_template_bos_vllm_test()
         self.reset_stop_tokens()
         self.logger.info(f'Leading space: {self.leading_space}')
-        self.logger.info(f'For calculate_tokens_proba batch always will be 1 because of possible errors in logprobs') # TODO: verify
+        #self.logger.info(f'For calculate_tokens_proba batch always will be 1 because of possible errors in logprobs') # TODO: verify
 
         tokenizer = self.model.get_tokenizer()
         tokenizer.pad_token_id = self.tokenizer.pad_token_id
