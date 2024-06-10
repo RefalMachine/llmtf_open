@@ -57,10 +57,19 @@ class Conversation:
             })
 
     def add_system_message(self, message):
-        self.messages.append({
-            "role": self.system_role,
-            "content": message
-        })
+        if len(self.messages) == 0:
+            self.messages.append({
+                "role": self.system_role,
+                "content": message
+            })
+        else:
+            if self.messages[0]["role"] == self.system_role:
+                self.messages[0]["content"] = message
+            else:
+                self.messages = [{
+                    "role": self.system_role,
+                    "content": message
+                }] + self.messages
 
     def add_user_message(self, message):
         self.messages.append({
@@ -100,9 +109,10 @@ class Conversation:
 
         raise Exception('Unknown role')
 
-    def get_prompt(self, tokenizer, max_tokens: int = None, add_suffix: bool = True, incomplete_last_bot_message: bool = False):
+    def get_prompt(self, tokenizer=None, max_tokens: int = None, add_suffix: bool = True, incomplete_last_bot_message: bool = False):
         messages = self.messages
         if max_tokens is not None:
+            assert tokenizer is not None
             messages = self.shrink(tokenizer, messages, max_tokens)
 
         final_text = self.global_prefix

@@ -1,0 +1,5 @@
+INFO: 2024-06-10 17:34:44,207: llmtf.base.russiannlp/rucola_custom: Loading Dataset: 3.84s
+INFO: 2024-06-10 17:34:50,594: llmtf.base.russiannlp/rucola_custom: Processing Dataset: 6.39s
+INFO: 2024-06-10 17:34:50,594: llmtf.base.russiannlp/rucola_custom: Results for russiannlp/rucola_custom:
+INFO: 2024-06-10 17:34:50,598: llmtf.base.llm: Resetting generation_config.stop_strings to []
+INFO: 2024-06-10 17:34:50,598: llmtf.base.russiannlp/rucola_custom: {'acc': 0.735, 'mcc': 0.21467076918233885}

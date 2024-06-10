@@ -1,0 +1,52 @@
+{
+    "custom_generation_config": null,
+    "model_params": {
+        "model_name_or_path": "Qwen/Qwen2-7B-Instruct",
+        "generation_config": {
+            "do_sample": true,
+            "eos_token_id": 151645,
+            "max_length": 8192,
+            "max_new_tokens": 1,
+            "pad_token_id": 151643,
+            "stop_strings": [],
+            "temperature": 0.1,
+            "top_k": 40,
+            "top_p": 0.9,
+            "transformers_version": "4.41.2",
+            "trust_remote_code": false
+        },
+        "conversation_template": {
+            "system_prompt": "You are a helpful assistant.",
+            "system_message_template": "<|im_start|>{role}\n{content}<|im_end|>\n",
+            "user_message_template": "<|im_start|>{role}\n{content}<|im_end|>\n",
+            "bot_message_template": "<|im_start|>{role}\n{content}<|im_end|>\n",
+            "bot_message_template_incomplete": "<|im_start|>{role}\n{content}",
+            "user_role": "user",
+            "bot_role": "assistant",
+            "system_role": "system",
+            "global_prefix": "",
+            "suffix": "<|im_start|>assistant\n",
+            "add_special_tokens": false,
+            "eos_token": "<|im_end|>"
+        },
+        "device_map": "cuda:0",
+        "use_fast_tokenizer": true,
+        "leading_space": false,
+        "space_token": null,
+        "max_model_len": 8192,
+        "max_seq_len_to_capture": 8192,
+        "gpu_memory_utilization": 0.9,
+        "disable_sliding_window": true,
+        "enable_prefix_caching": true,
+        "trust_remote_code": false,
+        "calculate_tokens_proba_logprobs_count": 100,
+        "vllm": true
+    },
+    "task_params": {
+        "max_len": 4000,
+        "few_shot_count": 5,
+        "batch_size": 8,
+        "max_sample_per_dataset": 200,
+        "method": "calculate_tokens_proba"
+    }
+}
