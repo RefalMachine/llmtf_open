@@ -1,6 +1,7 @@
 from . import (
     darumeru,
-    nlpcoreteam
+    nlpcoreteam,
+    rucola
 )
 
 ########################################
@@ -19,5 +20,6 @@ TASK_REGISTRY = {
     'darumeru/rwsd': darumeru.RWSD,
     'darumeru/use': darumeru.USE,
     'nlpcoreteam/rummlu': nlpcoreteam.ruMMLU,
-    'nlpcoreteam/enmmlu': nlpcoreteam.enMMLU
+    'nlpcoreteam/enmmlu': nlpcoreteam.enMMLU,
+    'russiannlp/rucola_custom': rucola.RuColaCustomTask
 }

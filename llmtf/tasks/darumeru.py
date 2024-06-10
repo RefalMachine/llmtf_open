@@ -5,66 +5,37 @@ from collections import OrderedDict, defaultdict
 import numpy as np
 from tqdm import tqdm
 import os
-from datasets import DatasetDict, load_dataset
+from datasets import load_dataset, Dataset
 from typing import Dict, List, Tuple
 from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score
 import transformers.data.metrics.squad_metrics as squad_metrics
 import re
-from llmtf.base import Task, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, LLM
 
-class DarumeruTask(Task):
+class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.additional_stop_tokens.append('\n')
         self.additional_stop_tokens.append('\n\n')
+        self.additional_stop_tokens.append('<|im_end|>')
         self._max_new_tokens = 64
-        
-    def apply_inputs(self, messages, inputs):
-        prepared_messages = copy.deepcopy(messages)
-        for m in prepared_messages:
+
+    def dataset_args(self) -> Dict:
+        return {'path': self.DARUMERU_HF_PATH, 'name': self.dataset_name}
+
+    def test_split_name(self) -> str:
+        return 'test'
+
+    def prompt_split_name(self) -> str:
+        return 'prompt'
+
+    def create_messages(self, sample, with_answer=None) -> List[Dict]:
+        # ignoring with_answer because it's already taken into account in the darumeru dataset
+        messages = sample['messages']
+        inputs = sample['inputs']
+        for m in messages:
             m['content'] = m['content'].format(**inputs)
-        return prepared_messages
-
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
-        dataset = load_dataset(self.DARUMERU_HF_PATH, self.dataset_name)
-        samples = self._load_dataset(dataset, model, max_len, max_sample_per_dataset, few_shot_count)
-        messages = [{'messages': s['messages']} for s in samples]
-        samples = [{'sample': s['sample']} for s in samples]
-
-        if self.method == 'calculate_tokens_proba':
-            for m in messages:
-                m['tokens_of_interest'] = self.choices
-        return messages, samples
-    
-    def _load_dataset(self, dataset: DatasetDict, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
-        assert model.support_method(self.method)
-        samples = []
-        for i, sample in enumerate(tqdm(dataset['test'])):
-            if i >= max_sample_per_dataset:
-                break
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, dataset['prompt']), 'sample': sample})
-        return samples
-        
-    def _prepare_messages(self, sample: Dict, model: LLM, max_len: int, few_shot_count: int, few_shot_samples: List) -> List:
-        k = min(few_shot_count, len(few_shot_samples))
-
-        zero_shot_messages = self.apply_inputs(sample['messages'], sample.get('inputs', {}))
-        zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-        if zero_shot_messages_len >= max_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
-        
-        messages = copy.deepcopy(zero_shot_messages)
-        successful = 0
-        for i in range(k):
-            few_shot_messages = self.apply_inputs(few_shot_samples[i]['messages'], few_shot_samples[i].get('inputs', {}))
-            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(few_shot_messages + messages))
-            if few_shot_messages_len >= max_len:
-                break
-
-            messages = few_shot_messages + messages
-            successful += 1
-
         return messages
 
 class MultiQ(DarumeruTask):
@@ -218,12 +189,13 @@ class ruTiE(DarumeruTask):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred}
     
-    def _load_dataset(self, dataset: DatasetDict, model: LLM, max_len: int, max_sample_per_dataset: int, *args, **kwargs) -> List:
-        assert model.support_method(self.method)
-        samples = self._prepare_messages(dataset['test'], model, max_len, max_sample_per_dataset)
+    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, *args, **kwargs) -> List:
+        dataset = load_dataset(**self.dataset_args())
+        test_dataset = dataset[self.test_split_name()]
+        samples = self._prepare_messages(test_dataset, model, max_len, max_sample_per_dataset)
         return samples
     
-    def _prepare_messages(self, samples: List, model: LLM, max_len: int, max_sample_per_dataset: int) -> List:
+    def _prepare_messages(self, samples: Dataset, model: LLM, max_len: int, max_sample_per_dataset: int) -> List:
         samples = sorted(samples, key=lambda x: x['meta']['question_id'])
         all_dataset_messages = []
         dialog_shift = 0
@@ -243,19 +215,18 @@ class ruTiE(DarumeruTask):
             ]
             
             sample['inputs']['context'] = "\n".join(context)
-            messages = self.apply_inputs(sample['messages'], sample.get('inputs', {}))
+            messages = self.create_messages(copy.deepcopy(sample)) #self.apply_inputs(sample['messages'], sample.get('inputs', {}))
             messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
             while messages_len >= max_len:
                 context = context[1:]
                 sample['inputs']['context'] = "\n".join(context)
-                messages = self.apply_inputs(sample['messages'], sample.get('inputs', {}))
+                messages = self.create_messages(copy.deepcopy(sample))#self.apply_inputs(sample['messages'], sample.get('inputs', {}))
                 messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
                 dialog_shift += 1
 
             if messages_len >= max_len:
                 #log this
                 pass
-            #self._fix_double_slash_n(messages)
             all_dataset_messages.append({'messages': messages, 'sample': s})
 
         return all_dataset_messages

@@ -1,0 +1,53 @@
+{
+    "custom_generation_config": null,
+    "model_params": {
+        "model_name_or_path": "openchat/openchat-3.5-0106",
+        "generation_config": {
+            "_from_model_config": true,
+            "bos_token_id": 1,
+            "do_sample": true,
+            "eos_token_id": 32000,
+            "max_length": 4096,
+            "max_new_tokens": 1,
+            "pad_token_id": 32000,
+            "stop_strings": [],
+            "temperature": 0.1,
+            "top_k": 40,
+            "top_p": 0.9,
+            "transformers_version": "4.41.2"
+        },
+        "conversation_template": {
+            "system_prompt": "",
+            "system_message_template": "{role} {content}<|end_of_turn|>",
+            "user_message_template": "{role} {content}<|end_of_turn|>",
+            "bot_message_template": "{role} {content}<|end_of_turn|>",
+            "bot_message_template_incomplete": "{role} {content}",
+            "user_role": "GPT4 Correct User:",
+            "bot_role": "GPT4 Correct Assistant:",
+            "system_role": "GPT4 Correct System:",
+            "global_prefix": "<s>",
+            "suffix": "GPT4 Correct Assistant:",
+            "add_special_tokens": false,
+            "eos_token": "<|end_of_turn|>"
+        },
+        "device_map": "cuda:0",
+        "use_fast_tokenizer": true,
+        "leading_space": true,
+        "space_token": 28705,
+        "max_model_len": 4096,
+        "max_seq_len_to_capture": 8192,
+        "gpu_memory_utilization": 0.9,
+        "disable_sliding_window": true,
+        "enable_prefix_caching": true,
+        "trust_remote_code": false,
+        "calculate_tokens_proba_logprobs_count": 100,
+        "vllm": true
+    },
+    "task_params": {
+        "max_len": 4000,
+        "few_shot_count": 5,
+        "batch_size": 8,
+        "max_sample_per_dataset": 200,
+        "method": "calculate_tokens_proba"
+    }
+}

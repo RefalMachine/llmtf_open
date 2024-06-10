@@ -276,6 +276,7 @@ class LocalHostedLLM(LLM):
     def _override_eos_token_conv_template(self):
         eos_token = self.conversation_template.get('eos_token', None)
         if eos_token is not None and len(eos_token) > 0:
+            # TODO: encode + учесть первый пробел, если есть.
             eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])
             assert len(eos_token_id) == 1 and eos_token_id[0] != None
             eos_token_id = eos_token_id[0]
@@ -629,8 +630,8 @@ class VLLMModel(LocalHostedLLM):
         self.logger.info(f'Updating generation_config.stop_strings: {self.generation_config.stop_strings}')
 
     def reset_stop_tokens(self):
-        self.generation_config.stop_strings = []
-        self.logger.info(f'Resetting generation_config.stop_strings to []')
+        self.generation_config.stop_strings = []#[self.generation_config.eos_token_id] if type(self.generation_config.eos_token_id) == int else self.generation_config.eos_token_id
+        self.logger.info(f'Resetting generation_config.stop_strings to {self.generation_config.stop_strings}')
 
     def _conv_template_bos_vllm_test(self):
         self.global_prefix = self.conversation_template['global_prefix']

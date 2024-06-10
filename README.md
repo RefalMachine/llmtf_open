@@ -1,5 +1,11 @@
 # llmtf_open
-llmtf_open - это фреймворк для быстрой и удобной оценки качества как базовых (foundation), так и инструктивных LLM.
+llmtf_open - это фреймворк для быстрой и удобной оценки качества как базовых (foundation), так и инструктивных LLM, ориентированные на представление задач (Task) в виде последовательности сообщений (messages).
+
+```bash
+python evaluate_model.py --model_name_or_path openchat/openchat-3.5-0106 \
+--conv_path conversation_configs/openchat_3.5_1210.json --output_dir evaluate_results_openchat_3.5_0106_k1 \
+--few_shot_count 1 --max_len 4000 --device_map "cuda:0" --batch_size 8 --vllm --disable_sliding_window
+```
 
 ## Ключевые особенности:
 1) Помимо стандартного инфера на hf реализовано использование vllm (--vllm ключ для evaluate_model.py), благодаря чему существенно ускоряется процесс оценки качества.
@@ -14,6 +20,7 @@ TODO: добавить examples.
 ## Из датасетов на данный момент:
 1) darumeru бенчмарк (https://huggingface.co/datasets/RefalMachine/darumeru). Создан на основе validation или train сплитов ['rcb', 'use', 'rwsd', 'parus', 'rutie', 'multiq', 'rummlu', 'ruworldtree', 'ruopenbookqa'] датасетов из MERA с некоторыми изменениями (пополнение multiq вариантов ответов, при оценки USE прощаются лишние пробелы между вариантами ответов: .strip(), везде добавлена часть с "Ответ:", всё преобразовано в message формат)
 2) mmlu_ru и mmlu_en из NLPCoreTeam/mmlu_ru. Получаемые скоры сопостовимы с получаемыми через https://github.com/NLP-Core-Team/mmlu_ru с небольшим отличием. (конфиг для полного воспроизведения будет добавлен позже). 
+3) rucola (RussianNLP/rucola): оценка проводится на валидационном множестве с few-shot примерами из train (начиная с 29 индекса, так как там в первых 5 примерах сбалансированно представлены классы, что влияет на качество работы языковых моделей)
 
 ## Некоторые особенности/условности:
 1) По умолчанию зафиксирован xformers бэкенд для vllm в качестве flash attention, так как FA2 с батчем > 1 выдает некорректные результаты в logprobs.
