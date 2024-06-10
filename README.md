@@ -13,9 +13,11 @@ python evaluate_model.py --model_name_or_path openchat/openchat-3.5-0106 \
 3) В основе messages формат работы с моделями. Поддержка чат темплейтов инстракт моделей (нужно задать соответствующий конфиг).
 4) Возможность достаточно просто добавлять свои датасеты для оценки.
 5) Помимо итогового скора логгируется весь input и output для каждого сэмпла.
+6) Для не инструктивных моделей (базовые, foundation) конфиг conversation_configs/non_instruct_simple.json.
 
 ## Примеры работы с фреймворком:
-TODO: добавить examples.
+1) Пример добавления новой задачи в examples/create_new_task.ipynb. Соответствующие логи в example_rucula_custom_openchat_3.5_0106_eval
+2) Пример добавления нового conversation config в examples/create_new_model_conversation_config.ipynb. Моделируется случай, когда нет подходящего конфига в conversation_configs.
 
 ## Из датасетов на данный момент:
 1) darumeru бенчмарк (https://huggingface.co/datasets/RefalMachine/darumeru). Создан на основе validation или train сплитов ['rcb', 'use', 'rwsd', 'parus', 'rutie', 'multiq', 'rummlu', 'ruworldtree', 'ruopenbookqa'] датасетов из MERA с некоторыми изменениями (пополнение multiq вариантов ответов, при оценки USE прощаются лишние пробелы между вариантами ответов: .strip(), везде добавлена часть с "Ответ:", всё преобразовано в message формат)
