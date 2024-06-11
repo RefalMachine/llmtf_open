@@ -6,7 +6,9 @@
             "_from_model_config": true,
             "bos_token_id": 1,
             "do_sample": true,
-            "eos_token_id": 32000,
+            "eos_token_id": [
+                32000
+            ],
             "max_length": 4096,
             "max_new_tokens": 1,
             "pad_token_id": 32000,

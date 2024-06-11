@@ -18,8 +18,8 @@ class RuColaCustomTask(SimpleFewShotHFTask):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "mcc": [y_true, y_pred]}
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'russiannlp/rucola_custom'
     
     @property

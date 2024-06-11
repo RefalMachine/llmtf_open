@@ -1,5 +1,11 @@
-INFO: 2024-06-10 17:33:52,961: llmtf.base.russiannlp/rucola_custom: Loading Dataset: 4.03s
-INFO: 2024-06-10 17:33:59,243: llmtf.base.russiannlp/rucola_custom: Processing Dataset: 6.28s
-INFO: 2024-06-10 17:33:59,244: llmtf.base.russiannlp/rucola_custom: Results for russiannlp/rucola_custom:
-INFO: 2024-06-10 17:33:59,248: llmtf.base.llm: Resetting generation_config.stop_strings to []
-INFO: 2024-06-10 17:33:59,249: llmtf.base.russiannlp/rucola_custom: {'acc': 0.725, 'mcc': 0.24077390894881104}
+INFO: 2024-06-11 11:43:18,732: llmtf.base.evaluator: Starting eval on ['russiannlp/rucola_custom']
+INFO: 2024-06-11 11:43:18,732: llmtf.base.vllmmodel: Updated generation_config.eos_token_id: [151645]
+INFO: 2024-06-11 11:43:18,733: llmtf.base.vllmmodel: Updated generation_config.stop_strings: []
+INFO: 2024-06-11 11:43:28,960: llmtf.base.russiannlp/rucola_custom: Loading Dataset: 10.23s
+INFO: 2024-06-11 11:43:35,220: llmtf.base.russiannlp/rucola_custom: Processing Dataset: 6.26s
+INFO: 2024-06-11 11:43:35,221: llmtf.base.russiannlp/rucola_custom: Results for russiannlp/rucola_custom:
+INFO: 2024-06-11 11:43:35,225: llmtf.base.russiannlp/rucola_custom: {'acc': 0.725, 'mcc': 0.24077390894881104}
+INFO: 2024-06-11 11:43:35,228: llmtf.base.evaluator: Ended eval
+INFO: 2024-06-11 11:43:35,228: llmtf.base.evaluator: 
+mean	russiannlp/rucola_custom
+0.483	0.483

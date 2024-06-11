@@ -43,8 +43,8 @@ class MultiQ(DarumeruTask):
         self.method = 'generate'
         self.dataset_name = 'multiq'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/MultiQ'
 
     def aggregation(self) -> Dict:
@@ -66,8 +66,8 @@ class PARus(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'parus'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/PARus'
     
     @property
@@ -89,8 +89,8 @@ class RCB(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rcb'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/RCB'
 
     @property
@@ -111,8 +111,8 @@ class ruMMLU(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rummlu'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/ruMMLU'
 
     @property
@@ -150,8 +150,8 @@ class ruOpenBookQA(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'ruopenbookqa'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/ruOpenBookQA'
 
     @property
@@ -172,8 +172,8 @@ class ruTiE(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rutie'
     
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/ruTiE'
 
     @property
@@ -236,8 +236,8 @@ class ruWorldTree(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'ruworldtree'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/ruWorldTree'
 
     @property
@@ -258,8 +258,8 @@ class RWSD(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rwsd'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/RWSD'
     @property
     def choices(self):
@@ -281,8 +281,8 @@ class USE(DarumeruTask):
         self.dataset_name = 'use'
         self.max_grade_point = 34
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'darumeru/USE'
 
     def evaluate(self, sample, y_pred) -> Dict:

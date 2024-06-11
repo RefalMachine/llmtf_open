@@ -4,6 +4,23 @@ import time
 import logging
 import json 
 
+def set_out_handler_to_main_logger(output_dir):
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    default_log_name = 'evaluation_log.txt'
+    logger = logging.getLogger('llmtf')
+
+    for handler in logger.handlers:
+        if handler.__class__ == logging.FileHandler and handler.baseFilename.endswith(default_log_name):
+            logger.removeHandler(handler)
+
+    fh = logging.FileHandler(os.path.join(output_dir, default_log_name))
+    fh.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(levelname)s: %(asctime)s: %(name)s: %(message)s')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
 class SimpleTaskLogger():
     def __init__(self, output_dir, task_name, append=False):
         self.output_dir = output_dir

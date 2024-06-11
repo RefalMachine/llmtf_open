@@ -176,7 +176,6 @@ class MMLU(Task):
         for subject in subjects:
             metric_per_subject[subject] = mean([res['val'] for res in results if res['subject'] == subject])
 
-
         category_to_main_category = {value: key for key, sublist in CATEGORIES.items() for value in sublist}
         subcategories2categories = {key: category_to_main_category[value[0]] for key, value in SUBCATEGORIES.items()}
         subjects = sorted(list(subjects))
@@ -309,8 +308,8 @@ class ruMMLU(MMLU):
         super().__init__(**kwargs)
         self.lang = 'ru'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'nlpcoreteam/ruMMLU'
 
 class enMMLU(MMLU):
@@ -318,6 +317,6 @@ class enMMLU(MMLU):
         super().__init__(**kwargs)
         self.lang = 'en'
 
-    @property
-    def name(self):
+    @classmethod
+    def name(cls):
         return 'nlpcoreteam/enMMLU'

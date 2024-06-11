@@ -19,7 +19,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     evaluator = Evaluator()
-    evaluator.init_logger(args.output_dir)
     
     MODEL_CLASS = VLLMModel if args.vllm else HFModel
     model = MODEL_CLASS(args.conv_path, device_map=args.device_map, disable_sliding_window=args.disable_sliding_window, enable_prefix_caching=not args.disable_prefix_caching)

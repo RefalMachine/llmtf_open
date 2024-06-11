@@ -1,3 +1,4 @@
+import json
 # Taken from https://github.com/IlyaGusev/rulm and modified
 
 DEFAULT_MESSAGE_TEMPLATE = "{content}\n"
