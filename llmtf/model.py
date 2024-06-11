@@ -10,7 +10,9 @@ from typing import List
 import os
 import requests
 import numpy as np
+import copy
 from llmtf.base import LLM
+from llmtf.conversation import Conversation
 try:
     from vllm import LLM as vLLM
     from vllm import SamplingParams
@@ -18,141 +20,6 @@ try:
     from vllm.attention.backends.flash_attn import FlashAttentionBackend
 except:
     pass
-DEFAULT_MESSAGE_TEMPLATE = "{content}\n"
-DEFAULT_SYSTEM_PROMPT = ""
-
-
-class Conversation:
-    def __init__(
-        self,
-        system_message_template: str = DEFAULT_MESSAGE_TEMPLATE,
-        user_message_template: str = DEFAULT_MESSAGE_TEMPLATE,
-        bot_message_template: str = DEFAULT_MESSAGE_TEMPLATE,
-        bot_message_template_incomplete: str = DEFAULT_MESSAGE_TEMPLATE,
-        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
-        system_role: str = "system",
-        user_role: str = "user",
-        bot_role: str = "bot",
-        global_prefix: str = '',
-        suffix: str = "<s>bot",
-        add_special_tokens: bool = False,
-        eos_token: str =''
-    ):
-        self.system_message_template = system_message_template
-        self.user_message_template = user_message_template
-        self.bot_message_template = bot_message_template
-        self.system_role = system_role
-        self.user_role = user_role
-        self.bot_role = bot_role
-        self.global_prefix = global_prefix
-        self.suffix = suffix
-        self.bot_message_template_incomplete = bot_message_template_incomplete
-        self.add_special_tokens = add_special_tokens
-        self.messages = []
-
-        if system_prompt is not None and len(system_prompt) > 0:
-            self.messages.append({
-                "role": self.system_role,
-                "content": system_prompt
-            })
-
-    def add_system_message(self, message):
-        if len(self.messages) == 0:
-            self.messages.append({
-                "role": self.system_role,
-                "content": message
-            })
-        else:
-            if self.messages[0]["role"] == self.system_role:
-                self.messages[0]["content"] = message
-            else:
-                self.messages = [{
-                    "role": self.system_role,
-                    "content": message
-                }] + self.messages
-
-    def add_user_message(self, message):
-        self.messages.append({
-            "role": self.user_role,
-            "content": message
-        })
-
-    def add_bot_message(self, message):
-        self.messages.append({
-            "role": self.bot_role,
-            "content": message
-        })
-
-    def count_tokens(self, tokenizer, current_messages):
-        final_text = ""
-        for message in current_messages:
-            final_text += self.format_message(message)
-        tokens = tokenizer([final_text])["input_ids"][0]
-        return len(tokens)
-
-    def shrink(self, tokenizer, messages, max_tokens):
-        system_message = messages[0]
-        other_messages = messages[1:]
-        while self.count_tokens(tokenizer, [system_message] + other_messages) > max_tokens:
-            other_messages = other_messages[2:]
-        return [system_message] + other_messages
-
-    def format_message(self, message, incomplete_last_bot_message=False):
-        if message["role"] == self.system_role:
-            return self.system_message_template.format(**message)
-        if message["role"] == self.user_role:
-            return self.user_message_template.format(**message)
-        if message["role"] == self.bot_role:
-            if incomplete_last_bot_message:
-                return self.bot_message_template_incomplete.format(**message)
-            return self.bot_message_template.format(**message)
-
-        raise Exception('Unknown role')
-
-    def get_prompt(self, tokenizer=None, max_tokens: int = None, add_suffix: bool = True, incomplete_last_bot_message: bool = False):
-        messages = self.messages
-        if max_tokens is not None:
-            assert tokenizer is not None
-            messages = self.shrink(tokenizer, messages, max_tokens)
-
-        final_text = self.global_prefix
-        for i, message in enumerate(messages):
-            if i == len(messages) - 1 and incomplete_last_bot_message and message['role'] == self.bot_role:
-                final_text += self.format_message(message, incomplete_last_bot_message=True)
-            else:
-                final_text += self.format_message(message)
-
-        if add_suffix and (not incomplete_last_bot_message or messages[-1]['role'] != self.bot_role):
-            final_text += self.suffix
-            return final_text
-
-        return final_text
-
-    def iter_messages(self):
-        for message in self.messages:
-            yield self.format_message(message), message["role"]
-
-    @classmethod
-    def from_template(cls, file_name):
-        with open(file_name, encoding="utf-8") as r:
-            template = json.load(r)
-        return Conversation(
-            **template
-        )
-
-    def expand(self, messages, role_mapping = None):
-        if not role_mapping:
-            role_mapping = dict()
-
-        if messages[0]["role"] == "system":
-            self.messages = []
-
-        for message in messages:
-            self.messages.append({
-                "role": role_mapping.get(message["role"], message["role"]),
-                "content": message["content"]
-            })
-        self.messages[-1]['content'] = self.messages[-1]['content'].rstrip()
 
 class LocalHostedLLM(LLM):
     def support_method(self, method):
@@ -160,7 +27,7 @@ class LocalHostedLLM(LLM):
 
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
-        self._check_if_leading_space()
+        #self._check_if_leading_space()
         self.logger.info(f'Leading space: {self.leading_space}')
 
     def _load_model(self, model_dir):
@@ -184,7 +51,11 @@ class LocalHostedLLM(LLM):
             self.generation_config = GenerationConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)
         except:
             self.generation_config = GenerationConfig.from_dict({})
+        
         self._init_default_gen_params()
+        self._check_if_leading_space()
+        self._override_eos_token_conv_template()
+
         self.logger.info(f"Model id: {self.model_name_or_path}")
 
     def _check_if_lora(self, model_dir):
@@ -279,20 +150,31 @@ class LocalHostedLLM(LLM):
         self.generation_config.temperature = 0.1
         self.generation_config.top_k = 40
         self.generation_config.top_p = 0.9
-        #self.generation_config.stop_strings = [] #does not work 
-
-        self._override_eos_token_conv_template()
+        self.generation_config.stop_strings = []
 
     def _override_eos_token_conv_template(self):
-        eos_token = self.conversation_template.get('eos_token', None)
-        if eos_token is not None and len(eos_token) > 0:
-            # TODO: encode + учесть первый пробел, если есть.
-            eos_token_id = self.tokenizer.convert_tokens_to_ids([eos_token])
-            assert len(eos_token_id) == 1 and eos_token_id[0] != None
-            eos_token_id = eos_token_id[0]
-            eos_token_id_old = self.generation_config.eos_token_id
-            self.generation_config.eos_token_id = eos_token_id
-            self.logger.info(f'Override eos_token_id in generation_config from {eos_token_id_old} to {eos_token_id}')
+        eos_token_from_conv = self.conversation_template.get('eos_token', None)
+        assert type(eos_token_from_conv) in [str, list]
+        if type(eos_token_from_conv) == str:
+            eos_token_from_conv = [eos_token_from_conv]
+        
+        if type(self.generation_config.eos_token_id) == int:
+            self.generation_config.eos_token_id = [self.generation_config.eos_token_id]
+
+        #gen_config_eos_token_id = copy.deepcopy(self.generation_config.eos_token_id)
+        for eos_token in eos_token_from_conv:
+            if eos_token is not None and len(eos_token) > 0:
+                is_token, eos_token_id = self._check_word_is_token(eos_token)
+                if not is_token:
+                    self.logger.warning(f'Provided eos_token in conv template is not token, but sequence of tokens {eos_token_id}. It cannot be added to eos_token_id, but results will be truncated using {eos_token}')
+                    self._add_stop_string(eos_token)
+                else:
+                    assert len(eos_token_id) == 1 and eos_token_id[0] != None
+                    eos_token_id = eos_token_id[0]
+                    
+                    if eos_token_id not in self.generation_config.eos_token_id:
+                        self.generation_config.eos_token_id.append(eos_token_id)
+        self.logger.info(f'Set eos_token_id in generation_config to {self.generation_config.eos_token_id}')
 
         global_prefix = self.conversation_template.get('global_prefix', None)
         if global_prefix is None:
@@ -303,26 +185,47 @@ class LocalHostedLLM(LLM):
         if len(global_prefix) == 0:
             self.logger.warning(f'Global prefix is equal to empty string!')
 
-    def add_stop_token(self, stop_token):
-        # TODO: переделать всю логику по поводу стоп токенов. Позволить генерировать пока не будет достигнут stop criteria, но потом просто обрезать результат до stop_string.
-        if type(self.generation_config.eos_token_id) != list:
-            self.generation_config.eos_token_id = [self.generation_config.eos_token_id]
+        self.eos_token_ids_base = copy.deepcopy(self.generation_config.eos_token_id)
+        self.stop_strings_base = copy.deepcopy(self.generation_config.stop_strings)
 
-        # есть способ получше обработать принудительный пробел вначале в некоторых токенайзерах?
-        stop_token_id = self.tokenizer.encode(stop_token, add_special_tokens=False)
-        if self.leading_space and stop_token_id[0] == self.space_token:
-            stop_token_id = stop_token_id[1:]
+    def add_stop_strings(self, stop_strings):
+        for stop_string in stop_strings:
+            self._add_stop_string(stop_string)
+
+        self.logger.info(f'Updated generation_config.eos_token_id: {self.generation_config.eos_token_id}')
+        self.logger.info(f'Updated generation_config.stop_strings: {self.generation_config.stop_strings}') 
+
+    def _add_stop_string(self, stop_string):
+        is_token, stop_string_ids = self._check_word_is_token(stop_string)
+        if is_token:
+            self.add_stop_token(stop_string_ids)
+        self.generation_config.stop_strings.append(stop_string)
+
+    def reset_stop_strings(self):
+        self.generation_config.eos_token_id = copy.deepcopy(self.eos_token_ids_base)
+        self.generation_config.stop_strings = copy.deepcopy(self.stop_strings_base)
+
+    def _check_word_is_token(self, word):
+        tokens = self.tokenizer.encode(word, add_special_tokens=False)
+        if self.leading_space and tokens[0] == self.space_token:
+            tokens = tokens[1:]
+
+        return len(tokens) == 1, tokens
         
-        if len(stop_token_id) > 1:
-            self.logger.warning(f'Can\'t stop on sequence {stop_token_id} with HF model. Try --vvlm for correct behaviour. Will stop on {stop_token_id[0]}')
-            stop_token_id = stop_token_id[:1]
-        self.logger.info(f'Updating generation_config.eos_token_id: add {stop_token_id}')
-        assert len(stop_token_id) == 1
-        self.generation_config.eos_token_id.append(stop_token_id[0])
-        self.logger.info(f'generation_config.eos_token_id: {self.generation_config.eos_token_id}')
+    def add_stop_token(self, stop_token):
+        if type(stop_token) == str:
+            is_token, stop_token_id = self._check_word_is_token(stop_token)
+        else:
+            assert type(stop_token) == list
+            stop_token_id = stop_token
 
-    def reset_stop_tokens(self):
-        self.generation_config.eos_token_id = self.generation_config.eos_token_id[0] if type(self.generation_config.eos_token_id) == list else self.generation_config.eos_token_id
+        if len(stop_token_id) > 1:
+            self.logger.warning(f'Can\'t stop on sequence {stop_token_id} with HF model. Try --vvlm for correct behaviour. Ignoring this stop_token')
+        elif len(stop_token_id) == 1:
+            if stop_token_id[0] not in self.generation_config.eos_token_id:
+                self.generation_config.eos_token_id.append(stop_token_id[0])
+        else:
+            self.logger.warning(f'len(stop_token_id) == 1 in add_stop_token with {stop_token}')
 
 class HFModel(LocalHostedLLM):
     def __init__(
@@ -365,6 +268,7 @@ class HFModel(LocalHostedLLM):
         return prompts[0], outputs[0], infos[0]
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
+        generation_config = self.generation_config if generation_config is None else generation_config
         prompts = []
         for _messages in messages:
             prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
@@ -373,20 +277,23 @@ class HFModel(LocalHostedLLM):
             return_tensors="pt",
             truncation=True,
             add_special_tokens=self.conversation_template['add_special_tokens'], 
-            max_length=self.generation_config.max_length,
+            max_length=generation_config.max_length,
             padding=True
         )
         data = {k: v.to(self.model.device) for k, v in data.items()}
         with torch.no_grad():
             output_ids = self.model.generate(
                 **data,
-                generation_config=self.generation_config if generation_config is None else generation_config
+                generation_config=generation_config
             )
         outputs = []
         infos = []
         for sample_output_ids, sample_input_ids in zip(output_ids, data["input_ids"]):
             sample_output_ids = sample_output_ids[len(sample_input_ids):]
             sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
+            for stop_string in generation_config.stop_strings:
+                if stop_string in sample_output:
+                    sample_output = sample_output[:sample_output.find(stop_string)]
             outputs.append(sample_output)
 
             infos.append(
@@ -517,9 +424,9 @@ class VLLMModel(LocalHostedLLM):
 
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
-        self._check_if_leading_space()
+        #self._check_if_leading_space()
         self._conv_template_bos_vllm_test()
-        self.reset_stop_tokens()
+        self.reset_stop_strings()
         self.logger.info(f'Leading space: {self.leading_space}')
         #self.logger.info(f'For calculate_tokens_proba batch always will be 1 because of possible errors in logprobs') # TODO: verify
 
@@ -635,6 +542,7 @@ class VLLMModel(LocalHostedLLM):
             'vllm': True
         }
 
+    '''
     def add_stop_token(self, stop_token):
         self.generation_config.stop_strings.append(stop_token)
         self.logger.info(f'Updating generation_config.stop_strings: {self.generation_config.stop_strings}')
@@ -642,7 +550,7 @@ class VLLMModel(LocalHostedLLM):
     def reset_stop_tokens(self):
         self.generation_config.stop_strings = []#[self.generation_config.eos_token_id] if type(self.generation_config.eos_token_id) == int else self.generation_config.eos_token_id
         self.logger.info(f'Resetting generation_config.stop_strings to {self.generation_config.stop_strings}')
-
+    '''
     def _conv_template_bos_vllm_test(self):
         self.global_prefix = self.conversation_template['global_prefix']
         global_prefix_check = None if self.global_prefix  == '' else self.global_prefix 

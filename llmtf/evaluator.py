@@ -23,7 +23,9 @@ class Evaluator():
 
     def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000):
         self.init_logger(output_dir)
-        model.init_logger()
+
+        if generation_config is not None:
+            model.logger.warning('Custom generation_config receives full priority over internal generation config. Compose it carefully. Not tested yet!')
 
         if datasets_names == 'all':
             datasets_names = list(TASK_REGISTRY.keys())
@@ -38,11 +40,9 @@ class Evaluator():
 
 
     def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset):
+        model.add_stop_strings(task.additional_stop_strings)
         with CustomTimer(task.logger, 'Loading Dataset'):
             messages, samples = task.load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
-
-        for stop_token in task.additional_stop_tokens:
-            model.add_stop_token(stop_token)
 
         metrics = []
         with SimpleTaskLogger(output_dir, task.name) as logger, CustomTimer(task.logger, 'Processing Dataset'):
@@ -61,7 +61,7 @@ class Evaluator():
         task.logger.info(f'Results for {task.name}:')
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
         with SimpleTaskLogger(output_dir, task.name + '_total') as logger:
-            logger.log_json({'task_name': task.name, 'results': metrics_res})
+            logger.log_json({'task_name': task.name, 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res)})
 
         with SimpleTaskLogger(output_dir, task.name + '_params') as logger:
             params = {}
@@ -70,7 +70,7 @@ class Evaluator():
             params['task_params'] = {'max_len': max_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': task.method}
             logger.log_json(params)
 
-        model.reset_stop_tokens()
+        model.reset_stop_strings()
         task.logger.info(str(metrics_res))
 
     def create_report(self, output_dir):
@@ -79,9 +79,9 @@ class Evaluator():
             if file_name.endswith('_total.jsonl'):
                 with codecs.open(os.path.join(output_dir, file_name), 'r', 'utf-8') as file:
                     task_report = json.load(file)
-                reports[task_report['task_name']] = task_report['results']
+                reports[task_report['task_name']] = task_report['leaderboard_result']
         task_names = sorted(list(reports.keys()))
-        task_metrics = [np.mean([reports[t][m] for m in reports[t]]) for t in task_names]
+        task_metrics = [reports[t] for t in task_names]
         task_names = ['mean'] + task_names
         task_metrics = [np.mean(task_metrics)] + task_metrics
         with codecs.open(os.path.join(output_dir, 'evaluation_results.txt'), 'w', 'utf-8') as file:

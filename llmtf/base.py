@@ -6,6 +6,7 @@ import copy
 import os
 from datasets import load_dataset, Dataset
 from tqdm import tqdm
+from llmtf.metrics import mean
 
 os.environ['VLLM_ATTENTION_BACKEND'] = 'XFORMERS'
 
@@ -22,7 +23,7 @@ class Task(abc.ABC):
     def __init__(self):
         self.backend_logger = None
         self._max_new_tokens = None
-        self.additional_stop_tokens = []
+        self.additional_stop_strings = []
 
     @property
     def logger(self):
@@ -46,8 +47,15 @@ class Task(abc.ABC):
         pass
 
     @abstractmethod
+    def leaderboard_aggregation(self, **kwargs) -> float:
+        pass
+
+    @abstractmethod
     def load_dataset(self, **kwargs) -> Tuple[List[Dict], List[Dict]]:
         pass
+
+    def leaderboard_aggregation(self, metrics: Dict) -> float:
+        return mean([metrics[m] for m in metrics])
 
     def init_logger(self):
         self.backend_logger = logging.getLogger(__name__ + '.' + self.name)
