@@ -1,7 +1,6 @@
-eval_results_all/
-eval_results_all_deprecated_09_06_24/
-dump*
+eval_results_all*
 test*
 __pycache__/
 *.pyc
 run_evaluate*
+dump*

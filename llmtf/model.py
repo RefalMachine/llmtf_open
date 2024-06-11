@@ -153,7 +153,8 @@ class LocalHostedLLM(LLM):
         self.generation_config.stop_strings = []
 
     def _override_eos_token_conv_template(self):
-        eos_token_from_conv = self.conversation_template.get('eos_token', None)
+        eos_token_from_conv = self.conversation_template.get('eos_token', [])
+
         assert type(eos_token_from_conv) in [str, list]
         if type(eos_token_from_conv) == str:
             eos_token_from_conv = [eos_token_from_conv]
