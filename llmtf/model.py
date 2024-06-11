@@ -237,7 +237,7 @@ class HFModel(LocalHostedLLM):
             trust_remote_code=False,
             **kwargs
         ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.load_in_8bit = load_in_8bit
         self.torch_dtype = torch_dtype
         self.use_flash_attention_2 = use_flash_attention_2
@@ -410,7 +410,7 @@ class VLLMModel(LocalHostedLLM):
             calculate_tokens_proba_logprobs_count=100,
             **kwargs
         ):
-        super().__init__()
+        super().__init__(**kwargs)
         with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
             template = json.load(file)
         self.conversation_template = template
@@ -422,6 +422,9 @@ class VLLMModel(LocalHostedLLM):
         self.enable_prefix_caching = enable_prefix_caching
         self.trust_remote_code = trust_remote_code
         self.calculate_tokens_proba_logprobs_count = calculate_tokens_proba_logprobs_count
+
+        self.logger.info('CUDA_VISIBLE_DEVICES=' + os.environ['CUDA_VISIBLE_DEVICES'])
+        self.logger.info('device_map=' + self.device_map)
 
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
@@ -543,15 +546,6 @@ class VLLMModel(LocalHostedLLM):
             'vllm': True
         }
 
-    '''
-    def add_stop_token(self, stop_token):
-        self.generation_config.stop_strings.append(stop_token)
-        self.logger.info(f'Updating generation_config.stop_strings: {self.generation_config.stop_strings}')
-
-    def reset_stop_tokens(self):
-        self.generation_config.stop_strings = []#[self.generation_config.eos_token_id] if type(self.generation_config.eos_token_id) == int else self.generation_config.eos_token_id
-        self.logger.info(f'Resetting generation_config.stop_strings to {self.generation_config.stop_strings}')
-    '''
     def _conv_template_bos_vllm_test(self):
         self.global_prefix = self.conversation_template['global_prefix']
         global_prefix_check = None if self.global_prefix  == '' else self.global_prefix 

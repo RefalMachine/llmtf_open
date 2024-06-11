@@ -2,10 +2,12 @@
 llmtf_open - это фреймворк для быстрой и удобной оценки качества как базовых (foundation), так и инструктивных LLM, ориентированные на представление задач (Task) в виде последовательности сообщений (messages).
 
 ```bash
-python evaluate_model.py --model_name_or_path openchat/openchat-3.5-0106 \
+CUDA_VISIBLE_DEVICES=0 python evaluate_model.py --model_name_or_path openchat/openchat-3.5-0106 \
 --conv_path conversation_configs/openchat_3.5_1210.json --output_dir evaluate_results_openchat_3.5_0106_k1 \
 --few_shot_count 1 --max_len 4000 --device_map "cuda:0" --batch_size 8 --vllm --disable_sliding_window
 ```
+
+В случае наличия нескольких GPU и запуска с --vllm обязательно нужно указывать CUDA_VISIBLE_DEVICES перед запуском, иначе vllm норовит залезть и на другую GPU (требуется проверка).
 
 ## Ключевые особенности:
 1) Помимо стандартного инфера на hf реализовано использование vllm (--vllm ключ для evaluate_model.py), благодаря чему существенно ускоряется процесс оценки качества.

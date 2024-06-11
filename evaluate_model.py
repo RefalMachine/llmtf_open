@@ -1,6 +1,7 @@
 import argparse
 from llmtf.model import HFModel, VLLMModel
 from llmtf.evaluator import Evaluator
+import os
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -17,7 +18,7 @@ if __name__ == '__main__':
     parser.add_argument('--disable_sliding_window', action='store_true')
     parser.add_argument('--disable_prefix_caching', action='store_true')
     args = parser.parse_args()
-
+    
     evaluator = Evaluator()
     
     MODEL_CLASS = VLLMModel if args.vllm else HFModel
