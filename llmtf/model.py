@@ -179,7 +179,9 @@ class LocalHostedLLM(LLM):
 
         global_prefix = self.conversation_template.get('global_prefix', None)
         if global_prefix is None:
-            global_prefix = self.tokenizer.decode([self.tokenizer.bos_token_id])
+            global_prefix = ''
+            if self.tokenizer.bos_token_id is not None:
+                global_prefix = self.tokenizer.decode([self.tokenizer.bos_token_id])
             self.conversation_template['global_prefix'] = global_prefix
             self.logger.info(f'Set global prefix {global_prefix} to conv config')
 
@@ -423,6 +425,7 @@ class VLLMModel(LocalHostedLLM):
         self.trust_remote_code = trust_remote_code
         self.calculate_tokens_proba_logprobs_count = calculate_tokens_proba_logprobs_count
 
+        assert 'CUDA_VISIBLE_DEVICES' in os.environ
         self.logger.info('CUDA_VISIBLE_DEVICES=' + os.environ['CUDA_VISIBLE_DEVICES'])
         self.logger.info('device_map=' + self.device_map)
 

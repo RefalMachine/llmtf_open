@@ -32,7 +32,6 @@ class Evaluator(Base):
             self.logger.info(f'Starting eval on {datasets_names}')
             for dataset_name in datasets_names:
                 task = TASK_REGISTRY[dataset_name]()
-                task.init_logger()
                 with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
                     self.evaluate_dataset(task, model, output_dir, prompt_max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
             self.logger.info(f'Ended eval')

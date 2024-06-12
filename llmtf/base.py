@@ -12,7 +12,7 @@ from llmtf.metrics import mean
 os.environ['VLLM_ATTENTION_BACKEND'] = 'XFORMERS'
 
 class Base(abc.ABC):
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.backend_logger = None
 
     @classmethod
