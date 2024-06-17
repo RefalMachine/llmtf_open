@@ -13,6 +13,8 @@ import numpy as np
 import copy
 from llmtf.base import LLM
 from llmtf.conversation import Conversation
+from llmtf.utils import calculate_offset_mapping_llama3_workaround
+
 try:
     from vllm import LLM as vLLM
     from vllm import SamplingParams
@@ -102,6 +104,8 @@ class LocalHostedLLM(LLM):
                 conv.add_user_message(m['content'])
             elif m['role'] == 'bot':
                 conv.add_bot_message(m['content'])
+            elif m['role'] == 'system':
+                conv.add_system_message(m['content'])
             else:
                 role = m['role']
                 raise Exception(f'Unknown role {role}')
@@ -357,6 +361,58 @@ class HFModel(LocalHostedLLM):
             )
 
         return prompts_batch, probs_batch, infos
+    
+    # на вход мессаджи со строками в content, на выходе мессаджи с листами в logsoftmax где каждый элемент - пара "токен", "logsoftmax"
+    def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
+        prompts = []
+        for _messages in messages:
+            prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
+
+        data = self.tokenizer(
+            prompts, return_tensors="pt", truncation=True, padding=True,
+            add_special_tokens=self.conversation_template['add_special_tokens'], 
+            max_length=self.generation_config.max_length, return_offsets_mapping=True
+        )
+
+        offset_mapping = data.pop('offset_mapping').tolist()
+        if 'llama3' in self.model.config._name_or_path.lower() or 'llama-3' in self.model.config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
+            offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, data['input_ids'], self.tokenizer)
+
+        data = {k: v.to(self.model.device) for k, v in data.items()}
+        with torch.no_grad():
+            outputs = self.model(**data)
+            logsoftmax_batch = torch.nn.LogSoftmax(dim=-1)(outputs.logits).cpu().detach()
+        
+        labels = data['input_ids'][:,1:].cpu().detach()
+        tokens_with_logsoftmax = []
+        labels_len = labels.shape[1]
+        for batch_idx in range(labels.shape[0]):
+            shift = labels_len - int(data['attention_mask'][batch_idx].sum().cpu().detach()) + 1
+            scores = [0.0] + logsoftmax_batch[batch_idx, range(labels_len), labels[batch_idx]].tolist()[shift:]
+            tokens = data['input_ids'][batch_idx].cpu().detach()[shift:].tolist()
+            positions = offset_mapping[batch_idx][shift:]
+            tokens_with_logsoftmax.append([[tokens[i], scores[i], positions[i]] for i in range(len(scores))])
+
+        for i in range(len(messages)):
+            for m in messages[i]:
+                message_start = prompts[i].find(m['content'])
+                message_end = message_start + len(m['content'])
+                message_tokens = []
+                inside = False
+                for token, score, positions in tokens_with_logsoftmax[i]:
+                    positions_set = set(range(*positions))
+                    if message_start in positions_set:
+                        inside = True
+
+                    if inside:
+                        message_tokens.append([token, score, positions])
+
+                    if message_end in positions_set:
+                        break
+                
+                m['tokens'] = message_tokens
+
+        return messages
 
     def _load_plain_model(self, model_dir):
         base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)

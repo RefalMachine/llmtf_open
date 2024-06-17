@@ -83,3 +83,22 @@ class MaxLenContext():
 
     def __exit__(self, *args):
         self.model.generation_config.max_new_tokens = self.saved_max_new_tokens
+
+
+def calculate_offset_mapping_llama3_workaround(prompts, tokens, tokenizer):
+    # https://github.com/huggingface/tokenizers/issues/1553
+    offset_mapping = []
+    for i in range(len(prompts)):
+        offset_mapping.append([])
+        substring_pos = -1
+        for j in range(len(tokens[i])):
+            substring = tokenizer.decode(tokens[i][j:])
+            substring_pos = prompts[i].find(substring, max(0, substring_pos))
+            if substring_pos == -1:
+                token_pos = [0, 0]
+            else:
+                token_pos = [substring_pos, substring_pos + len(tokenizer.decode(tokens[i][j:j+1]))]
+            offset_mapping[-1].append(token_pos)
+    return offset_mapping
+
+            
