@@ -13,7 +13,7 @@ import numpy as np
 import copy
 from llmtf.base import LLM
 from llmtf.conversation import Conversation
-from llmtf.utils import calculate_offset_mapping_llama3_workaround
+from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages
 
 try:
     from vllm import LLM as vLLM
@@ -305,7 +305,7 @@ class HFModel(LocalHostedLLM):
 
             infos.append(
                 {
-                    'prompt_len': len(data['input_ids']), 
+                    'prompt_len': len(data['input_ids'][batch_idx]), 
                     'generated_len': len(sample_output_ids), 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model'
                 }
@@ -353,7 +353,7 @@ class HFModel(LocalHostedLLM):
 
             infos.append(
                 {
-                    'prompt_len': len(data['input_ids']), 
+                    'prompt_len': len(data['input_ids'][batch_idx]), 
                     'generated_len': 1, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model', 
                     'generated_token': self.tokenizer.decode([next_token_probs.argmax()])
@@ -386,6 +386,7 @@ class HFModel(LocalHostedLLM):
         labels = data['input_ids'][:,1:].cpu().detach()
         tokens_with_logsoftmax = []
         labels_len = labels.shape[1]
+        infos = []
         for batch_idx in range(labels.shape[0]):
             shift = labels_len - int(data['attention_mask'][batch_idx].sum().cpu().detach()) + 1
             scores = [0.0] + logsoftmax_batch[batch_idx, range(labels_len), labels[batch_idx]].tolist()[shift:]
@@ -393,26 +394,16 @@ class HFModel(LocalHostedLLM):
             positions = offset_mapping[batch_idx][shift:]
             tokens_with_logsoftmax.append([[tokens[i], scores[i], positions[i]] for i in range(len(scores))])
 
-        for i in range(len(messages)):
-            for m in messages[i]:
-                message_start = prompts[i].find(m['content'])
-                message_end = message_start + len(m['content'])
-                message_tokens = []
-                inside = False
-                for token, score, positions in tokens_with_logsoftmax[i]:
-                    positions_set = set(range(*positions))
-                    if message_start in positions_set:
-                        inside = True
+            infos.append(
+                {
+                    'prompt_len': len(data['input_ids'][batch_idx]), 
+                    'generated_len': 1, 
+                    'generated_cumulative_logprob': 'TODO: calculate for hf model', 
+                }
+            )
 
-                    if inside:
-                        message_tokens.append([token, score, positions])
-
-                    if message_end in positions_set:
-                        break
-                
-                m['tokens'] = message_tokens
-
-        return messages
+        add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax)
+        return messages, infos
 
     def _load_plain_model(self, model_dir):
         base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)
@@ -509,7 +500,7 @@ class VLLMModel(LocalHostedLLM):
         prompts_tokens_batch = []
         for _messages in messages:
             prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
-            prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=False)['input_ids'])
+            prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens'], truncation=True, max_length=self.generation_config.max_length)['input_ids'])
 
         generation_config = self.generation_config if generation_config is None else generation_config
         sampling_params = SamplingParams(
@@ -552,7 +543,7 @@ class VLLMModel(LocalHostedLLM):
         tokens_of_interest_ids_batch = []
         for _messages, _tokens_of_interest in zip(*[messages, tokens_of_interest]):
             prompt, tokens_of_interest_ids = self._get_tokens_of_interest_ids_modify_prompt(_messages, _tokens_of_interest, incomplete_last_bot_message)
-            prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=False)['input_ids'])
+            prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens'], truncation=True, max_length=self.generation_config.max_length)['input_ids'])
             tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
 
         sampling_params = SamplingParams(
@@ -585,6 +576,53 @@ class VLLMModel(LocalHostedLLM):
             probs_batch.append(token2prob)
 
         return prompts_vllm, probs_batch, infos
+
+    def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
+        prompts_tokens_batch = []
+        prompts = []
+        offset_mapping = []
+        for _messages in messages:
+            prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
+            data = self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens'], truncation=True, max_length=self.generation_config.max_length, return_offsets_mapping=True)
+
+            prompts.append(prompt)
+            prompts_tokens_batch.append(data['input_ids'])
+            offset_mapping.append(data['offset_mapping'])
+
+        config = self.model.llm_engine.get_model_config().hf_config
+        if 'llama3' in config._name_or_path.lower() or 'llama-3' in config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
+            offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, prompts_tokens_batch, self.tokenizer)
+
+        sampling_params = SamplingParams(
+            temperature=0,
+            prompt_logprobs=self.calculate_tokens_proba_logprobs_count,
+            max_tokens=1,
+            repetition_penalty=1.0
+        )
+
+        tokens_with_logsoftmax = []
+        infos = []
+        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+        for i, response in enumerate(vllm_responses):
+            infos.append(
+                {
+                    'prompt_len': len(response.prompt_token_ids), 
+                    'generated_len': len(response.outputs[0].token_ids), 
+                    'generated_cumulative_logprob': response.outputs[0].cumulative_logprob, 
+                    'generated_token': None
+                }
+            )
+
+            prompt_logsoftmax = []
+            for j, token in enumerate(response.prompt_token_ids):
+                if j == 0:
+                    logsoftmax = 0.0
+                else:
+                    logsoftmax = response.prompt_logprobs[j][token].logprob
+                prompt_logsoftmax.append([token, logsoftmax, offset_mapping[i][j]])
+            tokens_with_logsoftmax.append(prompt_logsoftmax)
+        add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax)
+        return messages, infos
 
     def get_params(self):
         return {
