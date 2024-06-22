@@ -293,20 +293,27 @@ class HFModel(LocalHostedLLM):
                 **data,
                 generation_config=generation_config
             )
+        output_ids = output_ids.view(len(messages), -1, output_ids.shape[-1])
+        
         outputs = []
         infos = []
-        for sample_output_ids, sample_input_ids in zip(output_ids, data["input_ids"]):
-            sample_output_ids = sample_output_ids[len(sample_input_ids):]
-            sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
-            for stop_string in generation_config.stop_strings:
-                if stop_string in sample_output:
-                    sample_output = sample_output[:sample_output.find(stop_string)]
-            outputs.append(sample_output)
+        for batch_idx, (sample_output_ids_all, sample_input_ids) in enumerate(zip(output_ids, data["input_ids"])):
+            sample_output_all = []
+            for sample_output_ids in sample_output_ids_all:
+                sample_output_ids = sample_output_ids[len(sample_input_ids):]
+                sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
+                for stop_string in generation_config.stop_strings:
+                    if stop_string in sample_output:
+                        sample_output = sample_output[:sample_output.find(stop_string)]
+                sample_output_all.append(sample_output)
+            if len(sample_output_all) == 1:
+                sample_output_all = sample_output_all[0]
 
+            outputs.append(sample_output_all)
             infos.append(
                 {
                     'prompt_len': len(data['input_ids'][batch_idx]), 
-                    'generated_len': len(sample_output_ids), 
+                    'generated_len': sample_output_ids_all.shape[-1], 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model'
                 }
             )
@@ -353,7 +360,7 @@ class HFModel(LocalHostedLLM):
 
             infos.append(
                 {
-                    'prompt_len': len(data['input_ids'][batch_idx]), 
+                    'prompt_len': len(data['input_ids'][i]), 
                     'generated_len': 1, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model', 
                     'generated_token': self.tokenizer.decode([next_token_probs.argmax()])
@@ -509,7 +516,8 @@ class VLLMModel(LocalHostedLLM):
             top_k=generation_config.top_k,
             max_tokens=generation_config.max_new_tokens,
             repetition_penalty=generation_config.repetition_penalty,
-            stop=generation_config.stop_strings
+            stop=generation_config.stop_strings,
+            n=generation_config.num_return_sequences
         )
 
         prompts_vllm = []
@@ -525,7 +533,11 @@ class VLLMModel(LocalHostedLLM):
                 }
             )
             prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
-            outputs.append(response.outputs[0].text)
+
+            if len(response.outputs) == 1:
+                outputs.append(response.outputs[0].text)
+            else:
+                outputs.append([out.text for out in response.outputs])
 
         return prompts_vllm, outputs, infos
 

@@ -18,7 +18,7 @@ class Evaluator(Base):
 
     def add_new_task(self, task_name, task_cls):
         assert issubclass(task_cls, Task)
-        TASK_REGISTRY[task_name] = task_cls
+        TASK_REGISTRY[task_name] = {'class': task_cls}
 
     def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000):
         set_out_handler_to_main_logger(output_dir)
@@ -31,7 +31,9 @@ class Evaluator(Base):
 
             self.logger.info(f'Starting eval on {datasets_names}')
             for dataset_name in datasets_names:
-                task = TASK_REGISTRY[dataset_name]()
+                task_class = TASK_REGISTRY[dataset_name]['class']
+                task_init_params = TASK_REGISTRY[dataset_name].get('params', {})
+                task = task_class(**task_init_params)
                 with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
                     self.evaluate_dataset(task, model, output_dir, prompt_max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
             self.logger.info(f'Ended eval')

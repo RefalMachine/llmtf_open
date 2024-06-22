@@ -57,10 +57,6 @@ class Task(Base):
         pass
 
     @abstractmethod
-    def leaderboard_aggregation(self, **kwargs) -> float:
-        pass
-
-    @abstractmethod
     def load_dataset(self, **kwargs) -> Tuple[List[Dict], List[Dict]]:
         pass
 

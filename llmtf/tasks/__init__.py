@@ -1,7 +1,8 @@
 from . import (
     darumeru,
     nlpcoreteam,
-    rucola
+    rucola,
+    shlepa
 )
 
 ########################################
@@ -10,16 +11,20 @@ from . import (
 
 
 TASK_REGISTRY = {
-    'darumeru/multiq': darumeru.MultiQ,
-    'darumeru/parus': darumeru.PARus,
-    'darumeru/rcb': darumeru.RCB,
-    'darumeru/rummlu': darumeru.ruMMLU,
-    'darumeru/ruopenbookqa': darumeru.ruOpenBookQA,
-    'darumeru/rutie': darumeru.ruTiE,
-    'darumeru/ruworldtree': darumeru.ruWorldTree,
-    'darumeru/rwsd': darumeru.RWSD,
-    'darumeru/use': darumeru.USE,
-    'nlpcoreteam/rummlu': nlpcoreteam.ruMMLU,
-    'nlpcoreteam/enmmlu': nlpcoreteam.enMMLU,
-    'russiannlp/rucola_custom': rucola.RuColaCustomTask
+    'darumeru/multiq': {'class': darumeru.MultiQ},
+    'darumeru/parus': {'class': darumeru.PARus},
+    'darumeru/rcb': {'class': darumeru.RCB},
+    'darumeru/rummlu': {'class': darumeru.ruMMLU},
+    'darumeru/ruopenbookqa': {'class': darumeru.ruOpenBookQA},
+    'darumeru/rutie': {'class': darumeru.ruTiE},
+    'darumeru/ruworldtree': {'class': darumeru.ruWorldTree},
+    'darumeru/rwsd': {'class': darumeru.RWSD},
+    'darumeru/use': {'class': darumeru.USE},
+    'nlpcoreteam/rummlu': {'class': nlpcoreteam.ruMMLU},
+    'nlpcoreteam/enmmlu': {'class': nlpcoreteam.enMMLU},
+    'russiannlp/rucola_custom': {'class': rucola.RuColaCustomTask},
+    'shlepa/moviesmc': {'class': shlepa.ShlepaSmallMMLU, 'params': {'dataset_name': 'Vikhrmodels/movie_mc'}},
+    'shlepa/musicmc': {'class': shlepa.ShlepaSmallMMLU, 'params': {'dataset_name': 'Vikhrmodels/music_mc'}},
+    'shlepa/lawmc': {'class': shlepa.ShlepaSmallMMLU, 'params': {'dataset_name': 'Vikhrmodels/law_mc'}},
+    'shlepa/booksmc': {'class': shlepa.ShlepaSmallMMLU, 'params': {'dataset_name': 'Vikhrmodels/books_mc'}}
 }
