@@ -1,5 +1,8 @@
 import sklearn
-
+from rouge_score import rouge_scorer
+import pymorphy2
+import string
+import re
 
 def mean(arr):
     return sum(arr) / max(len(arr), 1)
@@ -25,3 +28,25 @@ def mcc(items):
     preds = unzipped_list[1]
     score = sklearn.metrics.matthews_corrcoef(golds, preds)
     return score
+
+class CustomTokenizer():
+    def __init__(self):
+        self.punkt_regex = re.compile('[%s]' % re.escape(string.punctuation))
+        self.morph = pymorphy2.MorphAnalyzer()
+
+    def tokenize(self, text):
+        #print([t for t in ''.join(text.split())])
+        return self.preprocess_sentence(text)
+
+    def preprocess_sentence(self, text: str):
+        text = text.lower()
+        text = self.punkt_regex.sub(' ', text)
+        words = [self.morph.parse(token)[0].normal_form for token in text.split() if len(token.strip()) > 0]
+        return words
+
+rouge_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], tokenizer=CustomTokenizer())
+def rouge1(gold, generated):
+    return rouge_scorer.score(gold, generated)['rouge1']
+
+def rouge2(gold, generated):
+    return rouge_scorer.score(gold, generated)['rouge2']

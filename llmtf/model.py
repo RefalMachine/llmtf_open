@@ -25,7 +25,7 @@ except:
 
 class LocalHostedLLM(LLM):
     def support_method(self, method):
-        return method in ['generate', 'calculate_tokens_proba']
+        return method in ['generate', 'calculate_tokens_proba', 'calculate_logsoftmax']
 
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
@@ -369,7 +369,6 @@ class HFModel(LocalHostedLLM):
 
         return prompts_batch, probs_batch, infos
     
-    # на вход мессаджи со строками в content, на выходе мессаджи с листами в logsoftmax где каждый элемент - пара "токен", "logsoftmax"
     def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
         prompts = []
         for _messages in messages:
@@ -380,10 +379,10 @@ class HFModel(LocalHostedLLM):
             add_special_tokens=self.conversation_template['add_special_tokens'], 
             max_length=self.generation_config.max_length, return_offsets_mapping=True
         )
-
+        print(data['input_ids'].shape)
         offset_mapping = data.pop('offset_mapping').tolist()
-        if 'llama3' in self.model.config._name_or_path.lower() or 'llama-3' in self.model.config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
-            offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, data['input_ids'], self.tokenizer)
+        #if 'llama3' in self.model.config._name_or_path.lower() or 'llama-3' in self.model.config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
+        #    offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, data['input_ids'], self.tokenizer)
 
         data = {k: v.to(self.model.device) for k, v in data.items()}
         with torch.no_grad():
@@ -410,7 +409,7 @@ class HFModel(LocalHostedLLM):
             )
 
         add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax)
-        return messages, infos
+        return prompts, messages, infos
 
     def _load_plain_model(self, model_dir):
         base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)
@@ -523,6 +522,7 @@ class VLLMModel(LocalHostedLLM):
         prompts_vllm = []
         outputs = []
         infos = []
+        
         vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         for response in vllm_responses:
             infos.append(
@@ -590,6 +590,7 @@ class VLLMModel(LocalHostedLLM):
         return prompts_vllm, probs_batch, infos
 
     def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
+        #print(len(messages))
         prompts_tokens_batch = []
         prompts = []
         offset_mapping = []
@@ -601,9 +602,9 @@ class VLLMModel(LocalHostedLLM):
             prompts_tokens_batch.append(data['input_ids'])
             offset_mapping.append(data['offset_mapping'])
 
-        config = self.model.llm_engine.get_model_config().hf_config
-        if 'llama3' in config._name_or_path.lower() or 'llama-3' in config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
-            offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, prompts_tokens_batch, self.tokenizer)
+        #config = self.model.llm_engine.get_model_config().hf_config
+        #if 'llama3' in config._name_or_path.lower() or 'llama-3' in config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
+        #    offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, prompts_tokens_batch, self.tokenizer)
 
         sampling_params = SamplingParams(
             temperature=0,
@@ -614,6 +615,8 @@ class VLLMModel(LocalHostedLLM):
 
         tokens_with_logsoftmax = []
         infos = []
+        print(len(prompts_tokens_batch), max([len(p) for p in prompts_tokens_batch]))
+        print(prompts_tokens_batch)
         vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         for i, response in enumerate(vllm_responses):
             infos.append(
@@ -634,7 +637,7 @@ class VLLMModel(LocalHostedLLM):
                 prompt_logsoftmax.append([token, logsoftmax, offset_mapping[i][j]])
             tokens_with_logsoftmax.append(prompt_logsoftmax)
         add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax)
-        return messages, infos
+        return prompts, messages, infos
 
     def get_params(self):
         return {

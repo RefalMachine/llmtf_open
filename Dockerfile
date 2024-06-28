@@ -39,5 +39,7 @@ RUN pip install nltk
 RUN pip install inflect
 RUN pip install pydantic==2.7.4
 RUN pip install filelock==3.14.0
+RUN pip install rouge-score
+RUN pip install pymorphy2
 
 WORKDIR /workdir

@@ -11,3 +11,5 @@ xformers >= 0.0.26.post1
 flash-attn >= 2.5.9.post1
 tiktoken
 vllm == 0.4.3
+rouge-score
+pymorphy2
