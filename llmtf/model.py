@@ -45,7 +45,7 @@ class LocalHostedLLM(LLM):
             self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer, trust_remote_code=self.trust_remote_code)
 
         self.tokenizer.truncation_side = 'left'
-        self.tokenizer.padding_side = 'left'
+        self.tokenizer.padding_side = 'left' #TODO: а нужно ли это вообще? нужно перепроверить имплементации.
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
@@ -379,7 +379,7 @@ class HFModel(LocalHostedLLM):
             add_special_tokens=self.conversation_template['add_special_tokens'], 
             max_length=self.generation_config.max_length, return_offsets_mapping=True
         )
-        print(data['input_ids'].shape)
+        #print(data['input_ids'].shape)
         offset_mapping = data.pop('offset_mapping').tolist()
         #if 'llama3' in self.model.config._name_or_path.lower() or 'llama-3' in self.model.config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
         #    offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, data['input_ids'], self.tokenizer)
@@ -390,13 +390,16 @@ class HFModel(LocalHostedLLM):
             logsoftmax_batch = torch.nn.LogSoftmax(dim=-1)(outputs.logits).cpu().detach()
         
         labels = data['input_ids'][:,1:].cpu().detach()
+        attention_mask = data['attention_mask'].cpu().detach()
+        input_ids = data['input_ids'].cpu().detach()
+
         tokens_with_logsoftmax = []
         labels_len = labels.shape[1]
         infos = []
         for batch_idx in range(labels.shape[0]):
-            shift = labels_len - int(data['attention_mask'][batch_idx].sum().cpu().detach()) + 1
+            shift = labels_len - int(data['attention_mask'][batch_idx].sum()) + 1
             scores = [0.0] + logsoftmax_batch[batch_idx, range(labels_len), labels[batch_idx]].tolist()[shift:]
-            tokens = data['input_ids'][batch_idx].cpu().detach()[shift:].tolist()
+            tokens = data['input_ids'][batch_idx][shift:].tolist()
             positions = offset_mapping[batch_idx][shift:]
             tokens_with_logsoftmax.append([[tokens[i], scores[i], positions[i]] for i in range(len(scores))])
 
@@ -462,7 +465,7 @@ class VLLMModel(LocalHostedLLM):
             disable_sliding_window=False,
             enable_prefix_caching=True,
             trust_remote_code=False,
-            calculate_tokens_proba_logprobs_count=100,
+            calculate_tokens_proba_logprobs_count=50,
             **kwargs
         ):
         super().__init__(**kwargs)
@@ -492,7 +495,7 @@ class VLLMModel(LocalHostedLLM):
 
         tokenizer = self.model.get_tokenizer()
         tokenizer.pad_token_id = self.tokenizer.pad_token_id
-        tokenizer.padding_side = self.tokenizer.padding_side
+        #tokenizer.padding_side = self.tokenizer.padding_side ?????
         tokenizer.truncation_side = self.tokenizer.truncation_side
 
         self.attn_backend = self.model.llm_engine.model_executor.driver_worker.model_runner.attn_backend
@@ -590,7 +593,7 @@ class VLLMModel(LocalHostedLLM):
         return prompts_vllm, probs_batch, infos
 
     def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
-        #print(len(messages))
+        # BUGGED https://github.com/vllm-project/vllm/pull/5355
         prompts_tokens_batch = []
         prompts = []
         offset_mapping = []
@@ -609,14 +612,13 @@ class VLLMModel(LocalHostedLLM):
         sampling_params = SamplingParams(
             temperature=0,
             prompt_logprobs=self.calculate_tokens_proba_logprobs_count,
+            logprobs=self.calculate_tokens_proba_logprobs_count,
             max_tokens=1,
             repetition_penalty=1.0
         )
 
         tokens_with_logsoftmax = []
         infos = []
-        print(len(prompts_tokens_batch), max([len(p) for p in prompts_tokens_batch]))
-        print(prompts_tokens_batch)
         vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         for i, response in enumerate(vllm_responses):
             infos.append(
