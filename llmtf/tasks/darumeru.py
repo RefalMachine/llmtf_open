@@ -66,6 +66,13 @@ class CopyText(DarumeruTask):
     def evaluate(self, sample, y_pred) -> Dict:
         y_pred_tokens = y_pred['tokens']
         y_pred = y_pred['text']
+
+        if len(y_pred_tokens) == 0 or len(y_pred.strip()) == 0:
+            return {
+                "symbol_per_token": 0.0,
+                "len": 0.0,
+                "lcs": 0.0,
+            }
         y_true = sample['inputs']['text']
         if not self.model_leading_space:
             y_true = ' ' + y_true
@@ -73,10 +80,15 @@ class CopyText(DarumeruTask):
 
         src_tokens_len = min(len(y_true_tokens), self._max_new_tokens)
         predict_tokens_len = len(y_pred_tokens)
-        len_metric = 1 / (1 + (abs(src_tokens_len - predict_tokens_len) / src_tokens_len))
 
-        lcs_metric = SequenceMatcher(None, y_true.strip(), y_pred.strip()).find_longest_match().size / len(y_pred.strip())
-        spt = len(y_pred) / len(y_pred_tokens)
+        len_metric = min(predict_tokens_len / src_tokens_len, src_tokens_len / predict_tokens_len)
+        #len_metric = 1 / (1 + (abs(src_tokens_len - predict_tokens_len) / src_tokens_len))
+
+        lcs_metric = SequenceMatcher(None, y_true.strip(), y_pred.strip()).find_longest_match().size
+        if len(y_pred.strip()) > 0:
+            lcs_metric /= len(y_pred.strip())
+
+        spt = len(y_pred) / (1 + len(y_pred_tokens))
         return {
             "symbol_per_token": spt,
             "len": len_metric,
