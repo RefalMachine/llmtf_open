@@ -154,8 +154,11 @@ def load_dataset_single(subject):
     return load_dataset(MMLU.NLPCORE_HF_PATH, name=subject, download_mode='reuse_dataset_if_exists')
 
 def load_dataset_multiprocessing(subjects, num_proc=12):
-    with Pool(processes=num_proc) as pool:
-        datasets = [ds for ds in pool.map(load_dataset_single, subjects)]
+    if num_proc <= 1:
+        datasets = [load_dataset_single(subject) for subject in subjects]
+    else:
+        with Pool(processes=num_proc) as pool:
+            datasets = [ds for ds in pool.map(load_dataset_single, subjects)]
     return datasets
 
 class MMLU(Task):
@@ -204,7 +207,7 @@ class MMLU(Task):
         samples = []
         subjects = list(SUBCATEGORIES.keys())
         max_samples_per_subject = max_sample_per_dataset // len(subjects) + 1
-        subject_datasets = load_dataset_multiprocessing(subjects, 12) #TODO: to params
+        subject_datasets = load_dataset_multiprocessing(subjects, 1) #TODO: to params
         for i, dataset in enumerate(tqdm(subject_datasets)):
             subject = subjects[i]
 

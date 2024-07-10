@@ -12,6 +12,7 @@ task_groups = [
     {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
     {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
     {'name': 'treewayextractive', 'params': {'dataset_names': 'daru/treewayextractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
+    {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_sent_ru darumeru/cp_sent_en darumeru/cp_para_ru darumeru/cp_para_en', 'allow_vllm': False}}
 ]
 
 def get_current_groups(rank, total_workers):

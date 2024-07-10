@@ -38,6 +38,7 @@ class Base(abc.ABC):
 class Task(Base):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.method_additional_args = {}
         self._max_new_tokens = None
         self.additional_stop_strings = []
 

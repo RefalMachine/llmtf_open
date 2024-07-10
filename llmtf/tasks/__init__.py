@@ -30,4 +30,8 @@ TASK_REGISTRY = {
     #'shlepa/booksmc': {'class': shlepa.ShlepaSmallMMLU, 'params': {'dataset_name': 'Vikhrmodels/books_mc'}}
     'daru/treewayabstractive': {'class': daru_treeway_summ.DaruTreewayAbstractive},
     'daru/treewayextractive': {'class': daru_treeway_summ.DaruTreewayExtractive},
+    'darumeru/cp_sent_ru': {'class': darumeru.CopyText, 'params': {'subtask': 'sent', 'lang': 'ru'}},
+    'darumeru/cp_sent_en': {'class': darumeru.CopyText, 'params': {'subtask': 'sent', 'lang': 'en'}},
+    'darumeru/cp_para_ru': {'class': darumeru.CopyText, 'params': {'subtask': 'para', 'lang': 'ru'}},
+    'darumeru/cp_para_en': {'class': darumeru.CopyText, 'params': {'subtask': 'para', 'lang': 'en'}}
 }

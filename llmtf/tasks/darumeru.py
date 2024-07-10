@@ -11,6 +11,9 @@ from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score
 import transformers.data.metrics.squad_metrics as squad_metrics
 import re
 from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from difflib import SequenceMatcher 
+
+
 
 class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
@@ -36,6 +39,54 @@ class DarumeruTask(SimpleFewShotHFTask):
         for m in messages:
             m['content'] = m['content'].format(**inputs)
         return messages
+
+
+
+class CopyText(DarumeruTask):
+    def __init__(self, subtask, lang, **kwargs):
+        super().__init__(**kwargs)
+        assert subtask in ['para', 'sent']
+        self.main_metric = 'len' if subtask == 'sent' else 'lcs'
+        self._max_new_tokens = 128 if subtask == 'sent' else 1024 
+        self.method = 'generate'
+        self.method_additional_args = {'return_tokens': True}
+        self.lang = lang
+        self.subtask = subtask
+        self.dataset_name = f'cp_{subtask}_{lang}'
+
+    def name(self) -> str:
+        return f'darumeru/{self.dataset_name}'
+
+    def aggregation(self) -> Dict:
+        return {"len": mean, "lcs": mean, "symbol_per_token": mean}
+
+    def leaderboard_aggregation(self, metrics: Dict) -> float:
+        return metrics[self.main_metric]
+
+    def evaluate(self, sample, y_pred) -> Dict:
+        y_pred_tokens = y_pred
+        y_pred = self.model_tokenizer.decode(y_pred_tokens)
+        y_true = sample['inputs']['text']
+        if not self.model_leading_space:
+            y_true = ' ' + y_true
+        y_true_tokens = self.model_tokenizer(y_true, add_special_tokens=False)['input_ids']
+
+        src_tokens_len = min(len(y_true_tokens), self._max_new_tokens)
+        predict_tokens_len = len(y_pred_tokens)
+        len_metric = 1 / (1 + (abs(src_tokens_len - predict_tokens_len) / src_tokens_len))
+
+        lcs_metric = SequenceMatcher(None, y_true.strip(), y_pred.strip()).find_longest_match().size / len(y_pred.strip())
+        spt = len(y_pred) / len(y_pred_tokens)
+        return {
+            "symbol_per_token": spt,
+            "len": len_metric,
+            "lcs": lcs_metric,
+        }
+
+    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+        self.model_tokenizer = model.tokenizer
+        self.model_leading_space = model.leading_space
+        return super().load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
 
 class MultiQ(DarumeruTask):
     def __init__(self, **kwargs):

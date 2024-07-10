@@ -270,11 +270,11 @@ class HFModel(LocalHostedLLM):
             'max_model_len': self.get_max_model_len()
         }
         
-    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message)
+    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message, return_tokens=return_tokens)
         return prompts[0], outputs[0], infos[0]
 
-    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
+    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
         generation_config = self.generation_config if generation_config is None else generation_config
         prompts = []
         for _messages in messages:
@@ -299,21 +299,38 @@ class HFModel(LocalHostedLLM):
         infos = []
         for batch_idx, (sample_output_ids_all, sample_input_ids) in enumerate(zip(output_ids, data["input_ids"])):
             sample_output_all = []
+            generated_len = []
+            prompt_len = int(data["attention_mask"][batch_idx].cpu().detach().sum())
             for sample_output_ids in sample_output_ids_all:
                 sample_output_ids = sample_output_ids[len(sample_input_ids):]
-                sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
-                for stop_string in generation_config.stop_strings:
-                    if stop_string in sample_output:
-                        sample_output = sample_output[:sample_output.find(stop_string)]
-                sample_output_all.append(sample_output)
+                if return_tokens:
+                    generated_ids = sample_output_ids.cpu().detach().tolist()
+                    eos_tokens = [self.tokenizer.eos_token_id]
+                    if generation_config.eos_token_id is not None:
+                        eos_tokens += generation_config.eos_token_id if type(generation_config.eos_token_id) == list else [generation_config.eos_token_id]
+                    eos_tokens = list(set(eos_tokens))
+                    for eos_token in eos_tokens:
+                        if eos_token in generated_ids:
+                            generated_ids = generated_ids[:generated_ids.index(eos_token)]
+
+                    #TODO: stop strings tructation. 
+                    sample_output_all.append(generated_ids)
+                else:
+                    sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
+                    for stop_string in generation_config.stop_strings:
+                        if stop_string in sample_output:
+                            sample_output = sample_output[:sample_output.find(stop_string)]
+                    sample_output_all.append(sample_output)
+                generated_len.append(len(sample_output_ids))
+
             if len(sample_output_all) == 1:
                 sample_output_all = sample_output_all[0]
 
             outputs.append(sample_output_all)
             infos.append(
                 {
-                    'prompt_len': len(data['input_ids'][batch_idx]), 
-                    'generated_len': sample_output_ids_all.shape[-1], 
+                    'prompt_len': prompt_len, 
+                    'generated_len': generated_len, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model'
                 }
             )
@@ -346,21 +363,21 @@ class HFModel(LocalHostedLLM):
 
         probs_batch = []
         infos = []
-        for i in range(next_token_logits_batch.shape[0]):
-            next_token_logits = next_token_logits_batch[i]
+        for batch_idx in range(next_token_logits_batch.shape[0]):
+            next_token_logits = next_token_logits_batch[batch_idx]
             next_token_logits = next_token_logits.flatten()
             assert next_token_logits.shape == torch.Size((self.model.config.vocab_size, ))
 
             next_token_probs = torch.nn.functional.softmax(next_token_logits, dim=-1).cpu()
             assert torch.isclose(next_token_probs.sum(), torch.tensor(1.0).to(next_token_probs.dtype), atol=1e-03)
         
-            probs = next_token_probs[tokens_of_interest_ids_batch[i]].tolist()
-            probs = dict(zip(tokens_of_interest[i], probs))
+            probs = next_token_probs[tokens_of_interest_ids_batch[batch_idx]].tolist()
+            probs = dict(zip(tokens_of_interest[batch_idx], probs))
             probs_batch.append(probs)
 
             infos.append(
                 {
-                    'prompt_len': len(data['input_ids'][i]), 
+                    'prompt_len': data["attention_mask"][batch_idx].cpu().detach().sum(), 
                     'generated_len': 1, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model', 
                     'generated_token': self.tokenizer.decode([next_token_probs.argmax()])
@@ -370,6 +387,7 @@ class HFModel(LocalHostedLLM):
         return prompts_batch, probs_batch, infos
     
     def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
+        ## TODO: transformers 4.38.2 will be ok for llama3
         prompts = []
         for _messages in messages:
             prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
@@ -405,7 +423,7 @@ class HFModel(LocalHostedLLM):
 
             infos.append(
                 {
-                    'prompt_len': len(data['input_ids'][batch_idx]), 
+                    'prompt_len': data["attention_mask"][batch_idx].cpu().detach().sum(), 
                     'generated_len': 1, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model', 
                 }
@@ -501,11 +519,11 @@ class VLLMModel(LocalHostedLLM):
         self.attn_backend = self.model.llm_engine.model_executor.driver_worker.model_runner.attn_backend
         self.special_attn_warning_complete = False
 
-    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True):
-        prompts, outputs, infos = self.generate_batch([messages], generation_config=None, incomplete_last_bot_message=True)
+    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message, return_tokens=return_tokens)
         return prompts[0], outputs[0], infos[0]
 
-    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True):
+    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
         prompts_tokens_batch = []
         for _messages in messages:
             prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
@@ -531,16 +549,17 @@ class VLLMModel(LocalHostedLLM):
             infos.append(
                 {
                     'prompt_len': len(response.prompt_token_ids), 
-                    'generated_len': len(response.outputs[0].token_ids), 
-                    'generated_cumulative_logprob': response.outputs[0].cumulative_logprob
+                    'generated_len': [len(out.token_ids) for out in response.outputs], 
+                    'generated_cumulative_logprob': [out.cumulative_logprob for out in response.outputs]
                 }
             )
             prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
 
-            if len(response.outputs) == 1:
-                outputs.append(response.outputs[0].text)
+            generated = [out.token_ids if return_tokens else out.text for out in response.outputs]
+            if len(generated) == 1:
+                outputs.append(generated[0])
             else:
-                outputs.append([out.text for out in response.outputs])
+                outputs.append(generated)
 
         return prompts_vllm, outputs, infos
 

@@ -10,7 +10,7 @@ import inspect
 import time
 import numpy as np
 import traceback
-
+from pathlib import Path
  
 class Evaluator(Base):
     def __init__(self, **kwargs):
@@ -34,8 +34,13 @@ class Evaluator(Base):
                 task_class = TASK_REGISTRY[dataset_name]['class']
                 task_init_params = TASK_REGISTRY[dataset_name].get('params', {})
                 task = task_class(**task_init_params)
+                if (Path(output_dir) / f"{task.name().replace('/', '_')}_total.jsonl").exists():
+                    self.logger.info(f"Found precomputed {task.name()}_total")
+                    continue
+
                 with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
                     self.evaluate_dataset(task, model, output_dir, prompt_max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
+
             self.logger.info(f'Ended eval')
             self.create_report(output_dir)
         except Exception as e:
@@ -54,12 +59,13 @@ class Evaluator(Base):
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
                 if generation_config is not None:
                     messages_batch['generation_config'] = generation_config
-    
+                for k, v in task.method_additional_args.items():
+                    messages_batch[k] = v
+
                 prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
                 for j in range(len(y_preds)):
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
-        
         
         task.logger.info(f'Results for {task.name()}:')
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
