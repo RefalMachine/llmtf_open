@@ -64,8 +64,8 @@ class CopyText(DarumeruTask):
         return metrics[self.main_metric]
 
     def evaluate(self, sample, y_pred) -> Dict:
-        y_pred_tokens = y_pred
-        y_pred = self.model_tokenizer.decode(y_pred_tokens)
+        y_pred_tokens = y_pred['tokens']
+        y_pred = y_pred['text']
         y_true = sample['inputs']['text']
         if not self.model_leading_space:
             y_true = ' ' + y_true

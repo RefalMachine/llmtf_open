@@ -314,7 +314,7 @@ class HFModel(LocalHostedLLM):
                             generated_ids = generated_ids[:generated_ids.index(eos_token)]
 
                     #TODO: stop strings tructation. 
-                    sample_output_all.append(generated_ids)
+                    sample_output_all.append({'tokens': generated_ids, 'text': self.tokenizer.decode(generated_ids, skip_special_tokens=True)})
                 else:
                     sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
                     for stop_string in generation_config.stop_strings:
@@ -555,7 +555,7 @@ class VLLMModel(LocalHostedLLM):
             )
             prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
 
-            generated = [out.token_ids if return_tokens else out.text for out in response.outputs]
+            generated = [{'tokens': out.token_ids, 'text': out.text} if return_tokens else out.text for out in response.outputs]
             if len(generated) == 1:
                 outputs.append(generated[0])
             else:
