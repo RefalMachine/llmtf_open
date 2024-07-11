@@ -377,7 +377,7 @@ class HFModel(LocalHostedLLM):
 
             infos.append(
                 {
-                    'prompt_len': data["attention_mask"][batch_idx].cpu().detach().sum(), 
+                    'prompt_len': int(data["attention_mask"][batch_idx].cpu().detach().sum()), 
                     'generated_len': 1, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model', 
                     'generated_token': self.tokenizer.decode([next_token_probs.argmax()])
