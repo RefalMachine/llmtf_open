@@ -29,7 +29,11 @@ class Base(abc.ABC):
     def init_logger(self):
         self.backend_logger = logging.getLogger(__name__ + '.' + self.name())
         self.backend_logger.setLevel(logging.INFO)
+        handler_name = 'stream_handler.' + __name__ + '.' + self.name()
+        if handler_name in [h.name for h in self.backend_logger.handlers]:
+            return
         ch = logging.StreamHandler()
+        ch.set_name(handler_name)
         ch.setLevel(logging.INFO)
         formatter = logging.Formatter('%(levelname)s: %(asctime)s: %(name)s: %(message)s')
         ch.setFormatter(formatter)
