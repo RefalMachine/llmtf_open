@@ -4,7 +4,7 @@ from tqdm import tqdm
 from typing import Dict, List, Tuple
 from datasets import load_dataset, Dataset
 import copy
-from llmtf.metrics import mean, rouge1, rouge2
+from llmtf.metrics import mean, rouge1, rouge2, r_precision
 import pandas as pd
 import numpy as np
 from sklearn.metrics import average_precision_score
@@ -67,15 +67,15 @@ class DaruTreewayExtractive(Task):
         return 'daru/treewayextractive'
 
     def evaluate(self, sample, y_pred) -> Dict:
-        return {'map': {'label': sample['label'], 'group_id': sample['group_id'], 'pred': y_pred}}
-        
+        return {'r-prec': {'label': sample['label'], 'group_id': sample['group_id'], 'pred': y_pred}}
+
     def aggregation(self) -> Dict:
         def map_score(data: List[Dict]):
             df = pd.DataFrame()
             group_idx = [d['group_id'] for d in data]
             labels = [d['label'] for d in data]
             scores = [[t[1] for t in d['pred'][-1]['tokens']] for d in data]
-            
+
             df['id'] = group_idx
             df['labels'] = labels
             df['scores'] = scores
@@ -85,11 +85,11 @@ class DaruTreewayExtractive(Task):
                 min_len = min([len(s) for s in group['scores']])
                 scores_group = [np.mean(s[:min_len]) for s in group['scores']]
                 group['score'] = scores_group
-                ap = average_precision_score(group['labels'], group['score'])
+                ap = r_precision(group['labels'], group['score'])
                 score.append(ap)
             score = np.mean(score)
             return score
-        return {'map': map_score}
+        return {'r-prec': map_score}
 
     def dataset_args(self) -> Dict:
         return {'path': 'dichspace/daru_treeway_eval'}
@@ -120,7 +120,6 @@ class DaruTreewayExtractive(Task):
                 samples_group[j]['group_id'] = i
                 samples_group[j]['label'] = j in sample['extractive_summary']
                 samples.append({'messages': messages_group[j], 'sample': samples_group[j]})
-                
         return samples
         
     def _prepare_messages(self, sample: Dict, model: LLM, max_len: int) -> List:

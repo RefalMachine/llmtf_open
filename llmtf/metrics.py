@@ -3,6 +3,8 @@ from rouge_score import rouge_scorer
 import pymorphy2
 import string
 import re
+import numpy as np
+
 
 def mean(arr):
     return sum(arr) / max(len(arr), 1)
@@ -50,3 +52,15 @@ def rouge1(gold, generated):
 
 def rouge2(gold, generated):
     return rouge_scorer.score(gold, generated)['rouge2']
+
+def get_order_relevance_k(labels, scores, k):
+    scores = -np.array(scores)
+    labels = np.array(labels).astype(float)
+    order = np.argsort(scores)[:k]
+    order_relevance = labels[order]
+    return order_relevance
+
+def r_precision(labels, scores):
+    total_labels = np.array(labels).astype(int).sum()
+    order_relevance = get_order_relevance_k(labels, scores, total_labels)
+    return order_relevance.sum() / total_labels
