@@ -20,7 +20,7 @@ class Evaluator(Base):
         assert issubclass(task_cls, Task)
         TASK_REGISTRY[task_name] = {'class': task_cls}
 
-    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000):
+    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False):
         set_out_handler_to_main_logger(output_dir)
         try:
             if generation_config is not None:
@@ -34,7 +34,7 @@ class Evaluator(Base):
                 task_class = TASK_REGISTRY[dataset_name]['class']
                 task_init_params = TASK_REGISTRY[dataset_name].get('params', {})
                 task = task_class(**task_init_params)
-                if (Path(output_dir) / f"{task.name().replace('/', '_')}_total.jsonl").exists():
+                if (Path(output_dir) / f"{task.name().replace('/', '_')}_total.jsonl").exists() and not force_recalc:
                     self.logger.info(f"Found precomputed {task.name()}_total")
                     continue
 

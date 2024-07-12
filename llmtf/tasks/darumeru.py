@@ -12,8 +12,7 @@ import transformers.data.metrics.squad_metrics as squad_metrics
 import re
 from llmtf.base import Task, SimpleFewShotHFTask, LLM
 from difflib import SequenceMatcher 
-
-
+import pandas as pd
 
 class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
@@ -137,14 +136,47 @@ class PARus(DarumeruTask):
     def choices(self):
         return ["1", "2"]
 
+    def _confident_accuracy_mean(self, results: Dict) -> Dict:
+        samples_ids = [r['id'] for r in results]
+        samples_pred = [r['val'] for r in results]
+        df = pd.DataFrame()
+        df['id'] = samples_ids
+        df['pred'] = samples_pred
+        accuracy_list = []
+        for idx, group in df.groupby('id'):
+            accuracy_list.append(group['pred'].iloc[0] * group['pred'].iloc[1])
+        return sum(accuracy_list) / len(accuracy_list)
+
     def aggregation(self) -> Dict:
-        return {"acc": mean}
+        return {"acc": self._confident_accuracy_mean}
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = sample['outputs']
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
-        return {"acc": y_true == y_pred}
+        return {"acc": {'val': y_true == y_pred, 'id': sample['meta']['id']}}
 
+    def _reverse_sample(self, sample):
+        sample['outputs'] = '1' if sample['outputs'] == '2' else '2'
+        c1 = sample['inputs']['choice1']
+        sample['inputs']['choice1'] = sample['inputs']['choice2']
+        sample['inputs']['choice2'] = c1
+        return sample
+
+    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+        samples = []
+        dataset = load_dataset(**self.dataset_args())
+        test_dataset = dataset[self.test_split_name()]
+        prompt_dataset = dataset[self.prompt_split_name()]
+
+        test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
+        prompt_dataset = prompt_dataset.select(range(self.prompt_dataset_start_idx(), min(self.prompt_dataset_start_idx() + few_shot_count, len(prompt_dataset))))
+        for sample in tqdm(test_dataset):
+            sample_direct = copy.deepcopy(sample)
+            samples.append({'messages': self._prepare_messages(sample_direct, model, max_len, few_shot_count, prompt_dataset), 'sample': sample_direct})
+
+            sample_reverse = self._reverse_sample(copy.deepcopy(sample))
+            samples.append({'messages': self._prepare_messages(sample_reverse, model, max_len, few_shot_count, prompt_dataset), 'sample': sample_reverse})
+        return samples
 
 class RCB(DarumeruTask):
     def __init__(self, **kwargs):
@@ -242,21 +274,39 @@ class ruTiE(DarumeruTask):
     @property
     def choices(self):
         return ["1", "2"]
+    
+    def _confident_accuracy_mean(self, results: Dict) -> Dict:
+        samples_ids = [r['id'] for r in results]
+        samples_pred = [r['val'] for r in results]
+        df = pd.DataFrame()
+        df['id'] = samples_ids
+        df['pred'] = samples_pred
+        accuracy_list = []
+        for idx, group in df.groupby('id'):
+            accuracy_list.append(group['pred'].iloc[0] * group['pred'].iloc[1])
+        return sum(accuracy_list) / len(accuracy_list)
 
     def aggregation(self) -> Dict:
-        return {"acc": mean}
+        return {"acc": self._confident_accuracy_mean}
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = sample['outputs']
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
-        return {"acc": y_true == y_pred}
-    
+        return {"acc": {'val': y_true == y_pred, 'id': sample['meta']['question_id']}}
+
     def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, *args, **kwargs) -> List:
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
         samples = self._prepare_messages(test_dataset, model, max_len, max_sample_per_dataset)
         return samples
     
+    def _reverse_sample(self, sample):
+        sample['outputs'] = '1' if sample['outputs'] == '2' else '2'
+        c1 = sample['inputs']['choice1']
+        sample['inputs']['choice1'] = sample['inputs']['choice2']
+        sample['inputs']['choice2'] = c1
+        return sample
+
     def _prepare_messages(self, samples: Dataset, model: LLM, max_len: int, max_sample_per_dataset: int) -> List:
         samples = sorted(samples, key=lambda x: x['meta']['question_id'])
         all_dataset_messages = []
@@ -287,9 +337,15 @@ class ruTiE(DarumeruTask):
                 dialog_shift += 1
 
             if messages_len >= max_len:
-                #log this
+                self.logger.warning(f'WARNING: messages_len >= max_len')
                 pass
+
             all_dataset_messages.append({'messages': messages, 'sample': s})
+
+            s_reverse = self._reverse_sample(copy.deepcopy(s))
+            sample_reverse = self._reverse_sample(copy.deepcopy(sample))
+            messages_reverse = self.create_messages(copy.deepcopy(sample_reverse))
+            all_dataset_messages.append({'messages': messages_reverse, 'sample': s_reverse})
 
         return all_dataset_messages
 
