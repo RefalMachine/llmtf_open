@@ -1,0 +1,14 @@
+{
+    "system_prompt": "",
+    "system_message_template": "",
+    "user_message_template": "<start_of_turn>{role}\n{content}<end_of_turn>\n",
+    "bot_message_template": "<start_of_turn>{role}\n{content}<end_of_turn>\n",
+    "bot_message_template_incomplete": "<start_of_turn>{role}\n{content}",
+    "user_role": "user",
+    "bot_role": "model",
+    "system_role": "system",
+    "global_prefix": "<bos>",
+    "suffix": "<start_of_turn>model\n",
+    "add_special_tokens": false,
+    "eos_token": "<end_of_turn>"
+}
