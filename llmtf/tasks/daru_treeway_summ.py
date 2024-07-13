@@ -113,7 +113,9 @@ class DaruTreewayExtractive(Task):
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
-        test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
+
+        hardcoded_max_dataset_len = min(500, len(test_dataset))
+        test_dataset = test_dataset.select(range(min(max_sample_per_dataset, hardcoded_max_dataset_len)))
         for i, sample in tqdm(enumerate(test_dataset)):
             messages_group, samples_group = self._prepare_messages(sample, model, max_len)
             for j in range(len(messages_group)):
