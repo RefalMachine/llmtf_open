@@ -5,7 +5,7 @@ import subprocess
 import torch.multiprocessing as mp
 
 #TODO: refactoring and vllm
-task_groups = [
+task_groups_few_shot = [
     {'name': 'darumeru_no_mmlu_rucola', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/rutie darumeru/ruworldtree darumeru/rwsd darumeru/use russiannlp/rucola_custom', 'allow_vllm': False}},
     {'name': 'darumeru_mmlu_ru', 'params': {'dataset_names': 'darumeru/rummlu', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
@@ -15,11 +15,26 @@ task_groups = [
     {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_sent_ru darumeru/cp_sent_en darumeru/cp_para_ru darumeru/cp_para_en', 'allow_vllm': False}}
 ]
 
+task_groups_zero_shot = [
+    {'name': 'darumeru_no_mmlu_rucola', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/rutie darumeru/ruworldtree darumeru/rwsd darumeru/use russiannlp/rucola_custom', 'allow_vllm': False}},
+    {'name': 'darumeru_mmlu_ru', 'params': {'dataset_names': 'darumeru/rummlu', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
+    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
+    {'name': 'treewayextractive', 'params': {'dataset_names': 'daru/treewayextractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
+    {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_sent_ru darumeru/cp_sent_en darumeru/cp_para_ru darumeru/cp_para_en', 'allow_vllm': False}}
+]
+
+task_groups = None
 def get_current_groups(rank, total_workers):
     current_idx = [i for i in range(rank, len(task_groups), total_workers)]
     return [task_groups[i] for i in current_idx]
 
 def run_eval(args, group, local_rank):
+    if int(args.few_shot_count) > 0:
+        task_groups = task_groups_few_shot
+    else:
+        task_groups = task_groups_zero_shot
     command = ['python', 'evaluate_model.py', '--model_name_or_path', args.model_dir, '--conv_path', args.conv_path, '--max_len', str(args.max_len), '--few_shot_count', str(args.few_shot_count), '--batch_size', str(args.batch_size)]
     command += ['--dataset_names'] + group['params']['dataset_names'].split()
     if args.vllm and group['params']['allow_vllm']:
