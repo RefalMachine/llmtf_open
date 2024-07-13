@@ -101,11 +101,14 @@ def calculate_offset_mapping_llama3_workaround(prompts, tokens, tokenizer):
             offset_mapping[-1].append(token_pos)
     return offset_mapping
 
-def add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax):
+def add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax, log_only_last):
     for i in range(len(messages)):
-        for m in messages[i]:
-            message_start = prompts[i].find(m['content'])
+        message_end = 0
+        for j, m in enumerate(messages[i]):
+            message_start = prompts[i].find(m['content'], message_end)
             message_end = message_start + len(m['content'])
+            if log_only_last and j < len(messages[i]) - 1:
+                continue
             message_tokens = []
             inside = False
             for token, score, positions in tokens_with_logsoftmax[i]:

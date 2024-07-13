@@ -289,7 +289,7 @@ class HFModel(LocalHostedLLM):
             padding=True
         )
         data = {k: v.to(self.model.device) for k, v in data.items()}
-        
+
         #TODO: upgrade to 4.40+ version with propper testing
         stop_strings = generation_config.stop_strings
         generation_config.stop_strings = None
@@ -392,7 +392,7 @@ class HFModel(LocalHostedLLM):
 
         return prompts_batch, probs_batch, infos
     
-    def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
+    def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True, log_only_last=True):
         ## TODO: transformers 4.38.2 will be ok for llama3
         prompts = []
         for _messages in messages:
@@ -408,34 +408,33 @@ class HFModel(LocalHostedLLM):
         #if 'llama3' in self.model.config._name_or_path.lower() or 'llama-3' in self.model.config._name_or_path.lower() or os.environ.get('FORCE_CALCULATE_OFFSET_MAPPING_CUSTOM', False):
         #    offset_mapping = calculate_offset_mapping_llama3_workaround(prompts, data['input_ids'], self.tokenizer)
 
-        data = {k: v.to(self.model.device) for k, v in data.items()}
+        model_input = {k: v.clone().to(self.model.device) for k, v in data.items()}
         with torch.no_grad():
-            outputs = self.model(**data)
-            logsoftmax_batch = torch.nn.LogSoftmax(dim=-1)(outputs.logits).cpu().detach()
+            outputs = self.model(**model_input).logits
+            logsoftmax_batch = torch.nn.LogSoftmax(dim=-1)(outputs)
         
-        labels = data['input_ids'][:,1:].cpu().detach()
-        attention_mask = data['attention_mask'].cpu().detach()
-        input_ids = data['input_ids'].cpu().detach()
-
+        labels = model_input['input_ids'][:,1:]
         tokens_with_logsoftmax = []
         labels_len = labels.shape[1]
+        seq_pos_list = list(range(labels_len))
         infos = []
         for batch_idx in range(labels.shape[0]):
             shift = labels_len - int(data['attention_mask'][batch_idx].sum()) + 1
-            scores = [0.0] + logsoftmax_batch[batch_idx, range(labels_len), labels[batch_idx]].tolist()[shift:]
+            scores = logsoftmax_batch[batch_idx, seq_pos_list[shift:], labels[batch_idx][shift:]]
+            scores = [0.0] + scores.tolist()
             tokens = data['input_ids'][batch_idx][shift:].tolist()
             positions = offset_mapping[batch_idx][shift:]
             tokens_with_logsoftmax.append([[tokens[i], scores[i], positions[i]] for i in range(len(scores))])
 
             infos.append(
                 {
-                    'prompt_len': int(data["attention_mask"][batch_idx].cpu().detach().sum()), 
+                    'prompt_len': int(data["attention_mask"][batch_idx].sum()), 
                     'generated_len': 1, 
                     'generated_cumulative_logprob': 'TODO: calculate for hf model', 
                 }
             )
 
-        add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax)
+        add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax, log_only_last)
         return prompts, messages, infos
 
     def _load_plain_model(self, model_dir):
@@ -617,7 +616,7 @@ class VLLMModel(LocalHostedLLM):
 
         return prompts_vllm, probs_batch, infos
 
-    def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True):
+    def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True, log_only_last=True):
         # BUGGED https://github.com/vllm-project/vllm/pull/5355
         prompts_tokens_batch = []
         prompts = []
@@ -663,7 +662,7 @@ class VLLMModel(LocalHostedLLM):
                     logsoftmax = response.prompt_logprobs[j][token].logprob
                 prompt_logsoftmax.append([token, logsoftmax, offset_mapping[i][j]])
             tokens_with_logsoftmax.append(prompt_logsoftmax)
-        add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax)
+        add_tokens_with_logsoftmax_messages(messages, prompts, tokens_with_logsoftmax, log_only_last)
         return prompts, messages, infos
 
     def get_params(self):
