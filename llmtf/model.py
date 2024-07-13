@@ -154,6 +154,7 @@ class LocalHostedLLM(LLM):
         self.generation_config.temperature = 0.1
         self.generation_config.top_k = 40
         self.generation_config.top_p = 0.9
+        self.generation_config.num_beams = 1
         self.generation_config.stop_strings = []
 
     def _override_eos_token_conv_template(self):
@@ -288,11 +289,16 @@ class HFModel(LocalHostedLLM):
             padding=True
         )
         data = {k: v.to(self.model.device) for k, v in data.items()}
+        
+        #TODO: upgrade to 4.40+ version with propper testing
+        stop_strings = generation_config.stop_strings
+        generation_config.stop_strings = None
         with torch.no_grad():
             output_ids = self.model.generate(
                 **data,
                 generation_config=generation_config
             )
+        generation_config.stop_strings = stop_strings
         output_ids = output_ids.view(len(messages), -1, output_ids.shape[-1])
         
         outputs = []

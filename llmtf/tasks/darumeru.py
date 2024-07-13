@@ -18,8 +18,8 @@ class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.additional_stop_strings.append('\n')
-        self.additional_stop_strings.append('\n\n')
+        #self.additional_stop_strings.append('\n')
+        #self.additional_stop_strings.append('\n\n')
         self._max_new_tokens = 64
 
     def dataset_args(self) -> Dict:

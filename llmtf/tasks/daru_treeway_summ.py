@@ -14,8 +14,8 @@ class DaruTreewayAbstractive(SimpleFewShotHFTask):
         super().__init__(**kwargs)
         self.method = 'generate'
         self._max_new_tokens = 512
-        self.additional_stop_strings.append('\n')
-        self.additional_stop_strings.append('\n\n')
+        #self.additional_stop_strings.append('\n')
+        #self.additional_stop_strings.append('\n\n')
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = ' '.join(sample['summary_sents'])

@@ -7,5 +7,6 @@
     "bot_role": "bot",
     "system_role": "system",
     "suffix": "",
-    "add_special_tokens": false
+    "add_special_tokens": false,
+    "eos_token": ["\n", "\n\n"]
 }
