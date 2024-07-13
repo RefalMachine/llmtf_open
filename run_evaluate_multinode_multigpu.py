@@ -16,13 +16,13 @@ task_groups_few_shot = [
 ]
 
 task_groups_zero_shot = [
-    {'name': 'darumeru_no_mmlu_rucola', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/rutie darumeru/ruworldtree darumeru/rwsd darumeru/use russiannlp/rucola_custom', 'allow_vllm': False}},
-    {'name': 'darumeru_mmlu_ru', 'params': {'dataset_names': 'darumeru/rummlu', 'allow_vllm': False}},
-    {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
-    {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
+    {'name': 'darumeru_rest', 'params': {'dataset_names': 'darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/rutie darumeru/ruworldtree darumeru/rwsd russiannlp/rucola_custom', 'allow_vllm': False}},
+    {'name': 'darumeru_mmlu_ru_extractive', 'params': {'dataset_names': 'darumeru/rummlu daru/treewayextractive', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_mmlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu nlpcoreteam/enmmlu', 'allow_vllm': False}},
     {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
-    {'name': 'treewayextractive', 'params': {'dataset_names': 'daru/treewayextractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
-    {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_sent_ru darumeru/cp_sent_en darumeru/cp_para_ru darumeru/cp_para_en', 'allow_vllm': False}}
+    {'name': 'darumeru_multiq_use', 'params': {'dataset_names': 'darumeru/multiq darumeru/use', 'allow_vllm': False}},
+    {'name': 'copy_tasks_ru', 'params': {'dataset_names': 'darumeru/cp_sent_ru darumeru/cp_para_ru', 'allow_vllm': False}},
+    {'name': 'copy_tasks_en', 'params': {'dataset_names': 'darumeru/cp_sent_en darumeru/cp_para_en', 'allow_vllm': False}}
 ]
 
 task_groups = None
@@ -43,6 +43,9 @@ def run_eval(args, group, local_rank):
     else:
         output_dir = os.path.join(args.model_dir, 'llmtf_eval')
     command += ['--device_map', f'cuda:{0}', '--output_dir', output_dir]
+    if args.force_recalc:
+        command += ['--force_recalc']
+        
     env = os.environ.copy()
     env['CUDA_VISIBLE_DEVICES'] = str(local_rank)
     env['WORLD_SIZE'] = str(1)
@@ -70,6 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_len', default=4000, type=int)
     parser.add_argument('--few_shot_count', default=0, type=int)
     parser.add_argument('--vllm', action='store_true')
+    parser.add_argument('--force_recalc', action='store_true')
     args = parser.parse_args()
 
     local_rank = int(os.environ['LOCAL_RANK'])
