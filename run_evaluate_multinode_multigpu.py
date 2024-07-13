@@ -31,10 +31,6 @@ def get_current_groups(rank, total_workers):
     return [task_groups[i] for i in current_idx]
 
 def run_eval(args, group, local_rank):
-    if int(args.few_shot_count) > 0:
-        task_groups = task_groups_few_shot
-    else:
-        task_groups = task_groups_zero_shot
     command = ['python', 'evaluate_model.py', '--model_name_or_path', args.model_dir, '--conv_path', args.conv_path, '--max_len', str(args.max_len), '--few_shot_count', str(args.few_shot_count), '--batch_size', str(args.batch_size)]
     command += ['--dataset_names'] + group['params']['dataset_names'].split()
     if args.vllm and group['params']['allow_vllm']:
@@ -81,6 +77,11 @@ if __name__ == '__main__':
     workers = int(os.environ['WORLD_SIZE'])
     print(f'info: lr={local_rank}, r={rank}, total={workers}')
     time.sleep(rank*2)
+
+    if int(args.few_shot_count) > 0:
+        task_groups = task_groups_few_shot
+    else:
+        task_groups = task_groups_zero_shot
 
     for group in get_current_groups(rank, workers):
         print(f'RANK {rank} starting {group}')
