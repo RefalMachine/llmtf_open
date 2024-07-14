@@ -328,9 +328,15 @@ class HFModel(LocalHostedLLM):
                     for stop_string in generation_config.stop_strings:
                         if stop_string in text_trunc:
                             text_trunc = text_trunc[:text_trunc.find(stop_string)]
+                            
                     if text_trunc != text:
+                        generated_ids_trunc = self.tokenizer(text_trunc, add_special_tokens=False)['input_ids']
+                        generated_ids_trunc_len = len(generated_ids_trunc)
+                        assert generated_ids_trunc[:generated_ids_trunc_len-1] == generated_ids[:generated_ids_trunc_len-1]
+
+                        generated_ids = generated_ids_trunc
                         text = text_trunc
-                        generated_ids = self.tokenizer(text, add_special_tokens=False)['input_ids']
+
                     sample_output_all.append({'tokens': generated_ids, 'text': text})
                 else:
                     sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
