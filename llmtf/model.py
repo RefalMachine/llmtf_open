@@ -323,21 +323,17 @@ class HFModel(LocalHostedLLM):
                             generated_ids = generated_ids[:generated_ids.index(eos_token)]
 
                     #TODO: better stop strings tructation. 
-                    text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-                    text_trunc = text
+                    generated_tokens = [self.tokenizer.convert_tokens_to_string([t]) for t in self.tokenizer.convert_ids_to_tokens(generated_ids)]
                     for stop_string in generation_config.stop_strings:
-                        if stop_string in text_trunc:
-                            text_trunc = text_trunc[:text_trunc.find(stop_string)]
-                            
-                    if text_trunc != text:
-                        generated_ids_trunc = self.tokenizer(text_trunc, add_special_tokens=False)['input_ids']
-                        generated_ids_trunc_len = len(generated_ids_trunc)
-                        assert generated_ids_trunc[:generated_ids_trunc_len-1] == generated_ids[:generated_ids_trunc_len-1]
-
-                        generated_ids = generated_ids_trunc
-                        text = text_trunc
-
-                    sample_output_all.append({'tokens': generated_ids, 'text': text})
+                        if stop_string in ''.join(generated_tokens):
+                            for token_i, token in enumerate(generated_tokens):
+                                if stop_string in token:
+                                    generated_tokens = generated_tokens[:token_i]
+                                    break
+                    if len(generated_tokens) != len(generated_ids):
+                        generated_ids = generated_ids[:len(generated_tokens)]
+                        
+                    sample_output_all.append({'tokens': generated_ids, 'text': self.tokenizer.decode(generated_ids, skip_special_tokens=True)})
                 else:
                     sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
                     for stop_string in generation_config.stop_strings:
