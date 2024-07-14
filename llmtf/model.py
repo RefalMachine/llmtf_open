@@ -322,8 +322,16 @@ class HFModel(LocalHostedLLM):
                         if eos_token in generated_ids:
                             generated_ids = generated_ids[:generated_ids.index(eos_token)]
 
-                    #TODO: stop strings tructation. 
-                    sample_output_all.append({'tokens': generated_ids, 'text': self.tokenizer.decode(generated_ids, skip_special_tokens=True)})
+                    #TODO: better stop strings tructation. 
+                    text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+                    text_trunc = text
+                    for stop_string in generation_config.stop_strings:
+                        if stop_string in text_trunc:
+                            text_trunc = text_trunc[:text_trunc.find(stop_string)]
+                    if text_trunc != text:
+                        text = text_trunc
+                        generated_ids = self.tokenizer(text, add_special_tokens=False)['input_ids']
+                    sample_output_all.append({'tokens': generated_ids, 'text': text})
                 else:
                     sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
                     for stop_string in generation_config.stop_strings:
