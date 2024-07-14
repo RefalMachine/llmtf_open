@@ -6,7 +6,7 @@ import torch.multiprocessing as mp
 
 #TODO: refactoring and vllm
 task_groups_few_shot = [
-    {'name': 'darumeru_no_mmlu_rucola', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/rutie darumeru/ruworldtree darumeru/rwsd darumeru/use russiannlp/rucola_custom', 'allow_vllm': False}},
+    {'name': 'darumeru_no_mmlu_rucola', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/ruworldtree darumeru/rwsd darumeru/use russiannlp/rucola_custom', 'allow_vllm': False}},
     {'name': 'darumeru_mmlu_ru', 'params': {'dataset_names': 'darumeru/rummlu', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
@@ -16,7 +16,7 @@ task_groups_few_shot = [
 ]
 
 task_groups_zero_shot = [
-    {'name': 'darumeru_rest', 'params': {'dataset_names': 'darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/rutie darumeru/ruworldtree darumeru/rwsd russiannlp/rucola_custom', 'allow_vllm': False}},
+    {'name': 'darumeru_rest', 'params': {'dataset_names': 'darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/ruworldtree darumeru/rwsd russiannlp/rucola_custom', 'allow_vllm': False}},
     {'name': 'darumeru_mmlu_ru_extractive', 'params': {'dataset_names': 'darumeru/rummlu daru/treewayextractive', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu nlpcoreteam/enmmlu', 'allow_vllm': False}},
     {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},

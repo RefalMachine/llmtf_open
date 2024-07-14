@@ -17,7 +17,7 @@ TASK_REGISTRY = {
     'darumeru/rcb': {'class': darumeru.RCB},
     'darumeru/rummlu': {'class': darumeru.ruMMLU},
     'darumeru/ruopenbookqa': {'class': darumeru.ruOpenBookQA},
-    'darumeru/rutie': {'class': darumeru.ruTiE},
+    #'darumeru/rutie': {'class': darumeru.ruTiE},
     'darumeru/ruworldtree': {'class': darumeru.ruWorldTree},
     'darumeru/rwsd': {'class': darumeru.RWSD},
     'darumeru/use': {'class': darumeru.USE},
