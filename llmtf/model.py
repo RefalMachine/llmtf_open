@@ -170,6 +170,8 @@ class LocalHostedLLM(LLM):
         #gen_config_eos_token_id = copy.deepcopy(self.generation_config.eos_token_id)
         for eos_token in eos_token_from_conv:
             if eos_token is not None and len(eos_token) > 0:
+                self._add_stop_string(eos_token)
+                '''
                 is_token, eos_token_id = self._check_word_is_token(eos_token)
                 if not is_token:
                     self.logger.warning(f'Provided eos_token in conv template is not token, but sequence of tokens {eos_token_id}. It cannot be added to eos_token_id, but results will be truncated using {eos_token}')
@@ -180,6 +182,7 @@ class LocalHostedLLM(LLM):
                     
                     if eos_token_id not in self.generation_config.eos_token_id:
                         self.generation_config.eos_token_id.append(eos_token_id)
+                '''
         self.logger.info(f'Set eos_token_id in generation_config to {self.generation_config.eos_token_id}')
 
         global_prefix = self.conversation_template.get('global_prefix', None)
