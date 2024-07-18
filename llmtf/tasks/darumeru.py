@@ -83,9 +83,14 @@ class CopyText(DarumeruTask):
         len_metric = min(predict_tokens_len / src_tokens_len, src_tokens_len / predict_tokens_len)
         #len_metric = 1 / (1 + (abs(src_tokens_len - predict_tokens_len) / src_tokens_len))
 
-        lcs_metric = SequenceMatcher(None, y_true.strip(), y_pred.strip()).find_longest_match().size
-        if len(y_pred.strip()) > 0:
-            lcs_metric /= len(y_pred.strip())
+
+        #lcs_metric = SequenceMatcher(None, y_true.strip(), y_pred.strip()).find_longest_match().size
+        str_a = y_true.strip()
+        str_b = y_pred.strip()
+        s = SequenceMatcher(None, str_a, str_b, autojunk=False)
+        lcs_metric = len(''.join([str_a[block.a:(block.a + block.size)] for block in s.get_matching_blocks()]))
+        if len(str_b) > 0:
+            lcs_metric /= len(str_b)
 
         spt = len(y_pred) / (1 + len(y_pred_tokens))
         return {
