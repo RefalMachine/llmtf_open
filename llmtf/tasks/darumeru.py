@@ -91,7 +91,7 @@ class CopyText(DarumeruTask):
         lcs_metric = len(''.join([str_a[block.a:(block.a + block.size)] for block in s.get_matching_blocks()]))
         if len(str_b) > 0:
             lcs_metric /= len(str_b)
-
+        lcs_metric = float(lcs_metric >= 0.99)
         spt = len(y_pred) / (1 + len(y_pred_tokens))
         return {
             "symbol_per_token": spt,
