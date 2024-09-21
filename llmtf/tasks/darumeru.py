@@ -489,3 +489,25 @@ class USE(DarumeruTask):
         return {
             "grade_norm": self.overall_score,
         }
+    
+class ruSciBenchGRNTIRu(DarumeruTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.method = 'calculate_tokens_proba'
+        self.dataset_name = 'ruSciBenchGRNTIRu'.lower()
+
+    @classmethod
+    def name(cls):
+        return 'darumeru/ruscibench_grnti_ru'
+
+    @property
+    def choices(self):
+        return 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫ'
+
+    def aggregation(self) -> Dict:
+        return {"acc": mean, "f1_macro": f1_macro_score}
+
+    def evaluate(self, sample, y_pred) -> Dict:
+        y_true = sample['outputs']
+        y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
+        return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
