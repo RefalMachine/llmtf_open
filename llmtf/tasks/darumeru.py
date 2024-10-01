@@ -13,6 +13,7 @@ import re
 from llmtf.base import Task, SimpleFewShotHFTask, LLM
 from difflib import SequenceMatcher 
 import pandas as pd
+import string
 
 class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
@@ -494,7 +495,7 @@ class ruSciBenchGRNTIRu(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
-        self.dataset_name = 'ruSciBenchGRNTIRu'.lower()
+        self.dataset_name = 'ruscibench_grnti_ru'
 
     @classmethod
     def name(cls):
@@ -502,7 +503,7 @@ class ruSciBenchGRNTIRu(DarumeruTask):
 
     @property
     def choices(self):
-        return 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫ'
+        return string.ascii_uppercase
 
     def aggregation(self) -> Dict:
         return {"acc": mean, "f1_macro": f1_macro_score}

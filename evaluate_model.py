@@ -19,12 +19,15 @@ if __name__ == '__main__':
     parser.add_argument('--disable_sliding_window', action='store_true')
     parser.add_argument('--disable_prefix_caching', action='store_true')
     parser.add_argument('--force_recalc', action='store_true')
+    parser.add_argument('--alpha_scale', type=float, default=1.0)
+    parser.add_argument('--not_scale_lm_head', action='store_true')
+
     args = parser.parse_args()
     
     evaluator = Evaluator()
     
     MODEL_CLASS = VLLMModel if args.vllm else HFModel
-    model = MODEL_CLASS(args.conv_path, device_map=args.device_map, disable_sliding_window=args.disable_sliding_window, enable_prefix_caching=not args.disable_prefix_caching)
+    model = MODEL_CLASS(args.conv_path, device_map=args.device_map, disable_sliding_window=args.disable_sliding_window, enable_prefix_caching=not args.disable_prefix_caching, alpha_scale=args.alpha_scale, not_scale_lm_head=args.not_scale_lm_head)
     model.from_pretrained(args.model_name_or_path)
 
     evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc)

@@ -124,6 +124,7 @@ class LocalHostedLLM(LLM):
         tokens_of_interest_ids = []
         add_spaces = []
         for token_str in tokens_of_interest:
+            #print(token_str)
             if prompt.endswith('\n'):
                 prompt_check = prompt + token_str
             else:
@@ -141,6 +142,7 @@ class LocalHostedLLM(LLM):
             tokens_of_interest_ids.append(token)
             add_spaces.append(skip > 0)
         assert sum(add_spaces) == 0 or sum(add_spaces) == len(add_spaces)
+        assert len(tokens_of_interest_ids) == len(set(tokens_of_interest_ids))
         return tokens_of_interest_ids, add_spaces[0]
 
     def _init_default_gen_params(self):
@@ -244,7 +246,7 @@ class HFModel(LocalHostedLLM):
             load_in_8bit=False, 
             torch_dtype='auto', device_map='auto', 
             use_flash_attention_2=True, use_fast_tokenizer=True, 
-            trust_remote_code=False,
+            trust_remote_code=False, alpha_scale=1.0, not_scale_lm_head=False,
             **kwargs
         ):
         super().__init__(**kwargs)
@@ -253,7 +255,10 @@ class HFModel(LocalHostedLLM):
         self.use_flash_attention_2 = use_flash_attention_2
         self.device_map = device_map
         self.use_fast_tokenizer = use_fast_tokenizer
-        self.trust_remote_code=trust_remote_code,
+        self.trust_remote_code=trust_remote_code
+        self.alpha_scale = alpha_scale
+        self.not_scale_lm_head = not_scale_lm_head
+
         with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
             template = json.load(file)
         self.conversation_template = template
@@ -465,6 +470,15 @@ class HFModel(LocalHostedLLM):
 
     def _load_lora(self, model_dir):
         config = PeftConfig.from_pretrained(model_dir)
+        lm_head_alpha = config.alpha_pattern.get("lm_head", config.lora_alpha)
+
+        config.lora_alpha /= self.alpha_scale
+        for name in config.alpha_pattern:
+            config.alpha_pattern[name] /= self.alpha_scale
+
+        if self.not_scale_lm_head:
+            config.alpha_pattern["lm_head"] = lm_head_alpha
+
         base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path, trust_remote_code=self.trust_remote_code)
         torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
 
@@ -479,7 +493,8 @@ class HFModel(LocalHostedLLM):
         self.model = PeftModel.from_pretrained(
             self.model,
             model_dir,
-            torch_dtype=torch_dtype
+            torch_dtype=torch_dtype,
+            config=config
         )
 
         self.model = self.model.merge_and_unload()
@@ -496,7 +511,7 @@ class VLLMModel(LocalHostedLLM):
             conversation_template_path, 
             use_fast_tokenizer=True, 
             device_map='auto',
-            max_seq_len_to_capture=8192,
+            max_seq_len_to_capture=4096,
             gpu_memory_utilization=0.9,
             disable_sliding_window=False,
             enable_prefix_caching=True,
@@ -718,7 +733,8 @@ class VLLMModel(LocalHostedLLM):
             max_seq_len_to_capture=self.max_seq_len_to_capture, 
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching, 
-            trust_remote_code=self.trust_remote_code
+            trust_remote_code=self.trust_remote_code#, tensor_parallel_size=2,
+            #rope_scaling='{"type": "extended", "factor": 8.0}'
         )
 
     def _load_lora(self, model_dir):
