@@ -25,6 +25,59 @@ task_groups_zero_shot = [
     {'name': 'copy_tasks_en', 'params': {'dataset_names': 'darumeru/cp_sent_en darumeru/cp_para_en', 'allow_vllm': False}}
 ]
 
+'''
+task_groups_zero_shot = [
+    {'name': 'darumeru_rest', 'params': {'dataset_names': 'darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/ruworldtree darumeru/rwsd russiannlp/rucola_custom', 'allow_vllm': False}},
+    {'name': 'darumeru_mmlu_ru_extractive', 'params': {'dataset_names': 'darumeru/rummlu daru/treewayextractive', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_mmlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu nlpcoreteam/enmmlu', 'allow_vllm': False}},
+    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
+    {'name': 'darumeru_multiq_use', 'params': {'dataset_names': 'darumeru/multiq darumeru/use', 'allow_vllm': False}},
+    {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_sent_ru darumeru/cp_para_ru darumeru/cp_sent_en darumeru/cp_para_en', 'allow_vllm': False}}
+]
+'''
+
+task_groups_zero_shot = [
+    {'name': 'darumeru_rest', 'params': {'dataset_names': 'darumeru/multiq darumeru/use darumeru/parus darumeru/rcb darumeru/ruopenbookqa darumeru/ruworldtree darumeru/rwsd russiannlp/rucola_custom', 'allow_vllm': False}},
+    {'name': 'darumeru_mmlu_ru_extractive', 'params': {'dataset_names': 'darumeru/rummlu daru/treewayextractive', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_mmlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu nlpcoreteam/enmmlu', 'allow_vllm': False}},
+    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
+    {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_sent_ru darumeru/cp_para_ru darumeru/cp_sent_en darumeru/cp_para_en', 'allow_vllm': False}}
+]
+
+task_groups_zero_shot = [
+    {'name': 'multiq', 'params': {'dataset_names': 'darumeru/multiq', 'allow_vllm': False}},
+    {'name': 'use', 'params': {'dataset_names': 'darumeru/use', 'allow_vllm': False}},
+    {'name': 'parus', 'params': {'dataset_names': 'darumeru/parus', 'allow_vllm': False}},
+    {'name': 'rcb', 'params': {'dataset_names': 'darumeru/rcb', 'allow_vllm': False}},
+    {'name': 'ruopenbookqa', 'params': {'dataset_names': 'darumeru/ruopenbookqa', 'allow_vllm': False}},
+    {'name': 'ruworldtree', 'params': {'dataset_names': 'darumeru/ruworldtree', 'allow_vllm': False}},
+    {'name': 'rwsd', 'params': {'dataset_names': 'darumeru/rwsd', 'allow_vllm': False}},
+    {'name': 'rucola_custom', 'params': {'dataset_names': 'russiannlp/rucola_custom', 'allow_vllm': False}},
+    {'name': 'darumeru_rummlu', 'params': {'dataset_names': 'darumeru/rummlu', 'allow_vllm': False}},
+    {'name': 'daru_extractive', 'params': {'dataset_names': 'daru/treewayextractive', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_rummlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_enmmlu', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
+    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
+    {'name': 'cp_sent_ru', 'params': {'dataset_names': 'darumeru/cp_sent_ru', 'allow_vllm': False}},
+    {'name': 'cp_para_ru', 'params': {'dataset_names': 'darumeru/cp_para_ru', 'allow_vllm': False}},
+    {'name': 'cp_sent_en', 'params': {'dataset_names': 'darumeru/cp_sent_en', 'allow_vllm': False}},
+    {'name': 'cp_para_en', 'params': {'dataset_names': 'darumeru/cp_para_en', 'allow_vllm': False}}
+]
+
+task_groups_zero_shot_short_ver = [
+    {'name': 'multiq', 'params': {'dataset_names': 'darumeru/multiq', 'allow_vllm': False}},
+    {'name': 'parus', 'params': {'dataset_names': 'darumeru/parus', 'allow_vllm': False}},
+    {'name': 'rcb', 'params': {'dataset_names': 'darumeru/rcb', 'allow_vllm': False}},
+    {'name': 'ruopenbookqa', 'params': {'dataset_names': 'darumeru/ruopenbookqa', 'allow_vllm': False}},
+    {'name': 'ruworldtree', 'params': {'dataset_names': 'darumeru/ruworldtree', 'allow_vllm': False}},
+    {'name': 'rwsd', 'params': {'dataset_names': 'darumeru/rwsd', 'allow_vllm': False}},
+    {'name': 'daru_extractive', 'params': {'dataset_names': 'daru/treewayextractive', 'allow_vllm': False, 'max_sample_per_dataset': 1000}},
+    {'name': 'nlpcoreteam_rummlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
+    {'name': 'nlpcoreteam_enmmlu', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
+    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 200}},
+    {'name': 'cp_para_ru', 'params': {'dataset_names': 'darumeru/cp_para_ru', 'allow_vllm': False}},
+]
+
 task_groups = None
 def get_current_groups(rank, total_workers):
     current_idx = [i for i in range(rank, len(task_groups), total_workers)]
@@ -45,6 +98,10 @@ def run_eval(args, group, local_rank):
     command += ['--device_map', f'cuda:{0}', '--output_dir', output_dir]
     if args.force_recalc:
         command += ['--force_recalc']
+
+    command += ['--alpha_scale', str(args.alpha_scale)]
+    if args.not_scale_lm_head:
+        command += ['--not_scale_lm_head']
         
     env = os.environ.copy()
     env['CUDA_VISIBLE_DEVICES'] = str(local_rank)
@@ -74,6 +131,10 @@ if __name__ == '__main__':
     parser.add_argument('--few_shot_count', default=0, type=int)
     parser.add_argument('--vllm', action='store_true')
     parser.add_argument('--force_recalc', action='store_true')
+    parser.add_argument('--alpha_scale', type=float, default=1.0)
+    parser.add_argument('--not_scale_lm_head', action='store_true')
+    parser.add_argument('--short', action='store_true')
+
     args = parser.parse_args()
 
     local_rank = int(os.environ['LOCAL_RANK'])
@@ -85,7 +146,10 @@ if __name__ == '__main__':
     if int(args.few_shot_count) > 0:
         task_groups = task_groups_few_shot
     else:
-        task_groups = task_groups_zero_shot
+        if args.short:
+            task_groups = task_groups_zero_shot_short_ver
+        else:
+            task_groups = task_groups_zero_shot
 
     for group in get_current_groups(rank, workers):
         print(f'RANK {rank} starting {group}')

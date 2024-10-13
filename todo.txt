@@ -1,5 +1,9 @@
 #TODO: обработка few-shot не с 0 до K, а сразу с K, а затем уменьшать, если не влезает. (должно существенно ускорить подготовку данных)
 
+#TODO: stop strings tructation.
+
+#TODO: \n at atart of generation fix
+
 #TODO: ленивая инициализация модели.
 
 #TODO: task gen config context
