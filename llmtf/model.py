@@ -730,7 +730,7 @@ class VLLMModel(LocalHostedLLM):
     def _load_plain_model(self, model_dir):
         self.model = vLLM(
             model=model_dir, device=self.device_map, #max_model_len=self.max_model_len,
-            max_seq_len_to_capture=self.max_seq_len_to_capture, 
+            max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching, 
             trust_remote_code=self.trust_remote_code#, tensor_parallel_size=2,
@@ -742,7 +742,7 @@ class VLLMModel(LocalHostedLLM):
         config = PeftConfig.from_pretrained(model_dir)
         self.model = vLLM(
             model=config.base_model_name_or_path, device=self.device_map,
-            max_model_len=self.max_model_len, max_seq_len_to_capture=self.max_seq_len_to_capture, 
+            max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching,
             enable_lora=True, trust_remote_code=self.trust_remote_code, max_lora_rank=self._get_max_lora_rank(config))
