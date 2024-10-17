@@ -245,14 +245,14 @@ class HFModel(LocalHostedLLM):
             self, conversation_template_path, 
             load_in_8bit=False, 
             torch_dtype='auto', device_map='auto', 
-            use_flash_attention_2=True, use_fast_tokenizer=True, 
+            attn_implementation="flash_attention_2", use_fast_tokenizer=True, 
             trust_remote_code=False, alpha_scale=1.0, not_scale_lm_head=False,
             **kwargs
         ):
         super().__init__(**kwargs)
         self.load_in_8bit = load_in_8bit
         self.torch_dtype = torch_dtype
-        self.use_flash_attention_2 = use_flash_attention_2
+        self.attn_implementation = attn_implementation
         self.device_map = device_map
         self.use_fast_tokenizer = use_fast_tokenizer
         self.trust_remote_code=trust_remote_code
@@ -270,7 +270,7 @@ class HFModel(LocalHostedLLM):
             'conversation_template': self.conversation_template,
             'load_in_8bit': self.load_in_8bit,
             'torch_dtype': self.torch_dtype,
-            'use_flash_attention_2': self.use_flash_attention_2,
+            'attn_implementation': self.attn_implementation,
             'device_map': self.device_map,
             'use_fast_tokenizer': self.use_fast_tokenizer,
             'leading_space': self.leading_space,
@@ -463,7 +463,7 @@ class HFModel(LocalHostedLLM):
             torch_dtype=torch_dtype,
             load_in_8bit=self.load_in_8bit,
             device_map=self.device_map,
-            use_flash_attention_2=self.use_flash_attention_2, 
+            attn_implementation=self.attn_implementation, 
             trust_remote_code=self.trust_remote_code
         )
         self.model.eval()
@@ -487,7 +487,7 @@ class HFModel(LocalHostedLLM):
             load_in_8bit=self.load_in_8bit,
             torch_dtype=torch_dtype,
             device_map=self.device_map,
-            use_flash_attention_2=self.use_flash_attention_2, 
+            attn_implementation=self.attn_implementation, 
             trust_remote_code=self.trust_remote_code
         )
         self.model = PeftModel.from_pretrained(
