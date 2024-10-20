@@ -14,7 +14,7 @@ import copy
 from llmtf.base import LLM
 from llmtf.conversation import Conversation
 from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages
-
+import re
 try:
     from vllm import LLM as vLLM
     from vllm import SamplingParams
@@ -22,6 +22,246 @@ try:
     from vllm.attention.backends.flash_attn import FlashAttentionBackend
 except:
     pass
+
+'''
+class APIvLLM(LLM):
+    def __init__(self, endpoint, role_mapping={}, default_playload_params={}, custom_result_parser=None):
+        super().__init__()
+        self.endpoint = endpoint
+        self.generation_config = GenerationConfig.from_dict({
+            'repetition_penalty':  1.05,
+            'temperature': 0.1,
+            'top_p':  0.9,
+            'top_k': 40,
+            'max_new_tokens': 256,
+            'do_sample': True
+        })
+        self.role_mapping = role_mapping
+        self.default_playload_params = default_playload_params
+        self.custom_result_parser = custom_result_parser
+    
+    def generate(self, messages, generation_config=None, incomplete_last_bot_message=None):
+        messages = self.apply_model_prompt(messages)
+        generation_config = self.generation_config if generation_config is None else generation_config
+        playload = {
+            'messages': messages,
+            'temperature': generation_config.temperature,
+            'repetition_penalty': generation_config.repetition_penalty,
+            'top_p': generation_config.top_p,
+            'top_k': generation_config.top_k,
+            'max_tokens': generation_config.max_new_tokens
+        }
+        for k, v in self.default_playload_params.items():
+            playload[k] = v
+        
+        r = requests.post(self.endpoint, json=playload)
+        if self.custom_result_parser is not None:
+            res = self.custom_result_parser(r.json())
+        else:
+            res = r.json()['text'][0]
+
+        return messages, res
+
+    def calculate_token_interest_probs(self, messages, tokens_of_interest, incomplete_last_bot_message):
+        return NotImplementedError
+
+    def apply_model_prompt(self, messages):
+        applied_messages = []
+        for m in messages:
+            if m['role'] not in ['system', 'user', 'bot']:
+                role = m['role']
+                raise Exception(f'Unknown role {role}')
+            m['role'] = self.role_mapping.get(m['role'], m['role'])
+            applied_messages.append(m) 
+
+        return applied_messages
+
+    def support_method(self, method):
+        return method in ['generate']
+
+'''
+class ApiVLLMModel(LLM):
+    def __init__(self, api_base, **kwargs):
+        super().__init__(**kwargs)
+        #requests.packages.urllib3.util.connection.HAS_IPV6 = False
+        self.logger.info('ATTENTION! Hosting vLLM server must have vllm 0.6.3+')
+        self.api_base = api_base
+        self.num_proc = os.getenv('OPENAI_MAX_CONCURRENCY', 5)
+        self.api_key = os.getenv('OPENAI_API_KEY', '123')
+        self.model_name = None
+        self.max_model_len = None
+        self.generation_config = None
+
+    def support_method(self, method):
+        return method in ['generate']
+    
+    def from_pretrained(self, model_dir=None):
+        url = self.api_base + '/v1/models'
+        r = requests.get(url)
+        if r.status_code != 200:
+            print(r.text)
+        assert r.status_code == 200
+
+        data = r.json()
+        if len(data['data']) == 1:
+            self.model_name = data['data'][0]['id']
+            max_model_len = data['data'][0]['max_model_len']
+        else:
+            self.model_name = [d for d in data['data'] if d['id'] == model_dir]
+            assert len(self.model_name) == 1
+
+            self.model_name = self.model_name[0]['id']
+            self.max_model_len = max_model_len[0]['max_model_len']
+
+        self.generation_config = GenerationConfig.from_dict({
+            'repetition_penalty':  1.0,
+            'temperature': 0.1,
+            'top_p':  0.9,
+            'top_k': 40,
+            'max_new_tokens': 256,
+            'do_sample': True
+        })
+        self.eos_token_ids_base = copy.deepcopy(self.generation_config.eos_token_id)
+        self.stop_strings_base = copy.deepcopy(self.generation_config.stop_strings)
+
+    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+        if return_tokens:
+            return NotImplementedError
+        
+        messages = self._preprocess_messages(messages)
+        last_role = messages[-1]['role']
+
+        generation_config = self.generation_config if generation_config is None else generation_config
+        if generation_config.num_return_sequences > 1:
+            return NotImplementedError
+        
+        r = requests.post(
+            f'{self.api_base}/v1/chat/completions', 
+            json={
+                'messages': messages, 
+                'model': self.model_name, 
+
+                'max_tokens': generation_config.max_new_tokens,
+                'temperature': generation_config.temperature if generation_config.do_sample else 0.0,
+                'top_p': generation_config.top_p,
+                'top_k': generation_config.top_k,
+                'repetition_penalty': generation_config.repetition_penalty,
+                'stop': generation_config.stop_strings,
+                'n': generation_config.num_return_sequences if generation_config.num_return_sequences is not None else 1,
+
+                'add_generation_prompt': last_role == 'user', 
+                'skip_special_tokens': False, 
+                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant'
+            }
+        )
+        if r.status_code != 200:
+            print(r.text)
+        assert r.status_code == 200
+
+        data = r.json()
+        outputs = data['choices'][0]['message']['content']
+        if last_role == 'assistant':
+            outputs = outputs[len(messages[-1]['content']):]
+        
+        info = {
+            'prompt_len': data['usage']['prompt_tokens'], 
+            'generated_len': [data['usage']['completion_tokens']], 
+            'generated_cumulative_logprob': 'TODO: implement'
+        }
+        return messages, outputs, info
+
+    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+        prompts, outputs, infos = [], [], []
+        for _messages in messages:
+            prompt, output, info = self.generate(_messages, generation_config, incomplete_last_bot_message, return_tokens)
+            prompts.append(prompt)
+            outputs.append(output)
+            infos.append(info)
+
+        return prompts, outputs, infos
+    
+    def add_stop_strings(self, stop_strings):
+        for stop_string in stop_strings:
+            self._add_stop_string(stop_string)
+
+        self.logger.info(f'Updated generation_config.eos_token_id: {self.generation_config.eos_token_id}')
+        self.logger.info(f'Updated generation_config.stop_strings: {self.generation_config.stop_strings}') 
+
+    def _add_stop_string(self, stop_string):
+        self.generation_config.stop_strings.append(stop_string)
+
+    def reset_stop_strings(self):
+        self.generation_config.eos_token_id = copy.deepcopy(self.eos_token_ids_base)
+        self.generation_config.stop_strings = copy.deepcopy(self.stop_strings_base)
+    
+    def calculate_tokens_proba(self, **kwargs):
+        raise NotImplementedError
+    
+    def calculate_tokens_proba_batch(self, **kwargs):
+        raise NotImplementedError
+
+    def _preprocess_messages(self, messages):
+        _messages = []
+        for m in messages:
+            if m['role'] == 'user':
+                _messages.append({'role': m['role'], 'content': m['content']})
+            elif m['role'] == 'bot':
+                _messages.append({'role': 'assistant', 'content': m['content']})
+            elif m['role'] == 'system':
+                _messages.append({'role': m['role'], 'content': m['content']})
+            elif m['role'] == 'assistant':
+                _messages.append({'role': m['role'], 'content': m['content']})
+            else:
+                role = m['role']
+                raise Exception(f'Unknown role {role}')
+            
+        assert _messages[-1]['role'] in ['assistant', 'user']
+        return _messages
+    
+    def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
+        # Only for count_tokens_for_prompt method, not for any other use
+        # TODO fix
+        return 0
+        _messages = self._preprocess_messages(messages)
+        last_role = _messages[-1]['role']
+        r = requests.post(
+            f'{self.api_base}/v1/chat/completions', 
+            json={
+                'messages': _messages, 
+                'model': self.model_name, 
+                'max_tokens': 1, 
+                'add_generation_prompt': last_role == 'user', 
+                'skip_special_tokens': False, 
+                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant', 
+            }
+        )
+        if r.status_code != 200:
+            tokens =  None
+            if 'Please reduce the length of the messages or completion.' in r.text:
+                try:
+                    tokens = int(re.findall('However, you requested (.*?) tokens', '''{"object":"error","message":"This model's maximum context length is 1600 tokens. However, you requested 1914 tokens (1913 in the messages, 1 in the completion). Please reduce the length of the messages or completion.","type":"BadRequestError","param":null,"code":400}''')[0]) - 1
+                except:
+                    pass
+            if tokens is not None:
+                return tokens
+        assert r.status_code == 200
+        data = r.json()
+        return data['usage']['prompt_tokens']
+
+    def count_tokens_for_prompt(self, prompt_tokens):
+        assert type(prompt_tokens) == int
+        return prompt_tokens
+
+    def get_params(self):
+        return {
+            'model_name_or_path': self.model_name,
+            'api_base': self.api_base,
+            'generation_config': json.loads(self.generation_config.to_json_string(use_diff=True)),
+            'max_model_len': self.get_max_model_len()
+        }
+
+    def get_max_model_len(self):
+        return self.max_model_len
 
 class LocalHostedLLM(LLM):
     def support_method(self, method):
