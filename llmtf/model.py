@@ -23,63 +23,6 @@ try:
 except:
     pass
 
-'''
-class APIvLLM(LLM):
-    def __init__(self, endpoint, role_mapping={}, default_playload_params={}, custom_result_parser=None):
-        super().__init__()
-        self.endpoint = endpoint
-        self.generation_config = GenerationConfig.from_dict({
-            'repetition_penalty':  1.05,
-            'temperature': 0.1,
-            'top_p':  0.9,
-            'top_k': 40,
-            'max_new_tokens': 256,
-            'do_sample': True
-        })
-        self.role_mapping = role_mapping
-        self.default_playload_params = default_playload_params
-        self.custom_result_parser = custom_result_parser
-    
-    def generate(self, messages, generation_config=None, incomplete_last_bot_message=None):
-        messages = self.apply_model_prompt(messages)
-        generation_config = self.generation_config if generation_config is None else generation_config
-        playload = {
-            'messages': messages,
-            'temperature': generation_config.temperature,
-            'repetition_penalty': generation_config.repetition_penalty,
-            'top_p': generation_config.top_p,
-            'top_k': generation_config.top_k,
-            'max_tokens': generation_config.max_new_tokens
-        }
-        for k, v in self.default_playload_params.items():
-            playload[k] = v
-        
-        r = requests.post(self.endpoint, json=playload)
-        if self.custom_result_parser is not None:
-            res = self.custom_result_parser(r.json())
-        else:
-            res = r.json()['text'][0]
-
-        return messages, res
-
-    def calculate_token_interest_probs(self, messages, tokens_of_interest, incomplete_last_bot_message):
-        return NotImplementedError
-
-    def apply_model_prompt(self, messages):
-        applied_messages = []
-        for m in messages:
-            if m['role'] not in ['system', 'user', 'bot']:
-                role = m['role']
-                raise Exception(f'Unknown role {role}')
-            m['role'] = self.role_mapping.get(m['role'], m['role'])
-            applied_messages.append(m) 
-
-        return applied_messages
-
-    def support_method(self, method):
-        return method in ['generate']
-
-'''
 class ApiVLLMModel(LLM):
     def __init__(self, api_base, **kwargs):
         super().__init__(**kwargs)
