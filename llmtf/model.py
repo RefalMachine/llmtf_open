@@ -452,7 +452,7 @@ class HFModel(LocalHostedLLM):
             'generation_config': json.loads(self.generation_config.to_json_string(use_diff=True)),
             'conversation_template': self.conversation_template,
             'load_in_8bit': self.load_in_8bit,
-            'torch_dtype': self.torch_dtype,
+            'torch_dtype': str(self.torch_dtype),
             'attn_implementation': self.attn_implementation,
             'device_map': self.device_map,
             'use_fast_tokenizer': self.use_fast_tokenizer,
@@ -682,6 +682,10 @@ class HFModel(LocalHostedLLM):
 
         self.model = self.model.merge_and_unload()
         self.model.train(False)
+
+        if base_model_config.tie_word_embeddings and config.modules_to_save is not None and 'lm_head' in config.modules_to_save:
+            assert 'embed_tokens' not in config.modules_to_save
+            self.model.model.embed_tokens.weight = self.model.lm_head.weight
 
         self.model.eval()
 
