@@ -3,7 +3,8 @@ from . import (
     nlpcoreteam,
     rucola,
     shlepa,
-    daru_treeway_summ
+    daru_treeway_summ,
+    habrqa
 )
 
 ########################################
@@ -34,5 +35,6 @@ TASK_REGISTRY = {
     'darumeru/cp_sent_en': {'class': darumeru.CopyText, 'params': {'subtask': 'sent', 'lang': 'en'}},
     'darumeru/cp_para_ru': {'class': darumeru.CopyText, 'params': {'subtask': 'para', 'lang': 'ru'}},
     'darumeru/cp_para_en': {'class': darumeru.CopyText, 'params': {'subtask': 'para', 'lang': 'en'}},
-    'darumeru/ruscibench_grnti_ru': {'class': darumeru.ruSciBenchGRNTIRu}
+    'darumeru/ruscibench_grnti_ru': {'class': darumeru.ruSciBenchGRNTIRu},
+    'vikhrmodels/habr_qa_sbs': {'class': habrqa.HabrQASbS}
 }
