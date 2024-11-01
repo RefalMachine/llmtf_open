@@ -5,7 +5,6 @@ import string
 import re
 import numpy as np
 
-
 def mean(arr):
     return sum(arr) / max(len(arr), 1)
 

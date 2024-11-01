@@ -137,11 +137,52 @@ class ApiVLLMModel(LLM):
         self.generation_config.eos_token_id = copy.deepcopy(self.eos_token_ids_base)
         self.generation_config.stop_strings = copy.deepcopy(self.stop_strings_base)
     
-    def calculate_tokens_proba(self, **kwargs):
-        raise NotImplementedError
+    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+        messages = self._preprocess_messages(messages)
+        last_role = messages[-1]['role']
+        
+        r = requests.post(
+            f'{self.api_base}/v1/chat/completions', 
+            json={
+                'messages': messages, 
+                'model': self.model_name, 
+                'max_tokens': 1,
+                'temperature': 0.0,
+                'add_generation_prompt': last_role == 'user', 
+                'skip_special_tokens': False, 
+                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
+                'logprobs': True,
+                'top_logprobs': 20
+            }
+        )
+        if r.status_code != 200:
+            print(r.text)
+        assert r.status_code == 200
+
+        data = r.json()
+        logprobs = data['choices'][0]['logprobs']['content'][0]['top_logprobs']
+        probs = {lp['token']: np.exp(lp['logprob']) for lp in logprobs}
+        probs = {token: probs.get(token, 0.0) for token in tokens_of_interest}
+            
+
+        info = {
+            'generated_len': 1, 
+            'generated_token': data['choices'][0]['logprobs']['content'][0]['token']
+        }
+        return messages, probs, info
+            
     
-    def calculate_tokens_proba_batch(self, **kwargs):
-        raise NotImplementedError
+    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+        #print(messages)
+        #print(tokens_of_interest)
+        prompts, outputs, infos = [], [], []
+        for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
+            prompt, output, info = self.calculate_tokens_proba(_messages, _tokens_of_interest, incomplete_last_bot_message)
+            prompts.append(prompt)
+            outputs.append(output)
+            infos.append(info)
+
+        return prompts, outputs, infos
 
     def _preprocess_messages(self, messages):
         _messages = []
