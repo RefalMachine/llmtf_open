@@ -11,6 +11,9 @@ import os
 import requests
 import numpy as np
 import copy
+import tqdm
+import functools
+from concurrent.futures import ThreadPoolExecutor
 from llmtf.base import LLM
 from llmtf.conversation import Conversation
 from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages
@@ -29,7 +32,7 @@ class ApiVLLMModel(LLM):
         #requests.packages.urllib3.util.connection.HAS_IPV6 = False
         self.logger.info('ATTENTION! Hosting vLLM server must have vllm 0.6.3+')
         self.api_base = api_base
-        self.num_proc = os.getenv('OPENAI_MAX_CONCURRENCY', 5)
+        self.num_procs = os.getenv('OPENAI_MAX_CONCURRENCY', 20)
         self.api_key = os.getenv('OPENAI_API_KEY', '123')
         self.model_name = None
         self.max_model_len = None
@@ -40,7 +43,7 @@ class ApiVLLMModel(LLM):
     
     def from_pretrained(self, model_dir=None):
         url = self.api_base + '/v1/models'
-        r = requests.get(url)
+        r = requests.get(url, headers={'Authorization': 'Bearer ' + self.api_key})
         if r.status_code != 200:
             print(r.text)
         assert r.status_code == 200
@@ -48,13 +51,12 @@ class ApiVLLMModel(LLM):
         data = r.json()
         if len(data['data']) == 1:
             self.model_name = data['data'][0]['id']
-            max_model_len = data['data'][0]['max_model_len']
+            self.max_model_len = data['data'][0]['max_model_len']
         else:
-            self.model_name = [d for d in data['data'] if d['id'] == model_dir]
-            assert len(self.model_name) == 1
-
-            self.model_name = self.model_name[0]['id']
-            self.max_model_len = max_model_len[0]['max_model_len']
+            data = [d for d in data['data'] if d['id'] == model_dir]
+            assert len(data) == 1
+            self.model_name = data[0]['id']
+            self.max_model_len = data[0]['max_model_len']
 
         self.generation_config = GenerationConfig.from_dict({
             'repetition_penalty':  1.0,
@@ -95,7 +97,8 @@ class ApiVLLMModel(LLM):
                 'add_generation_prompt': last_role == 'user', 
                 'skip_special_tokens': False, 
                 'continue_final_message': incomplete_last_bot_message and last_role == 'assistant'
-            }
+            },
+            headers={'Authorization': 'Bearer ' + self.api_key}
         )
         if r.status_code != 200:
             print(r.text)
@@ -115,14 +118,21 @@ class ApiVLLMModel(LLM):
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
         prompts, outputs, infos = [], [], []
-        for _messages in messages:
-            prompt, output, info = self.generate(_messages, generation_config, incomplete_last_bot_message, return_tokens)
-            prompts.append(prompt)
-            outputs.append(output)
-            infos.append(info)
-
+        kwargs = {'generation_config': generation_config, 'incomplete_last_bot_message': incomplete_last_bot_message, 'return_tokens': return_tokens}
+        with ThreadPoolExecutor(max_workers=self.num_procs) as p:
+            partial_completion_helper = functools.partial(self.generate, **kwargs)
+            res = list(
+                tqdm.tqdm(
+                    p.map(partial_completion_helper, messages),
+                    desc="prompt_batches",
+                    total=len(messages),
+                    disable=True
+                )
+            )
+            prompts, outputs, infos = list(zip(*res))
         return prompts, outputs, infos
-    
+
+
     def add_stop_strings(self, stop_strings):
         for stop_string in stop_strings:
             self._add_stop_string(stop_string)
@@ -153,7 +163,8 @@ class ApiVLLMModel(LLM):
                 'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
                 'logprobs': True,
                 'top_logprobs': 20
-            }
+            },
+            headers={'Authorization': 'Bearer ' + self.api_key}
         )
         if r.status_code != 200:
             print(r.text)
@@ -173,8 +184,8 @@ class ApiVLLMModel(LLM):
             
     
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        #print(messages)
-        #print(tokens_of_interest)
+
+        '''
         prompts, outputs, infos = [], [], []
         for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
             prompt, output, info = self.calculate_tokens_proba(_messages, _tokens_of_interest, incomplete_last_bot_message)
@@ -182,6 +193,21 @@ class ApiVLLMModel(LLM):
             outputs.append(output)
             infos.append(info)
 
+        return prompts, outputs, infos
+        '''
+        prompts, outputs, infos = [], [], []
+        kwargs = { 'incomplete_last_bot_message': incomplete_last_bot_message}
+        with ThreadPoolExecutor(max_workers=self.num_procs) as p:
+            partial_completion_helper = functools.partial(self.calculate_tokens_proba, **kwargs)
+            res = list(
+                tqdm.tqdm(
+                    p.map(partial_completion_helper, messages, tokens_of_interest),
+                    desc="prompt_batches",
+                    total=len(messages),
+                    disable=True
+                )
+            )
+            prompts, outputs, infos = list(zip(*res))
         return prompts, outputs, infos
 
     def _preprocess_messages(self, messages):

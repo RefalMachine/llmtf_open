@@ -121,16 +121,16 @@ class LLMAsJudge(Task):
 
     def create_messages(self, sample: Dict, with_answer=False):
         instruction_system = 'You are a helpful assistant, that ranks models by the quality of their answers.'
-        instruction_user = '''I want you to create a leaderboard of different of large-language models. To do so, I will give you the instructions (prompts) given to the models, and the responses of two models. Please rank the models based on which responses would be preferred by humans. All inputs and outputs should be python dictionaries.
+        instruction_user = '''I want you to create a leaderboard of different of large language models. To do so, I will give you the instructions (prompts) given to the models, and the responses of two models. Please rank the models based on which responses would be preferred by humans. All inputs and outputs should be python dictionaries.
 
-The main language of the these large-language is **Russian** and you are required to evaluate not only the overall quality of the answers, but also their grammar and coherence.
+The main language of the these models is **Russian** and you are required to evaluate not only the overall quality of the answers, but also their grammar and coherence.
 
-Here is the prompt:
+**Prompt**:
 {
     "instruction": "{instruction}",
 }
 
-Here are the outputs of the models:
+**Models outputs**:
 [
     {
         "model": "m",
@@ -144,11 +144,11 @@ Here are the outputs of the models:
 
 Now please rank the models by the quality of their answers, so that the model with rank 1 has the best output. Then return a list of the model names and ranks, i.e., produce the following output:
 [
-    {"rank': 1, "model_name": <model-name>},
-    {"rank': 2, "model_name": <model-name>}
+    {"rank': 1, "model_name": <model-name-winner>},
+    {"rank': 2, "model_name": <model-name-loser>}
 ]
 
-Evaluate and rank the models based on the quality and relevance of their outputs. The ranking should be such that the model with the highest quality output is ranked first.'''
+Please provide the ranking that the majority of humans would give.'''
         instruction_bot = '''[
     {"rank': 1, "model_name": "'''
         user_content = instruction_user.replace('{instruction}', sample['instruction']).replace('{output_m}', sample['output_m']).replace('{output_M}', sample['output_M'])
