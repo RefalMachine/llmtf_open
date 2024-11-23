@@ -6,7 +6,7 @@ import torch.multiprocessing as mp
 
 #TODO: refactoring and vllm
 task_groups_few_shot = [
-    {'name': 'darumeru_no_mmlu_rucola', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': False}},
+    {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
     {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
@@ -16,7 +16,7 @@ task_groups_few_shot = [
 ]
 
 task_groups_zero_shot = [
-    {'name': 'darumeru_no_mmlu_rucola', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': False}},
+    {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
     {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
@@ -24,32 +24,9 @@ task_groups_zero_shot = [
     {'name': 'ruopinionne_habr_ruparam', 'params': {'dataset_names': 'vikhrmodels/habr_qa_sbs ruopinionne ruparam', 'allow_vllm': False}},
     {'name': 'nerel', 'params': {'dataset_names': 'nerel', 'allow_vllm': False, 'max_sample_per_dataset': 500}}
 ]
-'''
-task_groups_zero_shot = [
-    {'name': 'multiq', 'params': {'dataset_names': 'darumeru/multiq', 'allow_vllm': False}},
-    {'name': 'use', 'params': {'dataset_names': 'darumeru/use', 'allow_vllm': False}},
-    {'name': 'parus', 'params': {'dataset_names': 'darumeru/parus', 'allow_vllm': False}},
-    {'name': 'rcb', 'params': {'dataset_names': 'darumeru/rcb', 'allow_vllm': False}},
-    {'name': 'ruopenbookqa', 'params': {'dataset_names': 'darumeru/ruopenbookqa', 'allow_vllm': False}},
-    {'name': 'ruworldtree', 'params': {'dataset_names': 'darumeru/ruworldtree', 'allow_vllm': False}},
-    {'name': 'rwsd', 'params': {'dataset_names': 'darumeru/rwsd', 'allow_vllm': False}},
-    {'name': 'rucola_custom', 'params': {'dataset_names': 'russiannlp/rucola_custom', 'allow_vllm': False}},
-    {'name': 'darumeru_rummlu', 'params': {'dataset_names': 'darumeru/rummlu', 'allow_vllm': False}},
-    {'name': 'daru_extractive', 'params': {'dataset_names': 'daru/treewayextractive', 'allow_vllm': False}},
-    {'name': 'nlpcoreteam_rummlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
-    {'name': 'nlpcoreteam_enmmlu', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
-    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 500}},
-    {'name': 'cp_sent_ru', 'params': {'dataset_names': 'darumeru/cp_sent_ru', 'allow_vllm': False}},
-    {'name': 'cp_para_ru', 'params': {'dataset_names': 'darumeru/cp_para_ru', 'allow_vllm': False}},
-    {'name': 'cp_sent_en', 'params': {'dataset_names': 'darumeru/cp_sent_en', 'allow_vllm': False}},
-    {'name': 'cp_para_en', 'params': {'dataset_names': 'darumeru/cp_para_en', 'allow_vllm': False}}
-]
-'''
+
 task_groups_zero_shot_short_ver = [
-    {'name': 'multiq', 'params': {'dataset_names': 'darumeru/multiq', 'allow_vllm': False}},
-    {'name': 'parus', 'params': {'dataset_names': 'darumeru/parus', 'allow_vllm': False}},
-    {'name': 'rcb', 'params': {'dataset_names': 'darumeru/rcb', 'allow_vllm': False}},
-    {'name': 'rwsd', 'params': {'dataset_names': 'darumeru/rwsd', 'allow_vllm': False}},
+    {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_rummlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': False}},
     {'name': 'nlpcoreteam_enmmlu', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': False}},
     {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': False, 'max_sample_per_dataset': 200}},

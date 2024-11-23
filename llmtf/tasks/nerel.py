@@ -1,19 +1,19 @@
 from tqdm.auto import tqdm
 import os
 from typing import Dict, List, Tuple
-from nltk.data import load
 import json
 import numpy as np
-import sklearn
 import ast
 import re
 from datasets import load_dataset
+from llmtf.base import Task
+import llmtf
 
 class NestedNER(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = "generate"
-        self._max_new_token = 64
+        self._max_new_token = 128
         
     @classmethod
     def name(cls) -> str:
