@@ -319,6 +319,8 @@ def pred2opinions_default(y_pred):
             y_predict_dict = eval(y_pred)
         except:
             y_predict_dict = []
+    if type(y_predict_dict) == dict:
+        y_predict_dict = [y_predict_dict]
     return y_predict_dict
     
 class RuOpinionNE(SimpleFewShotHFTask):
@@ -451,8 +453,8 @@ class RuOpinionNE(SimpleFewShotHFTask):
         short_instruction = self.short_instruction
 
         instruction = full_instruction if full_instruct else short_instruction
-        inputs = {'text': sample['text']}
-        messages = [{'role': 'user', 'content': instruction.format(**inputs)}]
+        #inputs = {'text': sample['text']}
+        messages = [{'role': 'user', 'content': instruction.replace('{text}', sample['text'])}]
         messages.append(self._format_answer(sample, with_answer))
         return messages
     

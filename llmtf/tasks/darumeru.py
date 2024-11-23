@@ -58,7 +58,7 @@ class CopyText(DarumeruTask):
         return f'darumeru/{self.dataset_name}'
 
     def aggregation(self) -> Dict:
-        return {"len": mean, "lcs": mean, "symbol_per_token": mean}
+        return {"len": mean, "lcs": mean, "symbol_per_token": mean, "tokens_per_word": mean}
 
     def leaderboard_aggregation(self, metrics: Dict) -> float:
         return metrics[self.main_metric]
@@ -94,7 +94,9 @@ class CopyText(DarumeruTask):
             lcs_metric /= len(str_b)
         lcs_metric = float(lcs_metric >= 0.99)
         spt = len(y_pred) / (1 + len(y_pred_tokens))
+        tpw = len(y_pred_tokens) / len(y_pred.split())
         return {
+            "tokens_per_word": tpw,
             "symbol_per_token": spt,
             "len": len_metric,
             "lcs": lcs_metric,
