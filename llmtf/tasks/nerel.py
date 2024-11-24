@@ -13,7 +13,7 @@ class NestedNER(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = "generate"
-        self._max_new_token = 128
+        self._max_new_tokens = 128
         
     @classmethod
     def name(cls) -> str:
@@ -144,7 +144,8 @@ DATE: ["15 декабря 1730 года"]
         ds = load_dataset('RefalMachine/nerel_simple')
         prompt_dataset = ds['train']
         test_dataset = ds['test']
-        
+        test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
+
         prompt_dataset = [self.filter_sample(s, self.tags) for s in prompt_dataset]
         test_dataset = [self.filter_sample(s, self.tags) for s in test_dataset]
         

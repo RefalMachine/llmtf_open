@@ -393,9 +393,9 @@ class RuOpinionNE(SimpleFewShotHFTask):
         opinions_validates = []
         for i in range(len(opinions)):
             if not self._validate_dict(opinions[i], text):
-                print('Fail to validate')
-                print(opinions[i])
-                print(text)
+                #print('Fail to validate')
+                #print(opinions[i])
+                #print(text)
                 continue
 
             opinions_validates.append(
