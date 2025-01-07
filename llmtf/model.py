@@ -16,7 +16,7 @@ import functools
 from concurrent.futures import ThreadPoolExecutor
 from llmtf.base import LLM
 from llmtf.conversation import Conversation
-from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages
+from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages, convert_chat_template_to_conv_template
 import re
 try:
     from vllm import LLM as vLLM
@@ -294,6 +294,9 @@ class LocalHostedLLM(LLM):
         except:
             self.tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=not self.use_fast_tokenizer, trust_remote_code=self.trust_remote_code)
 
+        if self.conversation_template == 'auto':
+            self.conversation_template = convert_chat_template_to_conv_template(self.tokenizer)
+
         self.tokenizer.truncation_side = 'left'
         self.tokenizer.padding_side = 'left' #TODO: а нужно ли это вообще? нужно перепроверить имплементации.
         if self.tokenizer.pad_token_id is None:
@@ -492,7 +495,7 @@ class LocalHostedLLM(LLM):
 
 class HFModel(LocalHostedLLM):
     def __init__(
-            self, conversation_template_path, 
+            self, conversation_template_path='auto', 
             load_in_8bit=False, 
             torch_dtype='auto', device_map='auto', 
             attn_implementation="flash_attention_2", use_fast_tokenizer=True, 
@@ -509,9 +512,12 @@ class HFModel(LocalHostedLLM):
         self.alpha_scale = alpha_scale
         self.not_scale_lm_head = not_scale_lm_head
 
-        with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
-            template = json.load(file)
-        self.conversation_template = template
+        if conversation_template_path != 'auto':
+            with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
+                template = json.load(file)
+            self.conversation_template = template
+        else:
+            self.conversation_template = 'auto'
 
     def get_params(self):
         return {
@@ -762,7 +768,7 @@ class HFModel(LocalHostedLLM):
 class VLLMModel(LocalHostedLLM):
     def __init__(
             self, 
-            conversation_template_path, 
+            conversation_template_path='auto', 
             use_fast_tokenizer=True, 
             device_map='auto',
             max_seq_len_to_capture=4096,
@@ -774,9 +780,6 @@ class VLLMModel(LocalHostedLLM):
             **kwargs
         ):
         super().__init__(**kwargs)
-        with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
-            template = json.load(file)
-        self.conversation_template = template
         self.use_fast_tokenizer = use_fast_tokenizer
         self.device_map = device_map
         self.max_seq_len_to_capture = max_seq_len_to_capture 
@@ -789,6 +792,13 @@ class VLLMModel(LocalHostedLLM):
         assert 'CUDA_VISIBLE_DEVICES' in os.environ
         self.logger.info('CUDA_VISIBLE_DEVICES=' + os.environ['CUDA_VISIBLE_DEVICES'])
         self.logger.info('device_map=' + self.device_map)
+
+        if conversation_template_path != 'auto':
+            with codecs.open(conversation_template_path, 'r', 'utf-8') as file:
+                template = json.load(file)
+            self.conversation_template = template
+        else:
+            self.conversation_template = 'auto'
 
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)

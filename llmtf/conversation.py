@@ -105,7 +105,7 @@ class Conversation:
             else:
                 final_text += self.format_message(message)
 
-        if add_suffix and (not incomplete_last_bot_message or messages[-1]['role'] != self.bot_role):
+        if add_suffix and not incomplete_last_bot_message and messages[-1]['role'] != self.bot_role:
             final_text += self.suffix
             return final_text
 
@@ -135,4 +135,4 @@ class Conversation:
                 "role": role_mapping.get(message["role"], message["role"]),
                 "content": message["content"]
             })
-        self.messages[-1]['content'] = self.messages[-1]['content'].rstrip()
+        #self.messages[-1]['content'] = self.messages[-1]['content'].rstrip()

@@ -323,6 +323,19 @@ def pred2opinions_default(y_pred):
         y_predict_dict = [y_predict_dict]
     return y_predict_dict
     
+def pred2opinions_default(y_pred):
+    y_pred = y_pred.lstrip()#y_pred[3:].lstrip()
+    try:
+        y_predict_dict = json.loads(y_pred)
+    except:
+        try:
+            y_predict_dict = eval(y_pred)
+        except:
+            y_predict_dict = []
+    if type(y_predict_dict) == dict:
+        y_predict_dict = [y_predict_dict]
+    return y_predict_dict
+
 class RuOpinionNE(SimpleFewShotHFTask):
     def __init__(self, instruction, short_instruction=None, pred2opinions=pred2opinions_default, test=False, **kwargs):
         super().__init__(**kwargs)
@@ -370,9 +383,12 @@ class RuOpinionNE(SimpleFewShotHFTask):
             return False
         
         types_ok = type(opinion['Source']) == str and type(opinion['Target']) == str and type(opinion['Polarity']) == str and type(opinion['Expression']) == str
+        #return types_ok
         if not types_ok:
             return False
         
+        #polarity_ok = opinion['Polarity'] in ['NEG', 'POS']
+        #return polarity_ok
         exist_ok = (opinion['Source'].lower() in text.lower() or opinion['Source'] in ['AUTHOR', 'NULL']) and opinion['Polarity'] in ['NEG', 'POS'] and opinion['Expression'].lower() in text.lower() and opinion['Target'].lower() in text.lower()
         return exist_ok
     
@@ -393,9 +409,9 @@ class RuOpinionNE(SimpleFewShotHFTask):
         opinions_validates = []
         for i in range(len(opinions)):
             if not self._validate_dict(opinions[i], text):
-                #print('Fail to validate')
-                #print(opinions[i])
-                #print(text)
+                print('Fail to validate')
+                print(opinions[i])
+                print(text)
                 continue
 
             opinions_validates.append(
@@ -408,7 +424,6 @@ class RuOpinionNE(SimpleFewShotHFTask):
             )
         return opinions_validates
             
-
     def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args(test=False))
@@ -455,7 +470,8 @@ class RuOpinionNE(SimpleFewShotHFTask):
         instruction = full_instruction if full_instruct else short_instruction
         #inputs = {'text': sample['text']}
         messages = [{'role': 'user', 'content': instruction.replace('{text}', sample['text'])}]
-        messages.append(self._format_answer(sample, with_answer))
+        if with_answer:
+            messages.append(self._format_answer(sample, with_answer))
         return messages
     
     def _format_answer(self, sample, with_answer=False):
@@ -463,8 +479,9 @@ class RuOpinionNE(SimpleFewShotHFTask):
         data = [{key_pair[1]: opinion[key_pair[0]][0][0] if key_pair[0] != 'Polarity' else opinion[key_pair[0]] for key_pair in key_map} for opinion in sample['opinions']]
         data = json.dumps(data, ensure_ascii=False, indent=4)
 
-        prefix = '''***json'''
+        #prefix = '''***json'''
+        prefix = ''
         if with_answer:
-            prefix += '***\n' + data
+            prefix += data
 
         return {'role': 'bot', 'content': prefix}
