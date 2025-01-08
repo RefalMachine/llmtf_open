@@ -61,7 +61,10 @@ def run_eval(args, group, local_rank):
     command += ['--alpha_scale', str(args.alpha_scale)]
     if args.not_scale_lm_head:
         command += ['--not_scale_lm_head']
-        
+    
+    if args.ppl_scoring:
+        command += ['--ppl_scoring']
+
     env = os.environ.copy()
     env['CUDA_VISIBLE_DEVICES'] = str(local_rank)
     torchrun_env_names = {'TORCHELASTIC_USE_AGENT_STORE', 'OMP_NUM_THREADS', 'GROUP_RANK', 'ROLE_RANK', 'ROLE_NAME', 'LOCAL_WORLD_SIZE', 'GROUP_WORLD_SIZE', 'ROLE_WORLD_SIZE', 'MASTER_ADDR', 'MASTER_PORT', 'WORLD_SIZE', 'LOCAL_RANK', 'RANK'}
@@ -93,6 +96,7 @@ if __name__ == '__main__':
     parser.add_argument('--alpha_scale', type=float, default=1.0)
     parser.add_argument('--not_scale_lm_head', action='store_true')
     parser.add_argument('--short', action='store_true')
+    parser.add_argument('--ppl_scoring', action='store_true')
 
     args = parser.parse_args()
 

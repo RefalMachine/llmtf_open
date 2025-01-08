@@ -119,7 +119,7 @@ class Evaluator(Base):
                 if 'get_answer' not in dir(task):
                     self.logger.info(f"Skip task {task.name()} because method get_answer not implemented")
                     continue
-                
+
                 with MaxLenContext(task, model, max_len, None) as prompt_max_len:
                     self.evaluate_dataset_ppl(task, model, output_dir, prompt_max_len, few_shot_count, batch_size, max_sample_per_dataset)
 
@@ -150,8 +150,12 @@ class Evaluator(Base):
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
                 for k, v in task.method_additional_args.items():
                     messages_batch[k] = v
+                    
                 if 'tokens_of_interest' in messages_batch:
                     del messages_batch['tokens_of_interest']
+                if 'return_tokens' in messages_batch:
+                    del messages_batch['return_tokens']
+
                 prompts, y_preds, infos = getattr(model, 'calculate_logsoftmax_batch')(**messages_batch)
 
                 for j in range(len(y_preds)):
