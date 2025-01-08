@@ -130,3 +130,6 @@ class ShlepaSmallMMLU(Task):
         doc["gold"] = inv_label_map[shuffled_label]
 
         return doc
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['gold'])

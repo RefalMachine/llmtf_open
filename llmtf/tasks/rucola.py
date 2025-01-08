@@ -54,6 +54,9 @@ class RuColaCustomTask(SimpleFewShotHFTask):
     def prompt_dataset_start_idx(self) -> int:
         # в ближайших индексах после 29 сбалансировано по меткам классов, вот поэтому
         return 29
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['label'])
 
         
 

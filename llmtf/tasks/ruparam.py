@@ -114,3 +114,6 @@ class RuParam(SimpleFewShotHFTask):
         if with_answer:
             messages.append({'role': 'bot', 'content': '1' if sample['order'] == 's' else '2'})
         return messages
+    
+    def get_answer(self, sample):
+        return '1' if sample['order'] == 's' else '2'

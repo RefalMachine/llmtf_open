@@ -106,6 +106,10 @@ class CopyText(DarumeruTask):
         self.model_tokenizer = model.tokenizer
         self.model_leading_space = model.leading_space
         return super().load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
+    
+    def get_answer(self, sample):
+        return ' ' + sample['inputs']['text']
+    
 
 class MultiQ(DarumeruTask):
     def __init__(self, **kwargs):
@@ -129,6 +133,9 @@ class MultiQ(DarumeruTask):
             "f1": f1,
             "em": em,
         }
+    
+    def get_answer(self, sample):
+        return ' ' + sample['outputs'][0]['segment']
 
 class PARus(DarumeruTask):
     def __init__(self, **kwargs):
@@ -185,6 +192,9 @@ class PARus(DarumeruTask):
             sample_reverse = self._reverse_sample(copy.deepcopy(sample))
             samples.append({'messages': self._prepare_messages(sample_reverse, model, max_len, few_shot_count, prompt_dataset), 'sample': sample_reverse})
         return samples
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
 
 class RCB(DarumeruTask):
     def __init__(self, **kwargs):
@@ -207,6 +217,9 @@ class RCB(DarumeruTask):
         y_true = sample['outputs']
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
 
 class ruMMLU(DarumeruTask):
     def __init__(self, **kwargs):
@@ -247,6 +260,9 @@ class ruMMLU(DarumeruTask):
         #criteria = sample["meta"]["domain"]
         return {"acc": res}#, f"acc.{criteria}": res}
 
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
+    
 class ruOpenBookQA(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -268,6 +284,9 @@ class ruOpenBookQA(DarumeruTask):
         y_true = sample['outputs']
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
 
 class ruTiE(DarumeruTask):
     def __init__(self, **kwargs):
@@ -357,6 +376,9 @@ class ruTiE(DarumeruTask):
 
         return all_dataset_messages
 
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
+    
 class ruWorldTree(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -379,6 +401,9 @@ class ruWorldTree(DarumeruTask):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
 
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
+    
 class RWSD(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -400,7 +425,9 @@ class RWSD(DarumeruTask):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true.startswith(y_pred)}
 
-
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
+    
 class USE(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -493,6 +520,9 @@ class USE(DarumeruTask):
             "grade_norm": self.overall_score,
         }
     
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])
+    
 class ruSciBenchGRNTIRu(DarumeruTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -514,3 +544,6 @@ class ruSciBenchGRNTIRu(DarumeruTask):
         y_true = sample['outputs']
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])

@@ -101,6 +101,77 @@ class Evaluator(Base):
         model.reset_stop_strings()
         task.logger.info(str(metrics_res))
 
+    def evaluate_ppl(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False):
+        set_out_handler_to_main_logger(output_dir)
+        try:
+            if datasets_names == 'all':
+                datasets_names = list(TASK_REGISTRY.keys())
+
+            self.logger.info(f'Starting eval on {datasets_names}')
+            for dataset_name in datasets_names:
+                task_class = TASK_REGISTRY[dataset_name]['class']
+                task_init_params = TASK_REGISTRY[dataset_name].get('params', {})
+                task = task_class(**task_init_params)
+                if (Path(output_dir) / f"{task.name().replace('/', '_')}_total.jsonl").exists() and not force_recalc:
+                    self.logger.info(f"Found precomputed {task.name()}_total")
+                    continue
+                
+                if 'get_answer' not in dir(task):
+                    self.logger.info(f"Skip task {task.name()} because method get_answer not implemented")
+                    continue
+                
+                with MaxLenContext(task, model, max_len, None) as prompt_max_len:
+                    self.evaluate_dataset_ppl(task, model, output_dir, prompt_max_len, few_shot_count, batch_size, max_sample_per_dataset)
+
+            self.logger.info(f'Ended eval')
+            self.create_report(output_dir)
+        except Exception as e:
+            self.logger.error(e)
+            self.logger.error(traceback.format_exc()) 
+
+    def evaluate_dataset_ppl(self, task, model, output_dir, max_len, few_shot_count, batch_size, max_sample_per_dataset):
+        assert 'get_answer' in dir(task)
+        assert model.support_method('calculate_logsoftmax')
+
+        messages, samples = task.load_dataset(model, max_len=max_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count)
+        shifts = []
+        for m, s in zip(*[messages, samples]):
+            shift = len(model.apply_model_prompt(m['messages']))
+            shifts.append(shift)
+            if m['messages'][-1]['role'] == 'bot':
+                m['messages'][-1]['content'] += task.get_answer(s['sample'])
+            else:
+                m['messages'].append({'role': 'bot', 'content': task.get_answer(s['sample'])})
+
+        metrics = []
+        with SimpleTaskLogger(output_dir, task.name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):
+            for i in tqdm(range(0, len(messages), batch_size)):
+                messages_batch = messages[i:i+batch_size]
+                messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
+                for k, v in task.method_additional_args.items():
+                    messages_batch[k] = v
+                if 'tokens_of_interest' in messages_batch:
+                    del messages_batch['tokens_of_interest']
+                prompts, y_preds, infos = getattr(model, 'calculate_logsoftmax_batch')(**messages_batch)
+
+                for j in range(len(y_preds)):
+                    tokens = [t for t in y_preds[j][-1]['tokens'] if t[2][0] >= shifts[i+j]]
+                    metrics.append({'ppl': np.mean([t[1] for t in tokens])})
+                    logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
+
+        task.logger.info(f'Results for {task.name()}:')
+        metrics_res = {'ppl': np.mean([m['ppl'] for m in metrics])}
+        with SimpleTaskLogger(output_dir, task.name() + '_total') as logger:
+            logger.log_json({'task_name': task.name(), 'results': metrics_res, 'leaderboard_result': metrics_res['ppl']})
+
+        with SimpleTaskLogger(output_dir, task.name() + '_params') as logger:
+            params = {}
+            params['model_params'] = model.get_params()
+            params['task_params'] = {'max_len': max_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': 'calculate_logsoftmax'}
+            logger.log_json(params)
+
+        task.logger.info(str(metrics_res))
+
     def create_report(self, output_dir):
         reports = {}
         for file_name in os.listdir(output_dir):

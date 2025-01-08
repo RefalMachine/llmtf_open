@@ -168,3 +168,12 @@ DATE: ["15 декабря 1730 года"]
         samples = [{'sample': s} for s in test_dataset]
         
         return messages, samples
+    
+    def get_answer(self, sample):
+        tagged_lines = []
+        for tag in self.tags:
+            entities = ['"' + sample['context'][s : e] + '"' 
+                        for s, e, t in zip(sample['span_entity_start_chars'], sample['span_entity_end_chars'], sample['span_entity_types']) \
+                        if t == tag]
+            tagged_lines.append(f'{tag}: [{", ".join(entities)}]')
+        return '\n'.join(tagged_lines)

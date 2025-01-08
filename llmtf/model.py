@@ -773,7 +773,7 @@ class VLLMModel(LocalHostedLLM):
             device_map='auto',
             max_seq_len_to_capture=4096,
             gpu_memory_utilization=0.9,
-            disable_sliding_window=False,
+            disable_sliding_window=True,
             enable_prefix_caching=True,
             trust_remote_code=False,
             calculate_tokens_proba_logprobs_count=50,

@@ -304,6 +304,9 @@ class MMLU(Task):
             "en": subject,
             "ru": SUBCATEGORIES_EN2RU[subject],  # predefined map
         }[self.lang])
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['answer'])
 
             
 class ruMMLU(MMLU):

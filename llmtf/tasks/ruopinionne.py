@@ -485,3 +485,6 @@ class RuOpinionNE(SimpleFewShotHFTask):
             prefix += data
 
         return {'role': 'bot', 'content': prefix}
+    
+    def get_answer(self, sample):
+        return self._format_answer(sample, with_answer=True)['content']

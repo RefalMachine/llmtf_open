@@ -84,3 +84,6 @@ class HabrQASbS(SimpleFewShotHFTask):
 
     def prompt_split_name(self) -> str:
         return ''
+    
+    def get_answer(self, sample):
+        return ' ' + str(sample['outputs'])

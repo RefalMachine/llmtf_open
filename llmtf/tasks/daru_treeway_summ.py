@@ -55,6 +55,9 @@ class DaruTreewayAbstractive(SimpleFewShotHFTask):
 
     def prompt_dataset_start_idx(self) -> int:
         return 0
+    
+    def get_answer(self, sample):
+        return ' ' + ' '.join(sample['summary_sents'])
 
 class DaruTreewayExtractive(Task):
     def __init__(self, **kwargs):
