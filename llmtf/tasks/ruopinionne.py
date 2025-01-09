@@ -2,7 +2,8 @@ from llmtf.base import SimpleFewShotHFTask
 import json
 import copy
 from tqdm import tqdm
-from datasets import load_dataset, Dataset, DatasetDict
+from datasets import Dataset, DatasetDict
+from datasets import load_dataset as load_dataset_hf
 from llmtf.base import Task, SimpleFewShotHFTask, LLM
 import json
 from collections import Counter
@@ -272,7 +273,13 @@ def get_data_type(sample):
     return 'default'
 
 def load_dataset(dataset_path, test=False):
-    data = list(read_jsonl(dataset_path))
+    split = 'test' if test else 'train'
+    data = load_dataset_hf(dataset_path, split=split).to_dict()
+
+    dkeys = list(data.keys()) 
+    deconvert = lambda x: [{k: x[k][i] for k in dkeys} for i in range(len(x[dkeys[0]]))]
+    data = deconvert(data)
+    #data = list(read_jsonl(dataset_path))
     keys = list(data[0].keys())
     convert = lambda x: {k: [d[k] for d in x] for k in keys}
     
@@ -352,10 +359,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
         return 'RuOpinionNE'.lower()
 
     def dataset_args(self, test=False) -> Dict:
-        if not test:
-            return {'dataset_path': 'train.jsonl', 'test': test}
-        else:
-            raise NotImplementedError
+        return {'dataset_path': 'RefalMachine/ruopinionne', 'test': test}
 
     def test_split_name(self) -> str:
         return 'test'

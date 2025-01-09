@@ -800,6 +800,9 @@ class VLLMModel(LocalHostedLLM):
         else:
             self.conversation_template = 'auto'
 
+    def support_method(self, method):
+        return method in ['generate', 'calculate_tokens_proba']
+    
     def from_pretrained(self, model_dir):
         self._load_model(model_dir)
         #self._check_if_leading_space()
