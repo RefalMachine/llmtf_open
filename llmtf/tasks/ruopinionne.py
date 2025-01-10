@@ -7,7 +7,7 @@ from datasets import load_dataset as load_dataset_hf
 from llmtf.base import Task, SimpleFewShotHFTask, LLM
 import json
 from collections import Counter
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 def tk(text):
     tokens = text.split()
@@ -113,8 +113,11 @@ def convert_opinion_to_tuple(sentence):
                     return True
 
                 # Intersections exist => raise an exception.
-                #raise Exception("expressions for the same holder, target and polarity "
-                #                "must not overlap: {}".format(sentence["sent_id"]))
+                print(e1)
+                print(e2)
+
+                raise Exception("expressions for the same holder, target and polarity "
+                                "must not overlap: {}".format(sentence["sent_id"]))
 
             exist = check_opinion_exist(
                 htep=htep,
@@ -270,6 +273,9 @@ def get_data_type(sample):
         return 'src_null'
     if sample['opinions'][0]['Source'][0][0] == 'AUTHOR':
         return 'src_author'
+    if len(sample['opinions']) == 1 and len(sample['opinions'][0]['Polar_expression'][0]) > 1:
+        return 'multi_expr'
+    
     return 'default'
 
 def load_dataset(dataset_path, test=False):
@@ -298,16 +304,17 @@ def load_dataset(dataset_path, test=False):
 
     val_sent_ids = []
     for sample_type in types_all:
-        val_sent_ids += [d['sent_id'] for d in data if d['type'] == sample_type][:10]
+        val_sent_ids += [d['sent_id'] for d in data if d['type'] == sample_type][:5]
 
     val_sent_ids_set = set(val_sent_ids)
 
     train = [d for d in data if d['sent_id'] not in val_sent_ids_set]
     val = []
-    for i in range(10):
+    for i in range(5):
         for j in range(len(types_all)):
-            val += [d for d in data if d['sent_id'] == val_sent_ids[i + j * 10]]
+            val += [d for d in data if d['sent_id'] == val_sent_ids[i + j * 5]]
     
+    #print(val[:10])
     tds = Dataset.from_dict(convert(train))
     vds = Dataset.from_dict(convert(val))
 
@@ -344,7 +351,7 @@ def pred2opinions_default(y_pred):
     return y_predict_dict
 
 class RuOpinionNE(SimpleFewShotHFTask):
-    def __init__(self, instruction, short_instruction=None, pred2opinions=pred2opinions_default, test=False, **kwargs):
+    def __init__(self, instruction, short_instruction=None, pred2opinions=pred2opinions_default, test=False, repeate_instruction=False, restrict_generation=False, **kwargs):
         super().__init__(**kwargs)
         self._max_new_tokens = 256
         self.instruction = instruction
@@ -354,6 +361,8 @@ class RuOpinionNE(SimpleFewShotHFTask):
         self.method = 'generate'
         self.test = test
         self.pred2opinions = pred2opinions
+        self.repeate_instruction = repeate_instruction
+        self.restrict_generation = restrict_generation
 
     def name(self):
         return 'RuOpinionNE'.lower()
@@ -386,14 +395,19 @@ class RuOpinionNE(SimpleFewShotHFTask):
         if not keys_ok:
             return False
         
-        types_ok = type(opinion['Source']) == str and type(opinion['Target']) == str and type(opinion['Polarity']) == str and type(opinion['Expression']) == str
+        if type(opinion['Expression']) == str:
+            opinion['Expression'] = [opinion['Expression']]
+
+        types_ok = type(opinion['Source']) == str and type(opinion['Target']) == str and type(opinion['Polarity']) == str and type(opinion['Expression']) == list
         #return types_ok
         if not types_ok:
             return False
         
         #polarity_ok = opinion['Polarity'] in ['NEG', 'POS']
         #return polarity_ok
-        exist_ok = (opinion['Source'].lower() in text.lower() or opinion['Source'] in ['AUTHOR', 'NULL']) and opinion['Polarity'] in ['NEG', 'POS'] and opinion['Expression'].lower() in text.lower() and opinion['Target'].lower() in text.lower()
+        exist_ok = (opinion['Source'].lower() in text.lower() or opinion['Source'] in ['AUTHOR', 'NULL']) and opinion['Polarity'] in ['NEG', 'POS'] and opinion['Target'].lower() in text.lower()
+        for expr in opinion['Expression']:
+            exist_ok = exist_ok and expr.lower() in text.lower()
         return exist_ok
     
     def _locate(self, entity, text):
@@ -423,11 +437,25 @@ class RuOpinionNE(SimpleFewShotHFTask):
                     'Source': [[opinions[i]['Source']], [self._locate(opinions[i]['Source'], text)]],
                     'Target': [[opinions[i]['Target']], [self._locate(opinions[i]['Target'], text)]],
                     'Polarity': opinions[i]['Polarity'],
-                    'Polar_expression': [[opinions[i]['Expression']], [self._locate(opinions[i]['Expression'], text)]],
+                    'Polar_expression': [opinions[i]['Expression'], [self._locate(expr, text) for expr in opinions[i]['Expression']]],
                 }
             )
         return opinions_validates
             
+    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+        assert model.support_method(self.method)
+
+        samples = self._load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
+        messages = [{'messages': s['messages']} for s in samples]
+        samples = [{'sample': s['sample']} for s in samples]
+        if self.restrict_generation:
+            for i in range(len(messages)):
+                #print(samples[i])
+                messages[i]['allowed_token_ids'] = copy.deepcopy(samples[i]['sample']['allowed_token_ids'])
+                #del samples[i]['allowed_token_ids']
+
+        return messages, samples
+    
     def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args(test=False))
@@ -444,13 +472,15 @@ class RuOpinionNE(SimpleFewShotHFTask):
         for sample in tqdm(test_dataset):
             s = copy.deepcopy(sample)
             samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': s})
+            if self.restrict_generation:
+                samples[-1]['sample']['allowed_token_ids'] = self._infer_allowed_tokens(s, model)
 
         return samples
 
     def _prepare_messages(self, sample: Dict, model: LLM, max_len: int, few_shot_count: int, prompt_dataset: Dataset) -> List:
         k = min(few_shot_count, len(prompt_dataset))
 
-        zero_shot_messages = self.create_messages(copy.deepcopy(sample), with_answer=False, full_instruct=k==0)
+        zero_shot_messages = self.create_messages(copy.deepcopy(sample), with_answer=False, full_instruct=k==0 or self.repeate_instruction)
         zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
         if zero_shot_messages_len >= max_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
@@ -478,9 +508,39 @@ class RuOpinionNE(SimpleFewShotHFTask):
             messages.append(self._format_answer(sample, with_answer))
         return messages
     
+    def _infer_allowed_tokens(self, sample, model):
+        default_str = "[\n    {\n        \"Source\": \"{X}\",\n        \"Source\": \"AUTHOR\",\n        \"Source\": \"NULL\",\n        \"Target\": \"{X}\",\n        \"Polarity\": \"NEG\",\n        \"Polarity\": \"POS\"\n        \"Expression\": [\n            \"{X}\"\n        ]\n    },\n    {\n        \"Source\": \"{X}\",\n        \"Source\": \"AUTHOR\",\n        \"Source\": \"NULL\",\n        \"Target\": \"{X}\",\n        \"Polarity\": \"NEG\",\n        \"Polarity\": \"POS\"\n        \"Expression\": [\n            \"{X}\"\n        ]\n    }\n]"
+        default_str = default_str.replace('{X}', model.tokenizer.eos_token)
+
+        allowed_tokens_ids = model.tokenizer(default_str, add_special_tokens=False)['input_ids']
+        allowed_tokens_ids += model.tokenizer("\n", add_special_tokens=False)['input_ids']
+        allowed_tokens_ids += model.tokenizer("\n\n", add_special_tokens=False)['input_ids']
+
+        allowed_tokens_ids += model.tokenizer(sample['text'], add_special_tokens=False)['input_ids']
+        for w in sample['text'].split(' '):
+            allowed_tokens_ids += model.tokenizer(w, add_special_tokens=False)['input_ids']
+
+        allowed_tokens_ids = sorted(list(set(allowed_tokens_ids)))
+        #model.tokenizer.vocab_size
+        #allowed_tokens_ids = [t for t in allowed_tokens_ids if t < model.tokenizer.vocab_size]
+
+        return allowed_tokens_ids
+
     def _format_answer(self, sample, with_answer=False):
         key_map = [['Source', 'Source'], ['Target', 'Target'], ['Polarity', 'Polarity'], ['Polar_expression', 'Expression']]
-        data = [{key_pair[1]: opinion[key_pair[0]][0][0] if key_pair[0] != 'Polarity' else opinion[key_pair[0]] for key_pair in key_map} for opinion in sample['opinions']]
+        data = []
+        for opinion in sample['opinions']:
+            converted_sample = {}
+            for key_pair in key_map:
+                if key_pair[0] == 'Polarity':
+                    value = opinion[key_pair[0]]
+                elif key_pair[0] == 'Polar_expression':
+                    value = opinion[key_pair[0]][0]
+                else:
+                    value = opinion[key_pair[0]][0][0]
+                converted_sample[key_pair[1]] = value
+            data.append(converted_sample)
+        #data = [{key_pair[1]: opinion[key_pair[0]][0][0] if key_pair[0] != 'Polarity' else opinion[key_pair[0]] for key_pair in key_map} for opinion in sample['opinions']]
         data = json.dumps(data, ensure_ascii=False, indent=4)
 
         #prefix = '''***json'''

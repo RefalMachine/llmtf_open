@@ -819,15 +819,21 @@ class VLLMModel(LocalHostedLLM):
         self.attn_backend = self.model.llm_engine.model_executor.driver_worker.model_runner.attn_backend
         self.special_attn_warning_complete = False
 
-    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
-        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message, return_tokens=return_tokens)
+    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False, allowed_token_ids=None):
+        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message, return_tokens=return_tokens, allowed_token_ids=[allowed_token_ids])
         return prompts[0], outputs[0], infos[0]
 
-    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False, allowed_token_ids=None):
         prompts_tokens_batch = []
-        for _messages in messages:
+        allowed_token_ids_batch = [] if allowed_token_ids is not None else None
+        for i, _messages in enumerate(messages):
             prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
             prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=self.conversation_template['add_special_tokens'], truncation=True, max_length=self.generation_config.max_length)['input_ids'])
+            if allowed_token_ids_batch is not None:
+                allowed_token_ids_batch += allowed_token_ids[i]
+                
+        if allowed_token_ids_batch is not None:
+            allowed_token_ids_batch = list(set(allowed_token_ids_batch))
 
         generation_config = self.generation_config if generation_config is None else generation_config
         sampling_params = SamplingParams(
@@ -837,7 +843,8 @@ class VLLMModel(LocalHostedLLM):
             max_tokens=generation_config.max_new_tokens,
             repetition_penalty=generation_config.repetition_penalty,
             stop=generation_config.stop_strings,
-            n=generation_config.num_return_sequences
+            n=generation_config.num_return_sequences,
+            allowed_token_ids=allowed_token_ids_batch
         )
 
         prompts_vllm = []
