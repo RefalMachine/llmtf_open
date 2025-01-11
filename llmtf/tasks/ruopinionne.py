@@ -129,6 +129,62 @@ def convert_opinion_to_tuple(sentence):
 
     return opinion_tuples
 
+def filter_opinions(sentence):
+    text = sentence["text"]
+    opinions = sentence["opinions"]
+    opinion_tuples = []
+    token_offsets = tk(text)
+
+    opinions_ok = []
+    if len(opinions) > 0:
+        for opinion in opinions:
+
+            # Extract idxs parts.
+            holder_char_idxs = opinion["Source"][1]
+            target_char_idxs = opinion["Target"][1]
+            exp_char_idxs = opinion["Polar_expression"][1]
+
+            # Compose elements of the new opinion.
+            holder = frozenset(["AUTHOR"]) \
+                if holder_char_idxs[0] == "NULL" \
+                else convert_char_offsets_to_token_idxs(holder_char_idxs, token_offsets)
+            target = convert_char_offsets_to_token_idxs(target_char_idxs, token_offsets)
+            exp = convert_char_offsets_to_token_idxs(exp_char_idxs, token_offsets)
+            polarity = opinion["Polarity"]
+
+            assert polarity in ["POS", "NEG"], "wrong polarity mark: {}".format(sentence["sent_id"])
+
+            htep = (holder, target, exp, polarity)
+
+            def __check_diff_spans_valid_func(e1, e2):
+
+                # There are no intersections.
+                if len(e1.intersection(e2)) == 0:
+                    return True
+
+                # Intersections exist => raise an exception.
+                print('Intersection')
+                print(e1)
+                print(e2)
+                print()
+
+                raise Exception("expressions for the same holder, target and polarity "
+                                "must not overlap: {}".format(sentence["sent_id"]))
+
+            try:
+                exist = check_opinion_exist(
+                    htep=htep,
+                    opinions_iter=iter(opinion_tuples),
+                    check_diff_spans_valid_func=__check_diff_spans_valid_func)
+            except:
+                exist = True
+
+            opinions_ok.append(not exist)
+            if not exist:
+                opinion_tuples.append(htep)
+    sentence["opinions"] = [o for i, o in enumerate(sentence["opinions"]) if opinions_ok[i]]
+    return sentence
+
 def sent_tuples_in_list(sent_tuple1, list_of_sent_tuples, keep_polarity=True):
     holder1, target1, exp1, pol1 = sent_tuple1
     if len(holder1) == 0:
@@ -388,6 +444,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
         y_pred['opinions'] = self._validate_and_add_pos_to_opinion(y_predict_dict, sample)
         y_pred['sent_id'] = sample['sent_id']
         y_pred['text'] = sample['text']
+        filter_opinions(y_pred)
         return {"f1": {'gold': sample, 'preds': y_pred}}
 
     def _validate_dict(self, opinion, text):
