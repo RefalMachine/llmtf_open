@@ -5,6 +5,8 @@ import json
 import copy
 import pandas as pd
 import numpy as np
+from evalica import bradley_terry, Winner, pairwise_frame
+from scipy.special import expit
 
 def read_json(file_name):
     with open(file_name, encoding="utf-8") as r:
@@ -16,12 +18,13 @@ def swap(data, key1, key2):
     data[key2] = tmp
 
 class LLMAsJudge(Task):
-    def __init__(self, model_outputs: Dict, references_outputs: List[Dict], custom_instruction=None, **kwargs):
+    def __init__(self, model_outputs: Dict, references_outputs: List[Dict], custom_instruction=None, len_control=True, **kwargs):
         super().__init__(**kwargs)
         self.model_outputs = model_outputs
         self.references_outputs = references_outputs
         self.custom_instruction = custom_instruction
         self.method = 'calculate_tokens_proba'
+        self.len_control = len_control
         self._max_new_tokens = 1
 
     @property
@@ -32,33 +35,73 @@ class LLMAsJudge(Task):
     def name(cls):
         return 'llm_as_judge'
 
+    def _calculate_score(self, data, model_name):
+        # taken from https://github.com/VikhrModels/ru_llm_arena/blob/master/show_result.py
+        df = pd.DataFrame(data, columns=['model_a', 'model_b', 'winner', 'answer_len_delta'])
+        df['winner'] = df['winner'].map({
+                1: Winner.X,
+                0: Winner.Y
+        })
+
+        result = bradley_terry(
+            df['model_a'],
+            df['model_b'],
+            df['winner'],
+            weights=df['answer_len_delta'] * 2,
+            tolerance=1e-8
+        )
+        
+        df = pairwise_frame(result.scores)
+        np.fill_diagonal(df.values, np.nan)
+        return df.loc[model_name].mean()
+
     def _confident_score_mean(self, results: Dict) -> Dict:
         full_hash =  ['|'.join([str(r['id']), r['model_name'], r['reference_model_name']]) for r in results]
         model_hash = ['|'.join([str(r['id']), r['model_name']]) for r in results]
+        reference_hash = ['|'.join([str(r['id']), r['reference_model_name']]) for r in results]
 
         df = pd.DataFrame()
         df['p'] = [r['p'] for r in results]
         df['full_hash'] = full_hash
         df['model_hash'] = model_hash
+        df['reference_hash'] = reference_hash
+        
+        df['model_name'] = [r['model_name'] for r in results]
+        df['reference_model_name'] = [r['reference_model_name'] for r in results]
 
-        scores_full = []
+        df['model_len'] = [r['lens']['model'] for r in results]
+        df['reference_len'] = [r['lens']['reference'] for r in results]
+        
+        answer_len_deltas = {}
+        for ref_model_name, group in df.groupby('reference_model_name'):
+            answer_len_deltas[ref_model_name] = (group['reference_len'] - group['model_len']).std()
+
+        data = []
         for _, group in df.groupby('model_hash'):
-            scores = []
             for _, subgroup in group.groupby('full_hash'):
                 assert subgroup.shape[0] == 2
                 pred = int(subgroup['p'].mean() >= 0.5)
-                scores.append(pred)
-            scores_full.append(float(np.mean(scores)))
+                
+                normalized_answer_delta_weight = 0.5
+                if self.len_control:
+                    answers_length_deltas_std = answer_len_deltas[subgroup['reference_model_name'].iloc[0]]
+                    answer_length_delta = (subgroup['reference_len'] - subgroup['model_len']).iloc[0]
+                    normalized_answer_delta_weight = expit(answer_length_delta / answers_length_deltas_std)
 
-        return float(np.mean(scores_full)) * 100
+                data.append([subgroup['model_name'].tolist()[0], subgroup['reference_model_name'].tolist()[0], pred, normalized_answer_delta_weight])
+                
+        score = self._calculate_score(data, df['model_name'][0])
+        return score * 100
 
     def aggregation(self) -> Dict:
         return {"score": self._confident_score_mean}
 
     def evaluate(self, sample, y_pred) -> Dict:
         model_proba = float(y_pred[sample['model_label']])
-        y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
-        return {"score": {'p': model_proba ,'id': sample['id'], 'model_name': sample['model_name'], 'reference_model_name': sample['reference_model_name']}}
+        model_mask_mapping = lambda x: 'model' if x == sample['model_label'] else 'reference'
+        lens = {model_mask_mapping('m'): len(sample['output_m']), model_mask_mapping('M'): len(sample['output_M'])}
+        #y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
+        return {"score": {'p': model_proba ,'id': sample['id'], 'model_name': sample['model_name'], 'reference_model_name': sample['reference_model_name'], 'lens': lens}}
 
     def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         self.logger.info(f'Ignoring few_shot_count for {self.name()}')
