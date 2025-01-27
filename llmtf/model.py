@@ -843,8 +843,8 @@ class VLLMModel(LocalHostedLLM):
             max_tokens=generation_config.max_new_tokens,
             repetition_penalty=generation_config.repetition_penalty,
             stop=generation_config.stop_strings,
-            n=generation_config.num_return_sequences,
-            allowed_token_ids=allowed_token_ids_batch
+            n=generation_config.num_return_sequences#,
+            #allowed_token_ids=allowed_token_ids_batch
         )
 
         prompts_vllm = []

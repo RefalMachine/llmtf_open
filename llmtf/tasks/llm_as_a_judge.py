@@ -18,13 +18,14 @@ def swap(data, key1, key2):
     data[key2] = tmp
 
 class LLMAsJudge(Task):
-    def __init__(self, model_outputs: Dict, references_outputs: List[Dict], custom_instruction=None, len_control=True, **kwargs):
+    def __init__(self, model_outputs: Dict, references_outputs: List[Dict], custom_instruction=None, len_control=True, pen_only_model=False, **kwargs):
         super().__init__(**kwargs)
         self.model_outputs = model_outputs
         self.references_outputs = references_outputs
         self.custom_instruction = custom_instruction
         self.method = 'calculate_tokens_proba'
         self.len_control = len_control
+        self.pen_only_model = pen_only_model
         self._max_new_tokens = 1
 
     @property
@@ -83,10 +84,11 @@ class LLMAsJudge(Task):
                 pred = int(subgroup['p'].mean() >= 0.5)
                 
                 normalized_answer_delta_weight = 0.5
-                if self.len_control:
+                if self.len_control and (pred or not self.pen_only_model):
                     answers_length_deltas_std = answer_len_deltas[subgroup['reference_model_name'].iloc[0]]
                     answer_length_delta = (subgroup['reference_len'] - subgroup['model_len']).iloc[0]
-                    normalized_answer_delta_weight = expit(answer_length_delta / answers_length_deltas_std)
+                    if answer_length_delta != 0: # same model as ref
+                        normalized_answer_delta_weight = expit(answer_length_delta / answers_length_deltas_std)
 
                 data.append([subgroup['model_name'].tolist()[0], subgroup['reference_model_name'].tolist()[0], pred, normalized_answer_delta_weight])
                 
