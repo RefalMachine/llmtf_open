@@ -33,7 +33,7 @@ class HabrQASbS(SimpleFewShotHFTask):
         return {"acc": y_true == y_pred, "f1_macro": (y_true, y_pred)}
     
     def dataset_args(self) -> Dict:
-        return {'path': 'Vikhrmodels/habr_qa_sbs', 'features': Features({'Unnamed: 0': Value('int64'), 'question': Value('string'), 'best': Value('string'), 'bad': Value('string')})}
+        return {'path': 'Vikhrmodels/habr_qa_sbs'}
 
     def _convert_dataset(self, dataset):
         dataset = dataset['train']

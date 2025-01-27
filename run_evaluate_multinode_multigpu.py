@@ -15,6 +15,26 @@ task_groups_few_shot = [
     {'name': 'nerel', 'params': {'dataset_names': 'nerel', 'allow_vllm': True, 'max_sample_per_dataset': 500}}
 ]
 
+task_groups_few_shot = [
+    {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': True}},
+    {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': True}},
+    {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': True}},
+    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': True, 'max_sample_per_dataset': 500}},
+    {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_para_ru darumeru/cp_para_en', 'allow_vllm': True}},
+    {'name': 'habr_ruparam_shlepa', 'params': {'dataset_names': 'vikhrmodels/habr_qa_sbs ruparam shlepa/moviesmc shlepa/musicmc shlepa/lawmc shlepa/booksmc', 'allow_vllm': True, 'max_sample_per_dataset': 5000}},
+    {'name': 'ruopinionne', 'params': {'dataset_names': 'ruopinionne', 'allow_vllm': True, 'max_sample_per_dataset': 500}},
+    {'name': 'nerel', 'params': {'dataset_names': 'nerel', 'allow_vllm': True, 'max_sample_per_dataset': 500}},
+]
+
+task_groups_few_shot_short_ver = [
+    {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/use', 'allow_vllm': True}},
+    {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': True}},
+    {'name': 'nlpcoreteam_mmlu_en', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': True}},
+    {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': True, 'max_sample_per_dataset': 500}},
+    {'name': 'copy_tasks', 'params': {'dataset_names': 'darumeru/cp_para_ru darumeru/cp_para_en', 'allow_vllm': True}},
+    {'name': 'habr_ruparam_shlepa', 'params': {'dataset_names': 'nerel ruparam shlepa/lawmc', 'allow_vllm': True, 'max_sample_per_dataset': 5000}},
+]
+
 task_groups_zero_shot = [
     {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': True}},
     {'name': 'nlpcoreteam_mmlu_ru', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': True}},
@@ -27,13 +47,12 @@ task_groups_zero_shot = [
 ]
 
 task_groups_zero_shot_short_ver = [
-    {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/parus darumeru/rcb darumeru/rwsd darumeru/use', 'allow_vllm': True}},
+    {'name': 'darumeru', 'params': {'dataset_names': 'darumeru/multiq darumeru/use', 'allow_vllm': True}},
     {'name': 'nlpcoreteam_rummlu', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'allow_vllm': True}},
     {'name': 'nlpcoreteam_enmmlu', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'allow_vllm': True}},
     {'name': 'treewayabstractive', 'params': {'dataset_names': 'daru/treewayabstractive', 'allow_vllm': True, 'max_sample_per_dataset': 200}},
     {'name': 'cp_para_ru', 'params': {'dataset_names': 'darumeru/cp_para_ru', 'allow_vllm': True}},
     {'name': 'habr_ruparam_shlepa', 'params': {'dataset_names': 'vikhrmodels/habr_qa_sbs ruparam shlepa/moviesmc shlepa/musicmc shlepa/lawmc shlepa/booksmc', 'allow_vllm': True, 'max_sample_per_dataset': 5000}},
-    {'name': 'ruopinionne', 'params': {'dataset_names': 'ruopinionne', 'allow_vllm': True, 'max_sample_per_dataset': 200}},
     {'name': 'nerel', 'params': {'dataset_names': 'nerel', 'allow_vllm': True, 'max_sample_per_dataset': 200}}
 ]
 
@@ -109,7 +128,10 @@ if __name__ == '__main__':
     time.sleep(rank*2)
 
     if int(args.few_shot_count) > 0:
-        task_groups = task_groups_few_shot
+        if args.short:
+            task_groups = task_groups_few_shot_short_ver
+        else:
+            task_groups = task_groups_few_shot
     else:
         if args.short:
             task_groups = task_groups_zero_shot_short_ver

@@ -1,6 +1,9 @@
 import sklearn
 from rouge_score import rouge_scorer
-import pymorphy3 as pymorphy2
+try:
+    import pymorphy3 as pymorphy2
+except:
+    import pymorphy2
 import string
 import re
 import numpy as np
