@@ -45,9 +45,14 @@ class DarumeruTask(SimpleFewShotHFTask):
 class CopyText(DarumeruTask):
     def __init__(self, subtask, lang, **kwargs):
         super().__init__(**kwargs)
-        assert subtask in ['para', 'sent']
+        assert subtask in ['para', 'sent', 'doc']
         self.main_metric = 'len' if subtask == 'sent' else 'lcs'
-        self._max_new_tokens = 128 if subtask == 'sent' else 1024 
+        self._max_new_tokens = 1024
+        if subtask == 'sent':
+            self._max_new_tokens = 128
+        elif subtask == 'doc':
+            self._max_new_tokens = 1024 * 4
+            
         self.method = 'generate'
         self.method_additional_args = {'return_tokens': True}
         self.lang = lang

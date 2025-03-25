@@ -7,7 +7,8 @@ from . import (
     habrqa,
     ruopinionne,
     ruparam,
-    nerel
+    nerel,
+    translation
 )
 
 ########################################
@@ -73,7 +74,10 @@ TASK_REGISTRY = {
     'darumeru/cp_sent_en': {'class': darumeru.CopyText, 'params': {'subtask': 'sent', 'lang': 'en'}},
     'darumeru/cp_para_ru': {'class': darumeru.CopyText, 'params': {'subtask': 'para', 'lang': 'ru'}},
     'darumeru/cp_para_en': {'class': darumeru.CopyText, 'params': {'subtask': 'para', 'lang': 'en'}},
+    'darumeru/cp_doc_ru': {'class': darumeru.CopyText, 'params': {'subtask': 'doc', 'lang': 'ru'}},
     'darumeru/ruscibench_grnti_ru': {'class': darumeru.ruSciBenchGRNTIRu},
+    'darumeru/flores_ru_en': {'class': translation.DaruFlores, 'params': {'input_lang': 'ru'}},
+    'darumeru/flores_en_ru': {'class': translation.DaruFlores, 'params': {'input_lang': 'en'}},
     'vikhrmodels/habr_qa_sbs': {'class': habrqa.HabrQASbS},
     'ruopinionne': {'class': ruopinionne.RuOpinionNE, 'params': {'instruction': ruopinionne_default_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruparam': {'class': ruparam.RuParam, 'params': {'instruction': ruparam_default_instruction}},

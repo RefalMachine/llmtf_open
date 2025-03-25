@@ -1,6 +1,6 @@
 {
-    "system_message_template": "{content}\n",
-    "user_message_template": "{content}\n",
+    "system_message_template": "{content}\n\n",
+    "user_message_template": "{content}\n\n",
     "bot_message_template": "{content}\n\n",
     "bot_message_template_incomplete": "{content}",
     "user_role": "user",
@@ -8,5 +8,5 @@
     "system_role": "system",
     "suffix": "",
     "add_special_tokens": false,
-    "eos_token": ["\n", "\n\n"]
+    "eos_token": ["\n\n"]
 }

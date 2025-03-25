@@ -762,6 +762,14 @@ class HFModel(LocalHostedLLM):
 
         self.model.eval()
 
+    def _add_stop_string(self, stop_string):
+        vocab = self.tokenizer.vocab
+        for t in tqdm.tqdm(vocab):
+            token = self.tokenizer.convert_tokens_to_string([t])
+            if token.endswith(stop_string):
+                self.add_stop_token([vocab[t]])
+        self.generation_config.stop_strings.append(stop_string)
+            
     def get_max_model_len(self):
         return self.model.config.max_position_embeddings
 
@@ -771,7 +779,7 @@ class VLLMModel(LocalHostedLLM):
             conversation_template_path='auto', 
             use_fast_tokenizer=True, 
             device_map='auto',
-            max_seq_len_to_capture=4096,
+            max_seq_len_to_capture=4096*2,
             gpu_memory_utilization=0.9,
             disable_sliding_window=True,
             enable_prefix_caching=True,
