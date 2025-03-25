@@ -93,7 +93,7 @@ class LLMAsJudge(Task):
                 data.append([subgroup['model_name'].tolist()[0], subgroup['reference_model_name'].tolist()[0], pred, normalized_answer_delta_weight])
                 
         score = self._calculate_score(data, df['model_name'][0])
-        return score * 100
+        return score
 
     def aggregation(self) -> Dict:
         return {"score": self._confident_score_mean}
