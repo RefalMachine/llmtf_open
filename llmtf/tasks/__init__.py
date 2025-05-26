@@ -8,7 +8,8 @@ from . import (
     ruopinionne,
     ruparam,
     nerel,
-    translation
+    translation,
+    ifeval
 )
 
 ########################################
@@ -81,5 +82,11 @@ TASK_REGISTRY = {
     'vikhrmodels/habr_qa_sbs': {'class': habrqa.HabrQASbS},
     'ruopinionne': {'class': ruopinionne.RuOpinionNE, 'params': {'instruction': ruopinionne_default_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruparam': {'class': ruparam.RuParam, 'params': {'instruction': ruparam_default_instruction}},
-    'nerel': {'class': nerel.NestedNER} 
+    'nerel': {'class': nerel.NestedNER},
+    'ruifeval':  {
+        'class': ifeval.RuIFEvalTask
+    },
+    'enifeval':  {
+        'class': ifeval.EnIFEvalTask
+    }
 }

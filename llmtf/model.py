@@ -49,6 +49,7 @@ class ApiVLLMModel(LLM):
         assert r.status_code == 200
 
         data = r.json()
+        print(data['data'])
         if len(data['data']) == 1:
             self.model_name = data['data'][0]['id']
             self.max_model_len = data['data'][0]['max_model_len']
