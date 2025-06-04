@@ -9,7 +9,8 @@ from . import (
     ruparam,
     nerel,
     translation,
-    ifeval
+    ifeval,
+    libra
 )
 
 ########################################
@@ -88,5 +89,25 @@ TASK_REGISTRY = {
     },
     'enifeval':  {
         'class': ifeval.EnIFEvalTask
+    },
+    'libra/rubabilong1': {
+        'class': libra.LibraTask,
+        'params': {'dataset_slice': 'ru_babilong_qa1'}
+    },
+    'libra/rubabilong2': {
+        'class': libra.LibraTask,
+        'params': {'dataset_slice': 'ru_babilong_qa2'}
+    },
+    'libra/rubabilong3': {
+        'class': libra.LibraTask,
+        'params': {'dataset_slice': 'ru_babilong_qa3'}
+    },
+    'libra/rubabilong4': {
+        'class': libra.LibraTask,
+        'params': {'dataset_slice': 'ru_babilong_qa4'}
+    },
+    'libra/rubabilong5': {
+        'class': libra.LibraTask,
+        'params': {'dataset_slice': 'ru_babilong_qa5'}
     }
 }
