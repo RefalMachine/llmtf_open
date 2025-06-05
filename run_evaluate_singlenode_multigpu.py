@@ -7,6 +7,9 @@ import torch
 from multiprocessing import Queue, Lock
 from queue import Empty
 
+import nltk
+nltk.download('punkt_tab')
+
 class GPUManager:
     def __init__(self, num_gpus):
         self.available_gpus = Queue()
