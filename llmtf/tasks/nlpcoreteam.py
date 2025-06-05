@@ -7,6 +7,8 @@ from tqdm import tqdm
 import copy
 from multiprocessing import Pool
 import os
+from datasets.utils.logging import disable_progress_bar
+disable_progress_bar()
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -161,8 +163,15 @@ def load_dataset_multiprocessing(subjects, num_proc=12):
             datasets = [ds for ds in pool.map(load_dataset_single, subjects)]
     return datasets
 
+def load_dataset_darulm(subjects):
+    dataset = load_dataset(MMLU.DARULM_HF_PATH, MMLU.DARULM_MMLU_NAME)
+    datasets = [dataset.filter(lambda example: example['subject'] == subj) for subj in subjects]
+    return datasets
+
 class MMLU(Task):
     NLPCORE_HF_PATH = 'NLPCoreTeam/mmlu_ru'
+    DARULM_HF_PATH = 'RefalMachine/darumeru'
+    DARULM_MMLU_NAME = 'mmlu_nlpcoreteam'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
@@ -207,7 +216,8 @@ class MMLU(Task):
         samples = []
         subjects = list(SUBCATEGORIES.keys())
         max_samples_per_subject = max_sample_per_dataset // len(subjects) + 1
-        subject_datasets = load_dataset_multiprocessing(subjects, 1) #TODO: to params
+        #subject_datasets = load_dataset_multiprocessing(subjects, 1) #TODO: to params
+        subject_datasets = load_dataset_darulm(subjects)
         for i, dataset in enumerate(tqdm(subject_datasets)):
             subject = subjects[i]
 
@@ -238,7 +248,10 @@ class MMLU(Task):
 
     def _prepare_messages(self, subject: str, sample: Dict, model: LLM, max_len: int, few_shot_count: int, few_shot_samples: Dataset) -> List:
         k = min(few_shot_count, len(few_shot_samples))
-        int2str = few_shot_samples.features['answer'].int2str
+        try:
+            int2str = few_shot_samples.features['answer'].int2str
+        except:
+            int2str = lambda x: ['A', 'B', 'C', 'D'][x]
         
         zero_shot_messages_with_headline = self._create_messages(subject, sample, int2str, add_headline=True, add_answer=False)
         zero_shot_messages_with_headline_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages_with_headline))

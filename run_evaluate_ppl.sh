@@ -13,5 +13,5 @@ python run_evaluate_singlenode_multigpu.py \
 --batch_size $BATCH_SIZE \
 --max_len 8000 \
 --few_shot_count $FS_COUNT \
---vllm \
+--ppl_scoring \
 --num_gpus $GPUS_PER_NODE

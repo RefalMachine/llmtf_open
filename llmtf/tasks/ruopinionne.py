@@ -379,9 +379,9 @@ def load_dataset(dataset_path, test=False):
     ds['test'] = tds
     ds['prompt'] = vds
     return ds
-
+    
 def pred2opinions_default(y_pred):
-    y_pred = y_pred[3:].lstrip()
+    y_pred = y_pred.strip()#y_pred[3:].lstrip()
     try:
         y_predict_dict = json.loads(y_pred)
     except:
@@ -392,15 +392,17 @@ def pred2opinions_default(y_pred):
     if type(y_predict_dict) == dict:
         y_predict_dict = [y_predict_dict]
     return y_predict_dict
-    
+
 def pred2opinions_default(y_pred):
-    y_pred = y_pred.lstrip()#y_pred[3:].lstrip()
+    if y_pred.startswith('```json') and y_pred.endswith('```'):
+        y_pred = y_pred[len('```json'):-len('```')].strip()
     try:
         y_predict_dict = json.loads(y_pred)
     except:
         try:
             y_predict_dict = eval(y_pred)
         except:
+            print(y_pred)
             y_predict_dict = []
     if type(y_predict_dict) == dict:
         y_predict_dict = [y_predict_dict]

@@ -3,9 +3,8 @@ import json
 import re
 import pymorphy2
 import os
-from collections import defaultdict
 from datasets import load_dataset
-from collections import defaultdict
+from collections import defaultdict, Counter
 from tqdm.auto import tqdm
 from pathlib import Path
 from llmtf.base import SimpleFewShotHFTask
@@ -56,6 +55,16 @@ def exact_match_score(prediction, ground_truth):
         result = 1.0
     return result
 
+def custom_index_walk(K):
+    step = (K + 9) // 10
+    indices = []
+    
+    for start in range(step):
+        for i in range(start, K, step):
+            indices.append(i)
+    
+    return indices
+
 class LibraTask(SimpleFewShotHFTask):
     DATASET_PATH = "ai-forever/LIBRA"
     ALLOWED_LENGTHS = {"4k", "8k", "16k", "32k"}
@@ -74,9 +83,8 @@ class LibraTask(SimpleFewShotHFTask):
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    @classmethod
-    def name(cls) -> str:
-        return f"LIBRA_{cls.__name__}"
+    def name(self) -> str:
+        return f"LIBRA_{self.dataset_slice}"
 
     def dataset_args(self):
         return {
@@ -102,9 +110,19 @@ class LibraTask(SimpleFewShotHFTask):
         test_dataset = dataset[self.test_split_name()]
         prompt_dataset = dataset[self.prompt_split_name()]
 
+        idx = custom_index_walk(len(test_dataset))
+        test_dataset = test_dataset.select(idx)
         test_dataset = test_dataset.select(
             range(min(max_sample_per_dataset, len(test_dataset)))
         )
+
+        def calc_len(example):
+            example["len"] = int(example['length'][:-1])
+            return example
+
+        test_dataset = test_dataset.map(calc_len)
+        test_dataset = test_dataset.sort('len')
+
         prompt_dataset = prompt_dataset.select(
             range(
                 self.prompt_dataset_start_idx(),
@@ -158,7 +176,6 @@ class LibraTask(SimpleFewShotHFTask):
         return {"score": (best_score, length)}
 
     def aggregation(self) -> dict:
-
         def aggregate_by_length(score_and_length_list):
             groups = defaultdict(list)
             for score, length in score_and_length_list:

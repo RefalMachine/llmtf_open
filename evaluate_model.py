@@ -28,9 +28,13 @@ if __name__ == '__main__':
     evaluator = Evaluator()
     
     MODEL_CLASS = VLLMModel if args.vllm else HFModel
-    model = MODEL_CLASS(args.conv_path, device_map=args.device_map, disable_sliding_window=args.disable_sliding_window, enable_prefix_caching=not args.disable_prefix_caching, alpha_scale=args.alpha_scale, not_scale_lm_head=args.not_scale_lm_head)
+    model = MODEL_CLASS(
+        args.conv_path, device_map=args.device_map, disable_sliding_window=args.disable_sliding_window, enable_prefix_caching=not args.disable_prefix_caching, 
+        alpha_scale=args.alpha_scale, not_scale_lm_head=args.not_scale_lm_head, max_seq_len_to_capture=args.max_len)
     model.from_pretrained(args.model_name_or_path)
-
+    model.generation_config.temperature = 0.0
+    model.generation_config.repetition_penalty = 1.0
+    
     if args.ppl_scoring:
         evaluator.evaluate_ppl(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc)
     else:

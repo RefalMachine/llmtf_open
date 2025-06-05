@@ -781,7 +781,7 @@ class VLLMModel(LocalHostedLLM):
             use_fast_tokenizer=True, 
             device_map='auto',
             max_seq_len_to_capture=4096*2,
-            gpu_memory_utilization=0.9,
+            gpu_memory_utilization=0.95,
             disable_sliding_window=True,
             enable_prefix_caching=True,
             trust_remote_code=False,
