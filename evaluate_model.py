@@ -11,7 +11,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir')
     parser.add_argument('--dataset_names', nargs='+', default='all')
     parser.add_argument('--device_map', type=str, default='auto')
-    parser.add_argument('--max_len', type=int, default=4000)
     parser.add_argument('--few_shot_count', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--max_sample_per_dataset', type=int, default=10000000000000)
@@ -22,6 +21,12 @@ if __name__ == '__main__':
     parser.add_argument('--alpha_scale', type=float, default=1.0)
     parser.add_argument('--not_scale_lm_head', action='store_true')
     parser.add_argument('--ppl_scoring', action='store_true')
+
+    parser.add_argument('--max_len', type=int, default=4000)
+    parser.add_argument('--temperature', type=float, default=0.0)
+    parser.add_argument('--repetition_penalty', type=float, default=1.0)
+    parser.add_argument('--presence_penalty', type=float, default=0.0)
+    parser.add_argument('--num_return_sequences', type=int, default=5)
 
     args = parser.parse_args()
     

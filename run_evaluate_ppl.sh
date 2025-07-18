@@ -6,6 +6,12 @@ echo $CONV_PATH
 echo $FS_COUNT
 echo $BATCH_SIZE
 
+pip install fasttext-langdetect immutabledict
+pip install plotly
+pip install evalica
+pip install math_verify
+pip install fasttext-langdetect
+
 python run_evaluate_singlenode_multigpu.py \
 --model_dir $MODEL_TO_EVAL \
 --output_dir $MODEL_TO_EVAL_OUTPUT_DIR \

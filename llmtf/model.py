@@ -860,7 +860,7 @@ class VLLMModel(LocalHostedLLM):
         outputs = []
         infos = []
         
-        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=True, lora_request=self._get_lora_request())
         for response in vllm_responses:
             infos.append(
                 {

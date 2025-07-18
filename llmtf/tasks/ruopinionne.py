@@ -113,8 +113,8 @@ def convert_opinion_to_tuple(sentence):
                     return True
 
                 # Intersections exist => raise an exception.
-                print(e1)
-                print(e2)
+                #print(e1)
+                #print(e2)
 
                 raise Exception("expressions for the same holder, target and polarity "
                                 "must not overlap: {}".format(sentence["sent_id"]))
@@ -163,10 +163,10 @@ def filter_opinions(sentence):
                     return True
 
                 # Intersections exist => raise an exception.
-                print('Intersection')
-                print(e1)
-                print(e2)
-                print()
+                #print('Intersection')
+                #print(e1)
+                #print(e2)
+                #print()
 
                 raise Exception("expressions for the same holder, target and polarity "
                                 "must not overlap: {}".format(sentence["sent_id"]))
@@ -402,7 +402,7 @@ def pred2opinions_default(y_pred):
         try:
             y_predict_dict = eval(y_pred)
         except:
-            print(y_pred)
+            #print(y_pred)
             y_predict_dict = []
     if type(y_predict_dict) == dict:
         y_predict_dict = [y_predict_dict]
@@ -486,9 +486,9 @@ class RuOpinionNE(SimpleFewShotHFTask):
         opinions_validates = []
         for i in range(len(opinions)):
             if not self._validate_dict(opinions[i], text):
-                print('Fail to validate')
-                print(opinions[i])
-                print(text)
+                #print('Fail to validate')
+                #print(opinions[i])
+                #print(text)
                 continue
 
             opinions_validates.append(
@@ -611,3 +611,199 @@ class RuOpinionNE(SimpleFewShotHFTask):
     
     def get_answer(self, sample):
         return self._format_answer(sample, with_answer=True)['content']
+
+def convert_opinion_to_tuple_simple(sentence):
+    text = sentence["text"]
+    opinions = sentence["opinions"]
+    opinion_tuples = []
+    token_offsets = tk(text)
+
+    if len(opinions) > 0:
+        for opinion in opinions:
+            holder_char_idxs = opinion["Source"][1]
+            target_char_idxs = opinion["Target"][1]
+            
+            holder = frozenset(["AUTHOR"]) if holder_char_idxs[0] == "NULL" else convert_char_offsets_to_token_idxs(holder_char_idxs, token_offsets)
+            target = convert_char_offsets_to_token_idxs(target_char_idxs, token_offsets)
+            polarity = opinion["Polarity"]
+
+            assert polarity in ["POS", "NEG"], "wrong polarity mark: {}".format(sentence["sent_id"])
+            
+            # Simplified tuple without expression
+            htep = (holder, target, frozenset(), polarity)
+
+            def __check_diff_spans_valid_func(e1, e2):
+                if len(e1.intersection(e2)) == 0:
+                    return True
+                raise Exception("expressions for the same holder, target and polarity must not overlap: {}".format(sentence["sent_id"]))
+
+            # Simplified check_opinion_exist call
+            if not check_opinion_exist(htep, opinion_tuples, __check_diff_spans_valid_func):
+                opinion_tuples.append(htep)
+    return opinion_tuples
+
+def sent_tuples_in_list_simple(sent_tuple1, list_of_sent_tuples, keep_polarity=True):
+    holder1, target1, _, pol1 = sent_tuple1
+    if len(holder1) == 0:
+        holder1 = frozenset(["_"])
+    if len(target1) == 0:
+        target1 = frozenset(["_"])
+    for holder2, target2, _, pol2 in list_of_sent_tuples:
+        if len(holder2) == 0:
+            holder2 = frozenset(["_"])
+        if len(target2) == 0:
+            target2 = frozenset(["_"])
+        if len(holder1.intersection(holder2)) > 0 and len(target1.intersection(target2)) > 0:
+            if keep_polarity:
+                if pol1 == pol2:
+                    return True
+            else:
+                return True
+    return False
+
+def weighted_score_simple(sent_tuple1, list_of_sent_tuples):
+    best_overlap = 0
+    holder1, target1, _, pol1 = sent_tuple1
+    if len(holder1) == 0:
+        holder1 = frozenset(["_"])
+    if len(target1) == 0:
+        target1 = frozenset(["_"])
+    for holder2, target2, _, pol2 in list_of_sent_tuples:
+        if len(holder2) == 0:
+            holder2 = frozenset(["_"])
+        if len(target2) == 0:
+            target2 = frozenset(["_"])
+        if len(holder2.intersection(holder1)) > 0 and len(target2.intersection(target1)) > 0:
+            holder_overlap = len(holder2.intersection(holder1)) / len(holder1)
+            target_overlap = len(target2.intersection(target1)) / len(target1)
+            overlap = (holder_overlap + target_overlap) / 2
+            if overlap > best_overlap:
+                best_overlap = overlap
+    return best_overlap
+
+def tuple_precision_simple(gold, pred, keep_polarity=True, weighted=True):
+    weighted_tp = []
+    tp = []
+    fp = []
+    for sent_idx in pred.keys():
+        ptuples = pred[sent_idx]
+        gtuples = gold[sent_idx]
+        for stuple in ptuples:
+            if sent_tuples_in_list_simple(stuple, gtuples, keep_polarity):
+                if weighted:
+                    weighted_tp.append(weighted_score_simple(stuple, gtuples))
+                    tp.append(1)
+                else:
+                    weighted_tp.append(1)
+                    tp.append(1)
+            else:
+                fp.append(1)
+    return sum(weighted_tp) / (sum(tp) + sum(fp) + 1e-18)
+
+def tuple_recall_simple(gold, pred, keep_polarity=True, weighted=True):
+    weighted_tp = []
+    tp = []
+    fn = []
+    for sent_idx in pred.keys():
+        ptuples = pred[sent_idx]
+        gtuples = gold[sent_idx]
+        for stuple in gtuples:
+            if sent_tuples_in_list_simple(stuple, ptuples, keep_polarity):
+                if weighted:
+                    weighted_tp.append(weighted_score_simple(stuple, ptuples))
+                    tp.append(1)
+                else:
+                    weighted_tp.append(1)
+                    tp.append(1)
+            else:
+                fn.append(1)
+    return sum(weighted_tp) / (sum(tp) + sum(fn) + 1e-18)
+
+def tuple_f1_simple(gold, pred, keep_polarity=True, weighted=True):
+    prec = tuple_precision_simple(gold, pred, keep_polarity, weighted)
+    rec = tuple_recall_simple(gold, pred, keep_polarity, weighted)
+    return 2 * (prec * rec) / (prec + rec + 1e-18)
+
+def do_eval_core_simple(results: Dict):
+    gold = [r['gold'] for r in results]
+    preds = [r['preds'] for r in results]
+    
+    check_gold = dict([(s["sent_id"], s['text']) for s in gold])
+    check_preds = dict([(s["sent_id"], s['text']) for s in preds])
+
+    g = set(check_gold.keys())
+    p = set(check_preds.keys())
+
+    assert g.issubset(p), "missing some sentences: {}".format(g.difference(p))
+    assert p.issubset(g), "predictions contain sentences that are not in golds: {}".format(p.difference(g))
+    for k in g:
+        assert check_gold[k] == check_preds[k], "texts are not the same: {}".format(k)
+
+    gold = dict([(s["sent_id"], convert_opinion_to_tuple_simple(s)) for s in gold])
+    preds = dict([(s["sent_id"], convert_opinion_to_tuple_simple(s)) for s in preds])
+
+    return tuple_f1_simple(gold, preds)
+
+
+class RuOpinionNESimple(RuOpinionNE):
+    def name(self):
+        return 'RuOpinionNESimple'.lower()
+
+    def aggregation(self) -> Dict:
+        if self.test:
+            return {'f1': lambda x: 0.0}
+        else:
+            return {"f1": do_eval_core_simple}
+
+    def _validate_dict(self, opinion, text):
+        keys_ok = 'Source' in opinion and 'Target' in opinion and 'Polarity' in opinion
+        if not keys_ok:
+            return False
+        
+        types_ok = type(opinion['Source']) == str and type(opinion['Target']) == str and type(opinion['Polarity']) == str
+        if not types_ok:
+            return False
+        
+        exist_ok = (opinion['Source'].lower() in text.lower() or opinion['Source'] in ['AUTHOR', 'NULL']) and \
+                   opinion['Polarity'] in ['NEG', 'POS'] and \
+                   opinion['Target'].lower() in text.lower()
+        return exist_ok
+
+    def _validate_and_add_pos_to_opinion(self, opinions, sample):
+        text = sample['text']
+        opinions_validates = []
+        for i in range(len(opinions)):
+            if not self._validate_dict(opinions[i], text):
+                #print('Fail to validate')
+                #print(opinions[i])
+                #print(text)
+                continue
+
+            opinions_validates.append({
+                'Source': [[opinions[i]['Source']], [self._locate(opinions[i]['Source'], text)]],
+                'Target': [[opinions[i]['Target']], [self._locate(opinions[i]['Target'], text)]],
+                'Polarity': opinions[i]['Polarity'],
+                # Add a dummy Polar_expression for compatibility with downstream processing
+                'Polar_expression': [['-'], ['0:0']],
+            })
+        return opinions_validates
+
+    def _format_answer(self, sample, with_answer=False):
+        key_map = [['Source', 'Source'], ['Target', 'Target'], ['Polarity', 'Polarity']]
+        data = []
+        for opinion in sample['opinions']:
+            converted_sample = {}
+            for key_pair in key_map:
+                if key_pair[0] == 'Polarity':
+                    value = opinion[key_pair[0]]
+                else:
+                    value = opinion[key_pair[0]][0][0]
+                converted_sample[key_pair[1]] = value
+            data.append(converted_sample)
+        data = json.dumps(data, ensure_ascii=False, indent=4)
+
+        prefix = ''
+        if with_answer:
+            prefix += data
+
+        return {'role': 'bot', 'content': prefix}

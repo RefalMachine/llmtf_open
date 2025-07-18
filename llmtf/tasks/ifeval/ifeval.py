@@ -40,6 +40,8 @@ class RuIFEvalTask(SimpleFewShotHFTask):
         return messages
 
     def evaluate(self, sample, y_pred) -> Dict:
+        if type(y_pred) == str:
+            y_pred = []
         """Evaluate response using ruIFEval's instruction checking logic."""
         # Get instruction IDs and kwargs from sample
         instruction_ids = sample['instruction_id_list']
@@ -63,7 +65,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
                 instruction.build_description(prompt=sample['prompt'])
 
             # Check if instruction is followed
-            is_following = y_pred.strip() and instruction.check_following(y_pred)
+            is_following = mean([p.strip() and instruction.check_following(p) for p in y_pred])
             is_following_list.append(is_following)
             
             # Track individual instruction results
@@ -80,7 +82,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
 
             metrics['category_accuracy']['category_total'][category] += 1
             if is_following:
-                metrics['category_accuracy']['category_followed'][category] += 1
+                metrics['category_accuracy']['category_followed'][category] += float(is_following)
 
         # Calculate aggregate metrics
         metrics['prompt_level_accuracy'] = all(is_following_list)
