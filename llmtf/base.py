@@ -10,6 +10,7 @@ from llmtf.metrics import mean
 
 
 os.environ['VLLM_ATTENTION_BACKEND'] = 'XFORMERS'
+os.environ['VLLM_USE_V1'] = '0'
 
 class Base(abc.ABC):
     def __init__(self, **kwargs):
@@ -40,12 +41,18 @@ class Base(abc.ABC):
         self.backend_logger.addHandler(ch)
 
 class Task(Base):
-    def __init__(self, **kwargs):
+    def __init__(self, name_suffix=None, **kwargs):
         super().__init__(**kwargs)
         self.method_additional_args = {}
         self._max_new_tokens = None
         self.additional_stop_strings = []
+        self.name_suffix = ''
+        if name_suffix is not None:
+            self.name_suffix = f'_{name_suffix}'
 
+    def run_name(self):
+        return self.task_name() + self.name_suffix
+    
     @property
     def max_new_tokens(self):
         if self._max_new_tokens is None:
@@ -145,9 +152,15 @@ class SimpleFewShotHFTask(Task):
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
         prompt_dataset = dataset[self.prompt_split_name()]
-
-        test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
-        prompt_dataset = prompt_dataset.select(range(self.prompt_dataset_start_idx(), min(self.prompt_dataset_start_idx() + few_shot_count, len(prompt_dataset))))
+        
+        test_dataset_sample_ids = list(range(min(max_sample_per_dataset, len(test_dataset))))
+        prompt_dataset_sample_ids = list(range(self.prompt_dataset_start_idx(), min(self.prompt_dataset_start_idx() + few_shot_count, len(prompt_dataset))))
+        if self.test_split_name() == self.prompt_split_name():
+            prompt_dataset_sample_ids_set = set(prompt_dataset_sample_ids)
+            test_dataset_sample_ids = [i for i in test_dataset_sample_ids if i not in prompt_dataset_sample_ids_set]
+            
+        test_dataset = test_dataset.select(test_dataset_sample_ids)
+        prompt_dataset = prompt_dataset.select(prompt_dataset_sample_ids)
         for sample in tqdm(test_dataset):
             samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': sample})
         return samples

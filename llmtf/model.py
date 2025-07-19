@@ -64,7 +64,7 @@ class ApiVLLMModel(LLM):
             'temperature': 0.1,
             'top_p':  0.9,
             'top_k': 40,
-            'max_new_tokens': 256,
+            'max_new_tokens': 64,
             'do_sample': True
         })
         self.eos_token_ids_base = copy.deepcopy(self.generation_config.eos_token_id)
@@ -786,6 +786,7 @@ class VLLMModel(LocalHostedLLM):
             enable_prefix_caching=True,
             trust_remote_code=False,
             calculate_tokens_proba_logprobs_count=50,
+            tensor_parallel_size=1,
             **kwargs
         ):
         super().__init__(**kwargs)
@@ -797,6 +798,7 @@ class VLLMModel(LocalHostedLLM):
         self.enable_prefix_caching = enable_prefix_caching
         self.trust_remote_code = trust_remote_code
         self.calculate_tokens_proba_logprobs_count = calculate_tokens_proba_logprobs_count
+        self.tensor_parallel_size = tensor_parallel_size
 
         assert 'CUDA_VISIBLE_DEVICES' in os.environ
         self.logger.info('CUDA_VISIBLE_DEVICES=' + os.environ['CUDA_VISIBLE_DEVICES'])
@@ -1016,7 +1018,7 @@ class VLLMModel(LocalHostedLLM):
             max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching, 
-            trust_remote_code=self.trust_remote_code#, tensor_parallel_size=2,
+            trust_remote_code=self.trust_remote_code, tensor_parallel_size=self.tensor_parallel_size,
             #rope_scaling='{"type": "extended", "factor": 8.0}'
         )
 
@@ -1028,7 +1030,9 @@ class VLLMModel(LocalHostedLLM):
             max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching,
-            enable_lora=True, trust_remote_code=self.trust_remote_code, max_lora_rank=self._get_max_lora_rank(config))
+            enable_lora=True, trust_remote_code=self.trust_remote_code, tensor_parallel_size=self.tensor_parallel_size, 
+            max_lora_rank=self._get_max_lora_rank(config)
+        )
 
     def _get_lora_request(self):
         if not self.if_lora:

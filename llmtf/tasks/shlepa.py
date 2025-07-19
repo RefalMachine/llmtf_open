@@ -28,7 +28,7 @@ class ShlepaSmallMMLU(Task):
     def aggregation(self) -> Dict:
         return {'acc': mean}
 
-    def name(self) -> str:
+    def task_name(self) -> str:
         dataset_name_short = self.dataset_name[self.dataset_name.find('/') + 1:]
         return f'shlepa/{dataset_name_short}'
 

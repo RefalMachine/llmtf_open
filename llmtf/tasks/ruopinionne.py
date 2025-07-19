@@ -422,7 +422,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
         self.repeate_instruction = repeate_instruction
         self.restrict_generation = restrict_generation
 
-    def name(self):
+    def task_name(self):
         return 'RuOpinionNE'.lower()
 
     def dataset_args(self, test=False) -> Dict:
@@ -746,7 +746,7 @@ def do_eval_core_simple(results: Dict):
 
 
 class RuOpinionNESimple(RuOpinionNE):
-    def name(self):
+    def task_name(self):
         return 'RuOpinionNESimple'.lower()
 
     def aggregation(self) -> Dict:

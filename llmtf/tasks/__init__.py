@@ -11,7 +11,8 @@ from . import (
     translation,
     ifeval,
     libra,
-    math
+    math,
+    rag
 )
 
 ########################################
@@ -98,15 +99,90 @@ doom_instruction = '''Реши следующую задачу эффектив�
 {task}
 '''.strip()
 
-# REGISTRY
+nerel_default_prompt = '''Извлеки из заданного ниже текста все вложенные именованные сущности всех представленных ниже классов.
+Сущности могут быть представлены только целым словом, окружённым пробелами или знаками препинания, либо непрерывной последовательностью целых слов, разделённых пробелами.
+Оставь сущности в том виде, в каком они даны в тексте, не изменяй и не склоняй их, иначе тебе будет выставлен штраф 100$.
 
+**Классы**
+DISTRICT - район города.
+CITY - город.
+STATE_OR_PROVINCE - штат или конкретная область / субьект / округ.
+COUNTRY - страна.
+PERSON - конкретный человек с ФИО.
+PROFESSION - профессия.
+DATE - дата.
+
+Требуемый формат для каждого класса: "Класс: ["сущность", ..., "сущность"]". Вместо "Класс" используй соответствующие классы, представленные выше. Сущности каждого класса выведи на отдельной строке.
+Если сущностей соответствующего класса в тексте нет, выведи на соответствующей строке "Класс: []".
+
+**Пример**
+Будущий ученый тайно покинул дом 15 декабря 1730 года и вскоре он догнал торговый обоз, шедший в Москву.
+->
+DISTRICT: []
+CITY: ["Москву"]
+STATE_OR_PROVINCE: []
+COUNTRY: []
+PERSON: []
+PROFESSION: ["ученый"]
+DATE: ["15 декабря 1730 года"]
+
+Теперь извлеки вложенные именованные сущности для следующего текста.
+**Текст**
+{text}'''
+
+nerel_bio_default_prompt = '''Ты — эксперт по извлечению биомедицинских сущностей. В тексте ниже найди все именованные сущности типов:
+- **DISO** (расстройства, заболевания, синдромы)
+- **PHYS** (физиологические показатели, процессы, явления)
+- **ANATOMY** (анатомические структуры)
+- **CHEM** (химические вещества/лекарства)
+- **SPECIES** (биологические виды)
+
+**Ключевые правила:**
+1. Извлекай ВСЕ вхождения сущностей, включая дубликаты и части составных терминов, сохраняя порядок встречаемости
+2. Сохраняй оригинальный регистр и форму слов
+3. Для перекрывающихся сущностей ("распространенность кариеса"→PHYS, "кариеса"→DISO) извлекай обе
+4. Строго соблюдай типизацию: 
+   - "кариес" → DISO, 
+   - "индекс КПУ" → PHYS, 
+   - "зубочелюстных" → ANATOMY
+
+**Формат вывода (ТОЛЬКО JSON):**
+```json
+[["тип", "сущность"], ["тип", "сущность"], ...]
+
+#Text:
+{text}'''
+
+rusbeir_rag_task_first = '''Ты полезный вопросно-ответный ассистент, который кратно и точно отвечает на вопросы пользователя, без объяснений, без markdown разметки, только максимально краткий ответ.
+Для помощи тебе в ответах на вопросы будет использоваться поисковая система, которая будет возвращать некоторое количество **сегментов** с возможно релевантной информацией. Сегментов может не быть и они не обязательно содержат полезную для ответа информацию. 
+Порядок сегментов случайный и не отражает степень полезности для ответа. 
+
+**Результат работы поисковой системы:**
+{segments}
+
+**Запрос пользователя:**
+{question}
+'''.strip()
+
+rusbeir_rag_data_first = '''**Результат работы поисковой системы:**
+{segments}
+
+**Инструкция**
+Ты полезный вопросно-ответный ассистент, который кратно и точно отвечает на вопросы пользователя, без объяснений, без markdown разметки, только максимально краткий ответ.
+Для помощи тебе в ответах на вопросы будет использоваться поисковая система, которая будет возвращать некоторое количество **сегментов** с возможно релевантной информацией. Сегментов может не быть и они не обязательно содержат полезную для ответа информацию. 
+Порядок сегментов случайный и не отражает степень полезности для ответа. 
+
+**Запрос пользователя:**
+{question}
+'''.strip()
+
+# REGISTRY
 TASK_REGISTRY = {
     'darumeru/multiq': {'class': darumeru.MultiQ},
     'darumeru/parus': {'class': darumeru.PARus},
     'darumeru/rcb': {'class': darumeru.RCB},
     'darumeru/rummlu': {'class': darumeru.ruMMLU},
     'darumeru/ruopenbookqa': {'class': darumeru.ruOpenBookQA},
-    #'darumeru/rutie': {'class': darumeru.ruTiE},
     'darumeru/ruworldtree': {'class': darumeru.ruWorldTree},
     'darumeru/rwsd': {'class': darumeru.RWSD},
     'darumeru/use': {'class': darumeru.USE},
@@ -119,6 +195,7 @@ TASK_REGISTRY = {
     'shlepa/booksmc': {'class': shlepa.ShlepaSmallMMLU, 'params': {'dataset_name': 'Vikhrmodels/books_mc'}},
     'daru/treewayabstractive': {'class': daru_treeway_summ.DaruTreewayAbstractive},
     'daru/treewayextractive': {'class': daru_treeway_summ.DaruTreewayExtractive},
+    'ilyagusev/gazeta': {'class': daru_treeway_summ.Gazeta},
     'darumeru/cp_sent_ru': {'class': darumeru.CopyText, 'params': {'subtask': 'sent', 'lang': 'ru'}},
     'darumeru/cp_sent_en': {'class': darumeru.CopyText, 'params': {'subtask': 'sent', 'lang': 'en'}},
     'darumeru/cp_para_ru': {'class': darumeru.CopyText, 'params': {'subtask': 'para', 'lang': 'ru'}},
@@ -131,7 +208,8 @@ TASK_REGISTRY = {
     'ruopinionne': {'class': ruopinionne.RuOpinionNE, 'params': {'instruction': ruopinionne_default_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruopinionne_simple': {'class': ruopinionne.RuOpinionNESimple, 'params': {'instruction': ruopinionne_simple_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruparam': {'class': ruparam.RuParam, 'params': {'instruction': ruparam_default_instruction}},
-    'nerel': {'class': nerel.NestedNER},
+    'nerel': {'class': nerel.NestedNER, 'params': {'instruction': nerel_default_prompt}},
+    'nerel-bio': {'class': nerel.NEREL_BIO, 'params': {'instruction': nerel_bio_default_prompt}},
     'ruifeval':  {
         'class': ifeval.RuIFEvalTask
     },
@@ -161,5 +239,45 @@ TASK_REGISTRY = {
     'doom/math': {
         'class': math.DOoM,
         'params': {'domain': 'math', 'system_prompt': doom_system, 'instruction': doom_instruction, 'max_new_tokens': 30000}
+    },
+    'doom/phys': {
+        'class': math.DOoM,
+        'params': {'domain': 'phys', 'system_prompt': doom_system, 'instruction': doom_instruction, 'max_new_tokens': 30000}
+    },
+    't-bank/t-math': {
+        'class': math.TMath,
+        'params': {'system_prompt': doom_system, 'instruction': doom_instruction, 'max_new_tokens': 30000}
+    },
+    'rusbeirrag/rubqqa': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rubqqa'}
+    },
+    'rusbeirrag/rus_tydiqa': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rus_tydiqa'}
+    },
+    'rusbeirrag/sberquadqa': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/sberquadqa'}
+    },
+    'rusbeirrag/rus_xquadqa': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rus_xquadqa'}
+    },
+    'rusbeirrag/rubqqa_data_first': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rubqqa', 'name_suffix': 'data_first'}
+    },
+    'rusbeirrag/rus_tydiqa_data_first': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_tydiqa', 'name_suffix': 'data_first'}
+    },
+    'rusbeirrag/sberquadqa_data_first': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/sberquadqa', 'name_suffix': 'data_first'}
+    },
+    'rusbeirrag/rus_xquadqa_data_first': {
+        'class': rag.RusbeirRag,
+        'params': {'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_xquadqa', 'name_suffix': 'data_first'}
     }
 }

@@ -35,11 +35,11 @@ class Evaluator(Base):
         super().__init__(**kwargs)
         set_random_seed(555)
 
-    def add_new_task(self, task_name, task_cls):
+    def add_new_task(self, task_name, task_cls, task_params):
         assert issubclass(task_cls, Task)
-        TASK_REGISTRY[task_name] = {'class': task_cls}
+        TASK_REGISTRY[task_name] = {'class': task_cls, 'params': task_params}
 
-    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False):
+    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False, name_suffix=None):
         set_out_handler_to_main_logger(output_dir)
         try:
             if generation_config is not None:
@@ -52,11 +52,13 @@ class Evaluator(Base):
             for dataset_name in datasets_names:
                 task_class = TASK_REGISTRY[dataset_name]['class']
                 task_init_params = TASK_REGISTRY[dataset_name].get('params', {})
+                task_init_params['name_suffix'] = task_init_params.get('name_suffix', name_suffix)
                 task = task_class(**task_init_params)
-                if (Path(output_dir) / f"{task.name().replace('/', '_')}_total.jsonl").exists() and not force_recalc:
-                    self.logger.info(f"Found precomputed {task.name()}_total")
+                if (Path(output_dir) / f"{task.run_name().replace('/', '_')}_total.jsonl").exists() and not force_recalc:
+                    self.logger.info(f"Found precomputed {task.run_name()}_total")
                     continue
 
+                # MaxLenContext changes model.generation_config.max_new_tokens param based on task.max_new_tokens
                 with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
                     self.evaluate_dataset(task, model, output_dir, prompt_max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
 
@@ -72,7 +74,7 @@ class Evaluator(Base):
             messages, samples = task.load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
 
         metrics = []
-        with SimpleTaskLogger(output_dir, task.name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):
+        with SimpleTaskLogger(output_dir, task.run_name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):
             for i in tqdm(range(0, len(messages), batch_size)):
                 messages_batch = messages[i:i+batch_size]
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
@@ -86,12 +88,12 @@ class Evaluator(Base):
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
         
-        task.logger.info(f'Results for {task.name()}:')
+        task.logger.info(f'Results for {task.run_name()}:')
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
-        with SimpleTaskLogger(output_dir, task.name() + '_total') as logger:
-            logger.log_json({'task_name': task.name(), 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res)})
+        with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
+            logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res)})
 
-        with SimpleTaskLogger(output_dir, task.name() + '_params') as logger:
+        with SimpleTaskLogger(output_dir, task.run_name() + '_params') as logger:
             params = {}
             params['custom_generation_config'] = generation_config
             params['model_params'] = model.get_params()
@@ -101,7 +103,7 @@ class Evaluator(Base):
         model.reset_stop_strings()
         task.logger.info(str(metrics_res))
 
-    def evaluate_ppl(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False):
+    def evaluate_ppl(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False, name_suffix=None):
         set_out_handler_to_main_logger(output_dir)
         try:
             if datasets_names == 'all':
@@ -111,13 +113,14 @@ class Evaluator(Base):
             for dataset_name in datasets_names:
                 task_class = TASK_REGISTRY[dataset_name]['class']
                 task_init_params = TASK_REGISTRY[dataset_name].get('params', {})
+                task_init_params['name_suffix'] = task_init_params.get('name_suffix', name_suffix)
                 task = task_class(**task_init_params)
-                if (Path(output_dir) / f"{task.name().replace('/', '_')}_total.jsonl").exists() and not force_recalc:
-                    self.logger.info(f"Found precomputed {task.name()}_total")
+                if (Path(output_dir) / f"{task.run_name().replace('/', '_')}_total.jsonl").exists() and not force_recalc:
+                    self.logger.info(f"Found precomputed {task.run_name()}_total")
                     continue
                 
                 if 'get_answer' not in dir(task):
-                    self.logger.info(f"Skip task {task.name()} because method get_answer not implemented")
+                    self.logger.info(f"Skip task {task.run_name()} because method get_answer not implemented")
                     continue
 
                 with MaxLenContext(task, model, max_len, None) as prompt_max_len:
@@ -144,7 +147,7 @@ class Evaluator(Base):
                 m['messages'].append({'role': 'bot', 'content': task.get_answer(s['sample'])})
 
         metrics = []
-        with SimpleTaskLogger(output_dir, task.name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):
+        with SimpleTaskLogger(output_dir, task.run_name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):
             for i in tqdm(range(0, len(messages), batch_size)):
                 messages_batch = messages[i:i+batch_size]
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
@@ -163,12 +166,12 @@ class Evaluator(Base):
                     metrics.append({'ppl': np.mean([t[1] for t in tokens])})
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
 
-        task.logger.info(f'Results for {task.name()}:')
+        task.logger.info(f'Results for {task.run_name()}:')
         metrics_res = {'ppl': np.mean([m['ppl'] for m in metrics])}
-        with SimpleTaskLogger(output_dir, task.name() + '_total') as logger:
-            logger.log_json({'task_name': task.name(), 'results': metrics_res, 'leaderboard_result': metrics_res['ppl']})
+        with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
+            logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': metrics_res['ppl']})
 
-        with SimpleTaskLogger(output_dir, task.name() + '_params') as logger:
+        with SimpleTaskLogger(output_dir, task.run_name() + '_params') as logger:
             params = {}
             params['model_params'] = model.get_params()
             params['task_params'] = {'max_len': max_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': 'calculate_logsoftmax'}

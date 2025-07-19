@@ -83,7 +83,7 @@ class LibraTask(SimpleFewShotHFTask):
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def name(self) -> str:
+    def task_name(self) -> str:
         return f"LIBRA_{self.dataset_slice}"
 
     def dataset_args(self):

@@ -256,9 +256,8 @@ class LLMAsJudgeStyleControl(Task):
     @property
     def choices(self) -> List:
         return ["m", "M"]
-
-    @classmethod
-    def name(cls):
+    
+    def task_name(self):
         return 'llm_as_judge'
 
     def _calculate_score(self, df, model_name):

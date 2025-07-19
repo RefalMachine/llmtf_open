@@ -42,7 +42,7 @@ class RuParam(SimpleFewShotHFTask):
         self.instruction = instruction
         self.method = 'calculate_tokens_proba'
 
-    def name(self):
+    def task_name(self):
         return 'ruparam'
 
     def dataset_args(self) -> Dict:

@@ -48,12 +48,15 @@ class CustomTokenizer():
         words = [self.morph.parse(token)[0].normal_form for token in text.split() if len(token.strip()) > 0]
         return words
 
-rouge_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], tokenizer=CustomTokenizer())
+rouge_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], tokenizer=CustomTokenizer())
 def rouge1(gold, generated):
     return rouge_scorer.score(gold, generated)['rouge1']
 
 def rouge2(gold, generated):
     return rouge_scorer.score(gold, generated)['rouge2']
+
+def rougel(gold, generated):
+    return rouge_scorer.score(gold, generated)['rougeL']
 
 def get_order_relevance_k(labels, scores, k):
     scores = -np.array(scores)

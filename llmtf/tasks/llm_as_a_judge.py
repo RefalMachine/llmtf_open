@@ -32,8 +32,7 @@ class LLMAsJudge(Task):
     def choices(self) -> List:
         return ["m", "M"]
     
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'llm_as_judge'
 
     def _calculate_score(self, data, model_name):

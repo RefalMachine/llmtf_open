@@ -16,8 +16,7 @@ class HabrQASbS(SimpleFewShotHFTask):
         self.method = 'calculate_tokens_proba'
         self._max_new_tokens = 1
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'vikhrmodels/habr_qa_sbs'
 
     @property

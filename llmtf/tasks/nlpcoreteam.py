@@ -175,7 +175,7 @@ class MMLU(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
-        self._max_new_tokens = 64
+        self._max_new_tokens = 1
 
     @property
     def choices(self):
@@ -327,8 +327,7 @@ class ruMMLU(MMLU):
         super().__init__(**kwargs)
         self.lang = 'ru'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'nlpcoreteam/ruMMLU'
 
 class enMMLU(MMLU):
@@ -337,5 +336,5 @@ class enMMLU(MMLU):
         self.lang = 'en'
 
     @classmethod
-    def name(cls):
+    def task_name(cls):
         return 'nlpcoreteam/enMMLU'

@@ -8,7 +8,7 @@
     "bot_role": "assistant",
     "system_role": "system",
     "global_prefix": "",
-    "suffix": "<|im_start|>assistant",
+    "suffix": "<|im_start|>assistant\n<think>\n\n</think>\n\n",
     "add_special_tokens": false,
     "eos_token": "<|im_end|>"
 }

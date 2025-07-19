@@ -4,7 +4,7 @@ from tqdm import tqdm
 from typing import Dict, List, Tuple
 from datasets import load_dataset, Dataset
 import copy
-from llmtf.metrics import mean, rouge1, rouge2, r_precision
+from llmtf.metrics import mean, rougel, r_precision
 import pandas as pd
 import numpy as np
 from sklearn.metrics import average_precision_score
@@ -14,19 +14,16 @@ class DaruTreewayAbstractive(SimpleFewShotHFTask):
         super().__init__(**kwargs)
         self.method = 'generate'
         self._max_new_tokens = 512
-        #self.additional_stop_strings.append('\n')
-        #self.additional_stop_strings.append('\n\n')
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = ' '.join(sample['summary_sents'])
-        return {"rouge1": rouge1(y_true, y_pred).fmeasure, "rouge2": rouge2(y_true, y_pred).fmeasure}
+        return {"rougel": rougel(y_true, y_pred).fmeasure}
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'daru/treewayabstractive'
 
     def aggregation(self) -> Dict:
-        return {"rouge1": mean, "rouge2": mean}
+        return {"rougel": mean}
 
     def dataset_args(self) -> Dict:
         return {'path': 'dichspace/daru_treeway_eval'}
@@ -39,7 +36,7 @@ class DaruTreewayAbstractive(SimpleFewShotHFTask):
 
     def create_messages(self, sample, with_answer):
         messages = []
-        instruction_user = 'Напиши краткую аннотацию на русском языке к следующему тексту.\nТекст: {text}'
+        instruction_user = 'Твоя задача состоит в том, чтобы написать краткую аннотацию на русском языке к представленному тексту. Начни ответ с TL;DR и не приводи никаких размышлений или объяснений, только аннотация.\n**Текст:**\n{text}'
         instruction_bot = 'TL;DR: {summary}'
         instruction_bot_incomplete = 'TL;DR:'
 
@@ -65,8 +62,7 @@ class DaruTreewayExtractive(Task):
         self.method = 'calculate_logsoftmax'
         self._max_new_tokens = 1
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'daru/treewayextractive'
 
     def evaluate(self, sample, y_pred) -> Dict:
@@ -148,3 +144,51 @@ class DaruTreewayExtractive(Task):
         bot_content = 'Наиболее важные предложения статьи: ' + sample['sentence']
         messages = [{'role': 'user', 'content': user_content}, {'role': 'bot', 'content': bot_content}]
         return messages
+    
+    
+class Gazeta(SimpleFewShotHFTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.method = 'generate'
+        self._max_new_tokens = 512
+
+    def evaluate(self, sample, y_pred) -> Dict:
+        y_true = sample['summary']
+        return {"rougel": rougel(y_true, y_pred).fmeasure}
+
+    def task_name(self):
+        return 'ilyagusev/gazeta'
+
+    def aggregation(self) -> Dict:
+        return {"rougel": mean}
+
+    def dataset_args(self) -> Dict:
+        return {'path': 'IlyaGusev/gazeta'}
+
+    def test_split_name(self) -> str:
+        return 'test'
+
+    def prompt_split_name(self) -> str:
+        return 'validation'
+
+    def create_messages(self, sample, with_answer):
+        messages = []
+        instruction_user = 'Твоя задача состоит в том, чтобы написать краткую аннотацию (2-3 предложения) на русском языке к представленному тексту. Начни ответ с TL;DR и не приводи никаких размышлений или объяснений, только аннотация.\n**Текст:**\n{text}'
+        instruction_bot = 'TL;DR: {summary}'
+        instruction_bot_incomplete = 'TL;DR:'
+
+        summary = sample['summary'].strip()
+        text = sample['title'].strip() + '\n' + sample['text'].strip()
+
+        bot_content = instruction_bot.replace('{summary}', summary) if with_answer else instruction_bot_incomplete
+
+        messages.append({'role': 'user', 'content': instruction_user.replace('{text}', text)})
+        messages.append({'role': 'bot', 'content': bot_content})
+
+        return messages
+
+    def prompt_dataset_start_idx(self) -> int:
+        return 0
+    
+    def get_answer(self, sample):
+        return ' ' + sample['summary'].strip()

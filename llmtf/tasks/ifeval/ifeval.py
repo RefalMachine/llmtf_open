@@ -21,7 +21,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
         self._max_new_tokens = 1024  # Allow for longer responses
         self.instruction_registry = ru_instructions_registry
 
-    def name(self) -> str:
+    def task_name(self) -> str:
         return 'ifeval/ruIFEval'
 
     def dataset_args(self) -> Dict:
@@ -41,7 +41,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
 
     def evaluate(self, sample, y_pred) -> Dict:
         if type(y_pred) == str:
-            y_pred = []
+            y_pred = [y_pred]
         """Evaluate response using ruIFEval's instruction checking logic."""
         # Get instruction IDs and kwargs from sample
         instruction_ids = sample['instruction_id_list']
@@ -66,7 +66,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
 
             # Check if instruction is followed
             is_following = mean([p.strip() and instruction.check_following(p) for p in y_pred])
-            is_following_list.append(is_following)
+            is_following_list.append(is_following > 0.5)
             
             # Track individual instruction results
             metrics['instruction_accuracy']['instruction_followed'].append(is_following)
@@ -164,7 +164,7 @@ class EnIFEvalTask(RuIFEvalTask):
         self._max_new_tokens = 1024
         self.instruction_registry = en_instructions_registry
 
-    def name(self) -> str:
+    def task_name(self) -> str:
         return 'ifeval/enIFEval'
 
     def dataset_args(self) -> Dict:

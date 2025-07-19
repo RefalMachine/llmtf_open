@@ -4,7 +4,7 @@ from tqdm import tqdm
 from typing import Dict, List, Tuple
 from datasets import load_dataset, Dataset
 import copy
-from llmtf.metrics import mean, rouge1, rouge2, r_precision
+from llmtf.metrics import mean, rougel
 import pandas as pd
 import numpy as np
 from sklearn.metrics import average_precision_score
@@ -21,9 +21,9 @@ class DaruFlores(SimpleFewShotHFTask):
     def evaluate(self, sample, y_pred) -> Dict:
         output_lang = self.get_output_lang()
         y_true = sample['inputs'][output_lang]
-        return {"rouge1": rouge1(y_true, y_pred).fmeasure, "rouge2": rouge2(y_true, y_pred).fmeasure}
+        return {"rougel": rougel(y_true, y_pred).fmeasure}
 
-    def name(self):
+    def task_name(self):
         return f'darumeru/flores_{self.input_lang}_{self.get_output_lang()}'
 
     def get_output_lang(self):

@@ -19,8 +19,6 @@ class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        #self.additional_stop_strings.append('\n')
-        #self.additional_stop_strings.append('\n\n')
         self._max_new_tokens = 64
 
     def dataset_args(self) -> Dict:
@@ -59,7 +57,7 @@ class CopyText(DarumeruTask):
         self.subtask = subtask
         self.dataset_name = f'cp_{subtask}_{lang}'
 
-    def name(self) -> str:
+    def task_name(self) -> str:
         return f'darumeru/{self.dataset_name}'
 
     def aggregation(self) -> Dict:
@@ -122,8 +120,7 @@ class MultiQ(DarumeruTask):
         self.method = 'generate'
         self.dataset_name = 'multiq'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/MultiQ'
 
     def aggregation(self) -> Dict:
@@ -148,8 +145,7 @@ class PARus(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'parus'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/PARus'
     
     @property
@@ -207,8 +203,7 @@ class RCB(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rcb'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/RCB'
 
     @property
@@ -232,8 +227,7 @@ class ruMMLU(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rummlu'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/ruMMLU'
 
     @property
@@ -274,8 +268,7 @@ class ruOpenBookQA(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'ruopenbookqa'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/ruOpenBookQA'
 
     @property
@@ -299,8 +292,7 @@ class ruTiE(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rutie'
     
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/ruTiE'
 
     @property
@@ -390,8 +382,7 @@ class ruWorldTree(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'ruworldtree'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/ruWorldTree'
 
     @property
@@ -415,8 +406,7 @@ class RWSD(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'rwsd'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/RWSD'
     @property
     def choices(self):
@@ -440,8 +430,7 @@ class USE(DarumeruTask):
         self.dataset_name = 'use'
         self.max_grade_point = 34
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/USE'
 
     def evaluate(self, sample, y_pred) -> Dict:
@@ -534,8 +523,7 @@ class ruSciBenchGRNTIRu(DarumeruTask):
         self.method = 'calculate_tokens_proba'
         self.dataset_name = 'ruscibench_grnti_ru'
 
-    @classmethod
-    def name(cls):
+    def task_name(self):
         return 'darumeru/ruscibench_grnti_ru'
 
     @property
