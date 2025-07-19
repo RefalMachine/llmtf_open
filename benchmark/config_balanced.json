@@ -90,7 +90,7 @@
         "num_return_sequences": 3
     },
     "t-bank_t-math_no_think": {
-        "temperature": 0.0,
+        "temperature": 0.3,
         "repetition_penalty": 1.0,
         "presence_penalty": 1.0,
         "num_return_sequences": 3

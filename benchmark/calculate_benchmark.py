@@ -80,9 +80,6 @@ task_groups_long = [
     {'name': 'libra_rubabilong4', 'params': {'dataset_names': 'libra/rubabilong4', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
     {'name': 'libra_rubabilong5', 'params': {'dataset_names': 'libra/rubabilong5', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}}
 ]
-task_groups_skills = []
-task_groups_ifeval = []
-task_groups_long = []
 
 task_groups_math_no_think = [
     {'name': 'doom_math_no_think', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
