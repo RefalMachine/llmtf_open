@@ -159,7 +159,8 @@ if __name__ == '__main__':
             '--tensor-parallel-size', str(args.tensor_parallel_size),
             '--disable-log-requests',
             '--uvicorn-log-level', 'error',
-            '--disable-uvicorn-access-log'
+            '--disable-uvicorn-access-log',
+            '--disable-log-stats'
         ]
         command += '--gpu-memory-utilization 0.95 --max_seq_len 32000 --max_model_len 32000'.split()
         print(f"Starting vLLM server instance {i+1}/{num_instances} on port {port} with GPUs: {gpus_for_instance}...")
