@@ -90,12 +90,12 @@ def run_eval(args, group, gen_config_settings, base_url):
         if var_name in env:
             del env[var_name]
     command = [str(c) for c in command]
-    print(f"[{base_url}] Running command: {' '.join(command)}")
+    print(f"[{base_url}] Running command: {' '.join(command)}", flush=True)
 
     try:
         subprocess.run(command, env=env, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"[{base_url}] Error executing task '{group['name']}': {e}")
+        print(f"[{base_url}] Error executing task '{group['name']}': {e}", flush=True)
         return False
 
     return True
@@ -115,14 +115,14 @@ def worker(worker_id, task_queue, args, gen_config_settings, base_url):
         try:
             # Неблокирующее получение задачи из очереди
             task_group = task_queue.get_nowait()
-            print(f"[Worker-{worker_id}] Took task: {task_group['name']}")
+            print(f"[Worker-{worker_id}] Took task: {task_group['name']}", flush=True)
             run_eval(args, task_group, gen_config_settings, base_url)
         except Empty:
             # Если очередь пуста, воркер завершает работу
-            print(f"[Worker-{worker_id}] No more tasks. Exiting.")
+            print(f"[Worker-{worker_id}] No more tasks. Exiting.", flush=True)
             break
         except Exception as e:
-            print(f"[Worker-{worker_id}] An unexpected error occurred: {e}")
+            print(f"[Worker-{worker_id}] An unexpected error occurred: {e}", flush=True)
             # Можно добавить логику повтора или просто пропустить задачу
             continue
 
@@ -235,6 +235,9 @@ if __name__ == '__main__':
 
         # Создаем и запускаем процессы-воркеры
         processes = []
+        print(f'TOTAL INSTANCES {num_instances}')
+        print(f'TOTAL TASKS {len(task_groups)}')
+        print(server_urls)
         for i in range(num_instances):
             p = mp.Process(target=worker, args=(i, task_queue, args, gen_config_settings, server_urls[i]))
             processes.append(p)
