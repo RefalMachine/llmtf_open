@@ -13,7 +13,7 @@ import numpy as np
 import copy
 import tqdm
 import functools
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from llmtf.base import LLM
 from llmtf.conversation import Conversation
 from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages, convert_chat_template_to_conv_template
@@ -27,7 +27,7 @@ except:
     pass
 
 class ApiVLLMModel(LLM):
-    def __init__(self, api_base, **kwargs):
+    def __init__(self, api_base, enable_thinking=True, **kwargs):
         super().__init__(**kwargs)
         #requests.packages.urllib3.util.connection.HAS_IPV6 = False
         self.logger.info('ATTENTION! Hosting vLLM server must have vllm 0.6.3+')
@@ -37,6 +37,8 @@ class ApiVLLMModel(LLM):
         self.model_name = None
         self.max_model_len = None
         self.generation_config = None
+        self.enable_thinking = enable_thinking
+        print(type(self.enable_thinking), self.enable_thinking)
 
     def support_method(self, method):
         return method in ['generate']
@@ -97,7 +99,8 @@ class ApiVLLMModel(LLM):
 
                 'add_generation_prompt': last_role == 'user', 
                 'skip_special_tokens': False, 
-                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant'
+                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
+                "chat_template_kwargs": {"enable_thinking": self.enable_thinking}
             },
             headers={'Authorization': 'Bearer ' + self.api_key}
         )
@@ -118,20 +121,49 @@ class ApiVLLMModel(LLM):
         return messages, outputs, info
 
     def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
-        prompts, outputs, infos = [], [], []
-        kwargs = {'generation_config': generation_config, 'incomplete_last_bot_message': incomplete_last_bot_message, 'return_tokens': return_tokens}
-        with ThreadPoolExecutor(max_workers=self.num_procs) as p:
-            partial_completion_helper = functools.partial(self.generate, **kwargs)
-            res = list(
-                tqdm.tqdm(
-                    p.map(partial_completion_helper, messages),
-                    desc="prompt_batches",
-                    total=len(messages),
-                    disable=True
-                )
+        kwargs = {
+            'generation_config': generation_config,
+            'incomplete_last_bot_message': incomplete_last_bot_message,
+            'return_tokens': return_tokens
+        }
+        
+        # Список для хранения результатов в правильном порядке
+        results_ordered = [None] * len(messages)
+        
+        with ThreadPoolExecutor(max_workers=self.num_procs) as executor:
+            # Создаем словарь для сопоставления future с исходным индексом
+            # Это нужно, чтобы сохранить исходный порядок результатов
+            future_to_idx = {
+                executor.submit(self.generate, msg, **kwargs): i
+                for i, msg in enumerate(messages)
+            }
+            
+            # Создаем tqdm, который будет итерироваться по завершающимся задачам
+            pbar = tqdm.tqdm(
+                as_completed(future_to_idx),
+                total=len(messages),
+                desc="Generating Batches"
             )
-            prompts, outputs, infos = list(zip(*res))
-        return prompts, outputs, infos
+            
+            # Обрабатываем результаты по мере их поступления
+            for future in pbar:
+                idx = future_to_idx[future] # Получаем исходный индекс задачи
+                try:
+                    result = future.result() # Получаем результат выполнения
+                    results_ordered[idx] = result
+                except Exception as e:
+                    # Важно обрабатывать возможные исключения в потоках
+                    print(f"Задача {idx} завершилась с ошибкой: {e}")
+                    results_ordered[idx] = (None, None, e) # или другое значение-маркер ошибки
+
+        # Разделяем упорядоченные результаты на отдельные списки
+        # Фильтруем None на случай, если какая-то задача упала
+        valid_results = [res for res in results_ordered if res is not None and not isinstance(res[2], Exception)]
+        if not valid_results:
+            return [], [], []
+            
+        prompts, outputs, infos = list(zip(*valid_results))
+        return list(prompts), list(outputs), list(infos)
 
 
     def add_stop_strings(self, stop_strings):

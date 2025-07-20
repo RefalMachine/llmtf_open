@@ -81,36 +81,36 @@
         "temperature": 0.3,
         "repetition_penalty": 1.0,
         "presence_penalty": 1.0,
-        "num_return_sequences": 3
+        "num_return_sequences": 1
     },
     "doom_phys_no_think": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
         "presence_penalty": 1.0,
-        "num_return_sequences": 3
+        "num_return_sequences": 1
     },
     "t-bank_t-math_no_think": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
         "presence_penalty": 1.0,
-        "num_return_sequences": 3
+        "num_return_sequences": 1
     },
     "doom_math": {
         "temperature": 0.8,
         "repetition_penalty": 1.0,
         "presence_penalty": 1.0,
-        "num_return_sequences": 3
+        "num_return_sequences": 1
     },
     "doom_phys": {
         "temperature": 0.8,
         "repetition_penalty": 1.0,
         "presence_penalty": 1.0,
-        "num_return_sequences": 3
+        "num_return_sequences": 1
     },
     "t-bank_t-math": {
         "temperature": 0.8,
         "repetition_penalty": 1.0,
         "presence_penalty": 1.0,
-        "num_return_sequences": 3
+        "num_return_sequences": 1
     }
 }
