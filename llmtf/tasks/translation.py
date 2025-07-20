@@ -34,7 +34,7 @@ class DaruFlores(SimpleFewShotHFTask):
         return output_lang
     
     def aggregation(self) -> Dict:
-        return {"rouge1": mean, "rouge2": mean}
+        return {"rougel": mean}
 
     def dataset_args(self) -> Dict:
         return {'path': self.DARUMERU_HF_PATH, 'name': self.dataset_name}

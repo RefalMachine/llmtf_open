@@ -38,10 +38,9 @@ class ApiVLLMModel(LLM):
         self.max_model_len = None
         self.generation_config = None
         self.enable_thinking = enable_thinking
-        print(type(self.enable_thinking), self.enable_thinking)
 
     def support_method(self, method):
-        return method in ['generate']
+        return method in ['generate', 'calculate_tokens_proba']
     
     def from_pretrained(self, model_dir=None):
         url = self.api_base + '/v1/models'
@@ -74,48 +73,50 @@ class ApiVLLMModel(LLM):
 
     def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
         if return_tokens:
-            return NotImplementedError
+            raise NotImplementedError
         
         messages = self._preprocess_messages(messages)
         last_role = messages[-1]['role']
 
         generation_config = self.generation_config if generation_config is None else generation_config
-        if generation_config.num_return_sequences > 1:
-            return NotImplementedError
-        
-        r = requests.post(
-            f'{self.api_base}/v1/chat/completions', 
-            json={
-                'messages': messages, 
-                'model': self.model_name, 
+        num_return_sequences = generation_config.num_return_sequences if generation_config.num_return_sequences is not None else 1
+        completion_tokens = []
+        outputs = []
+        for _ in range(num_return_sequences):
+            r = requests.post(
+                f'{self.api_base}/v1/chat/completions', 
+                json={
+                    'messages': messages, 
+                    'model': self.model_name, 
 
-                'max_tokens': generation_config.max_new_tokens,
-                'temperature': generation_config.temperature if generation_config.do_sample else 0.0,
-                'top_p': generation_config.top_p,
-                'top_k': generation_config.top_k,
-                'repetition_penalty': generation_config.repetition_penalty,
-                'stop': generation_config.stop_strings,
-                'n': generation_config.num_return_sequences if generation_config.num_return_sequences is not None else 1,
+                    'max_tokens': generation_config.max_new_tokens,
+                    'temperature': generation_config.temperature if generation_config.do_sample else 0.0,
+                    'top_p': generation_config.top_p,
+                    'top_k': generation_config.top_k,
+                    'repetition_penalty': generation_config.repetition_penalty,
+                    'stop': generation_config.stop_strings,
+                    'n': 1,
+                    'add_generation_prompt': last_role == 'user', 
+                    'skip_special_tokens': False, 
+                    'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
+                    "chat_template_kwargs": {"enable_thinking": self.enable_thinking}
+                },
+                headers={'Authorization': 'Bearer ' + self.api_key}
+            )
+            if r.status_code != 200:
+                print(r.text)
+            assert r.status_code == 200
 
-                'add_generation_prompt': last_role == 'user', 
-                'skip_special_tokens': False, 
-                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
-                "chat_template_kwargs": {"enable_thinking": self.enable_thinking}
-            },
-            headers={'Authorization': 'Bearer ' + self.api_key}
-        )
-        if r.status_code != 200:
-            print(r.text)
-        assert r.status_code == 200
+            data = r.json()
+            outputs.append(data['choices'][0]['message']['content'])
+            completion_tokens.append(data['usage']['completion_tokens'])
 
-        data = r.json()
-        outputs = data['choices'][0]['message']['content']
-        if last_role == 'assistant':
-            outputs = outputs[len(messages[-1]['content']):]
-        
+        if len(outputs) == 1:
+            outputs = outputs[0]
+
         info = {
             'prompt_len': data['usage']['prompt_tokens'], 
-            'generated_len': [data['usage']['completion_tokens']], 
+            'generated_len': completion_tokens, 
             'generated_cumulative_logprob': 'TODO: implement'
         }
         return messages, outputs, info
@@ -195,7 +196,8 @@ class ApiVLLMModel(LLM):
                 'skip_special_tokens': False, 
                 'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
                 'logprobs': True,
-                'top_logprobs': 20
+                'top_logprobs': 50,
+                'chat_template_kwargs': {'enable_thinking': self.enable_thinking}
             },
             headers={'Authorization': 'Bearer ' + self.api_key}
         )
@@ -206,9 +208,10 @@ class ApiVLLMModel(LLM):
         data = r.json()
         logprobs = data['choices'][0]['logprobs']['content'][0]['top_logprobs']
         probs = {lp['token']: np.exp(lp['logprob']) for lp in logprobs}
-        probs = {token: probs.get(token, 0.0) for token in tokens_of_interest}
-            
 
+        tokens_of_interest_augmented = [(' ' + token, token) for token in tokens_of_interest]
+        probs = {token: max(probs.get(token, 0.0), probs.get(token_augm, 0.0)) for token_augm, token in tokens_of_interest_augmented}
+            
         info = {
             'generated_len': 1, 
             'generated_token': data['choices'][0]['logprobs']['content'][0]['token']
@@ -217,31 +220,43 @@ class ApiVLLMModel(LLM):
             
     
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-
-        '''
-        prompts, outputs, infos = [], [], []
-        for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
-            prompt, output, info = self.calculate_tokens_proba(_messages, _tokens_of_interest, incomplete_last_bot_message)
-            prompts.append(prompt)
-            outputs.append(output)
-            infos.append(info)
-
-        return prompts, outputs, infos
-        '''
-        prompts, outputs, infos = [], [], []
         kwargs = { 'incomplete_last_bot_message': incomplete_last_bot_message}
-        with ThreadPoolExecutor(max_workers=self.num_procs) as p:
-            partial_completion_helper = functools.partial(self.calculate_tokens_proba, **kwargs)
-            res = list(
-                tqdm.tqdm(
-                    p.map(partial_completion_helper, messages, tokens_of_interest),
-                    desc="prompt_batches",
-                    total=len(messages),
-                    disable=True
-                )
+        results_ordered = [None] * len(messages)
+        
+        with ThreadPoolExecutor(max_workers=self.num_procs) as executor:
+            # Создаем словарь для сопоставления future с исходным индексом
+            # Это нужно, чтобы сохранить исходный порядок результатов
+            future_to_idx = {
+                executor.submit(self.calculate_tokens_proba, msg, toi, **kwargs): i
+                for i, (msg, toi) in enumerate(zip(*[messages, tokens_of_interest]))
+            }
+            
+            # Создаем tqdm, который будет итерироваться по завершающимся задачам
+            pbar = tqdm.tqdm(
+                as_completed(future_to_idx),
+                total=len(messages),
+                desc="Generating Batches"
             )
-            prompts, outputs, infos = list(zip(*res))
-        return prompts, outputs, infos
+            
+            # Обрабатываем результаты по мере их поступления
+            for future in pbar:
+                idx = future_to_idx[future] # Получаем исходный индекс задачи
+                try:
+                    result = future.result() # Получаем результат выполнения
+                    results_ordered[idx] = result
+                except Exception as e:
+                    # Важно обрабатывать возможные исключения в потоках
+                    print(f"Задача {idx} завершилась с ошибкой: {e}")
+                    results_ordered[idx] = (None, None, e) # или другое значение-маркер ошибки
+
+        # Разделяем упорядоченные результаты на отдельные списки
+        # Фильтруем None на случай, если какая-то задача упала
+        valid_results = [res for res in results_ordered if res is not None and not isinstance(res[2], Exception)]
+        if not valid_results:
+            return [], [], []
+            
+        prompts, outputs, infos = list(zip(*valid_results))
+        return list(prompts), list(outputs), list(infos)
 
     def _preprocess_messages(self, messages):
         _messages = []
@@ -262,34 +277,24 @@ class ApiVLLMModel(LLM):
         return _messages
     
     def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
-        # Only for count_tokens_for_prompt method, not for any other use
-        # TODO fix
-        return 0
         _messages = self._preprocess_messages(messages)
         last_role = _messages[-1]['role']
         r = requests.post(
-            f'{self.api_base}/v1/chat/completions', 
+            f'{self.api_base}/tokenize', 
             json={
                 'messages': _messages, 
                 'model': self.model_name, 
-                'max_tokens': 1, 
                 'add_generation_prompt': last_role == 'user', 
-                'skip_special_tokens': False, 
-                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant', 
+                'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
+                'chat_template_kwargs': {'enable_thinking': self.enable_thinking}
             }
         )
         if r.status_code != 200:
-            tokens =  None
-            if 'Please reduce the length of the messages or completion.' in r.text:
-                try:
-                    tokens = int(re.findall('However, you requested (.*?) tokens', '''{"object":"error","message":"This model's maximum context length is 1600 tokens. However, you requested 1914 tokens (1913 in the messages, 1 in the completion). Please reduce the length of the messages or completion.","type":"BadRequestError","param":null,"code":400}''')[0]) - 1
-                except:
-                    pass
-            if tokens is not None:
-                return tokens
+            raise Exception(r.text)
+
         assert r.status_code == 200
         data = r.json()
-        return data['usage']['prompt_tokens']
+        return data['count']
 
     def count_tokens_for_prompt(self, prompt_tokens):
         assert type(prompt_tokens) == int

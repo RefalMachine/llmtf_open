@@ -63,7 +63,7 @@ task_groups_skills = [
     {'name': 'translation', 'params': {'dataset_names': 'darumeru/flores_ru_en darumeru/flores_en_ru'}},
     {'name': 'summarization', 'params': {'dataset_names': 'daru/treewayabstractive ilyagusev/gazeta', 'max_sample_per_dataset': 1000}},
     {'name': 'sentiment', 'params': {'dataset_names': 'ruopinionne ruopinionne_simple', 'max_sample_per_dataset': 1000}},
-    {'name': 'ner', 'params': {'dataset_names': 'nerel-bio nerel', 'max_sample_per_dataset': 500, 'few_shot_count': 5, 'max_len': 12000}},
+    {'name': 'ner', 'params': {'dataset_names': 'nerel-bio nerel', 'max_sample_per_dataset': 500, 'few_shot_count': 1, 'max_len': 12000}},
     {'name': 'rag', 'params': {'dataset_names': 'rusbeirrag/rubqqa rusbeirrag/rus_tydiqa rusbeirrag/sberquadqa rusbeirrag/rus_xquadqa', 'max_sample_per_dataset': 500, 'max_len': 12000}},
     {'name': 'rag_data_first', 'params': {'dataset_names': 'rusbeirrag/rubqqa_data_first rusbeirrag/rus_tydiqa_data_first rusbeirrag/sberquadqa_data_first rusbeirrag/rus_xquadqa_data_first', 'max_sample_per_dataset': 500, 'max_len': 12000}},
 ]

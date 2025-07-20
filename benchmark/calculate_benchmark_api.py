@@ -12,16 +12,45 @@ from contextlib import closing
 import socket
 
 # Определение групп задач (без изменений)
+task_groups_knowledge = [
+    {'name': 'nlpcoreteam_mmlu_ru_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
+    {'name': 'nlpcoreteam_mmlu_en_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
+    {'name': 'nlpcoreteam_mmlu_ru_few_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 5, 'name_suffix': 'few_shot'}},
+    {'name': 'nlpcoreteam_mmlu_en_few_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 5, 'name_suffix': 'few_shot'}},
+    {'name': 'shlepa', 'params': {'dataset_names': 'shlepa/moviesmc shlepa/musicmc shlepa/lawmc shlepa/booksmc'}},
+]
+
+task_groups_skills = [
+    {'name': 'translation', 'params': {'dataset_names': 'darumeru/flores_ru_en darumeru/flores_en_ru'}},
+    {'name': 'summarization', 'params': {'dataset_names': 'daru/treewayabstractive ilyagusev/gazeta', 'max_sample_per_dataset': 1000}},
+    {'name': 'sentiment', 'params': {'dataset_names': 'ruopinionne ruopinionne_simple', 'max_sample_per_dataset': 1000}},
+    {'name': 'ner', 'params': {'dataset_names': 'nerel-bio nerel', 'max_sample_per_dataset': 500, 'few_shot_count': 1, 'max_len': 12000}},
+    {'name': 'rag', 'params': {'dataset_names': 'rusbeirrag/rubqqa rusbeirrag/rus_tydiqa rusbeirrag/sberquadqa rusbeirrag/rus_xquadqa', 'max_sample_per_dataset': 500, 'max_len': 12000}},
+    {'name': 'rag_data_first', 'params': {'dataset_names': 'rusbeirrag/rubqqa_data_first rusbeirrag/rus_tydiqa_data_first rusbeirrag/sberquadqa_data_first rusbeirrag/rus_xquadqa_data_first', 'max_sample_per_dataset': 500, 'max_len': 12000}},
+]
+
+task_groups_ifeval = [
+    {'name': 'ruifeval', 'params': {'dataset_names': 'ruifeval', 'few_shot_count': 0}},
+    {'name': 'enifeval', 'params': {'dataset_names': 'enifeval', 'few_shot_count': 0}},
+]
+
+task_groups_long = [
+    {'name': 'libra_rubabilong1', 'params': {'dataset_names': 'libra/rubabilong1', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
+    {'name': 'libra_rubabilong2', 'params': {'dataset_names': 'libra/rubabilong2', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
+    {'name': 'libra_rubabilong3', 'params': {'dataset_names': 'libra/rubabilong3', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
+    {'name': 'libra_rubabilong4', 'params': {'dataset_names': 'libra/rubabilong4', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
+    {'name': 'libra_rubabilong5', 'params': {'dataset_names': 'libra/rubabilong5', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}}
+]
 task_groups_math_no_think = [
-    {'name': 'doom_math_no_think', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think', 'batch_size': 100000000000}},
-    {'name': 'doom_phys_no_think', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think', 'batch_size': 100000000000}},
-    {'name': 't-bank_t-math_no_think', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think', 'batch_size': 100000000000}}
+    {'name': 'doom_math_no_think', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
+    {'name': 'doom_phys_no_think', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
+    {'name': 't-bank_t-math_no_think', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}}
 ]
 
 task_groups_math_think = [
-    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think', 'batch_size': 100000000000}, 'think': True},
-    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think', 'batch_size': 100000000000}, 'think': True},
-    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think', 'batch_size': 100000000000}, 'think': True}
+    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
+    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
+    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True}
 ]
 
 # Функция run_eval теперь принимает base_url как явный аргумент
@@ -162,7 +191,7 @@ if __name__ == '__main__':
             '--disable-uvicorn-access-log',
             '--disable-log-stats'
         ]
-        command += '--gpu-memory-utilization 0.95 --max_seq_len 32000 --max_model_len 32000'.split()
+        command += '--gpu-memory-utilization 0.95 --max_seq_len 32000 --max_model_len 32000 --max_logprobs 50'.split()
         print(f"Starting vLLM server instance {i+1}/{num_instances} on port {port} with GPUs: {gpus_for_instance}...")
         
         # Запускаем сервер в фоновом режиме
@@ -174,7 +203,7 @@ if __name__ == '__main__':
     # --- 2. Ожидание готовности серверов ---
     print("\nWaiting for all vLLM servers to be ready...")
     for i, url in enumerate(server_urls):
-        retries = 30
+        retries = 100
         while retries > 0:
             try:
                 # Проверяем health-эндпоинт или просто доступность
@@ -182,7 +211,7 @@ if __name__ == '__main__':
                 print(f"Server on port {server_ports[i]} is ready.")
                 break
             except requests.ConnectionError:
-                time.sleep(5)
+                time.sleep(10)
                 retries -= 1
                 if retries == 0:
                     print(f"Server on port {server_ports[i]} failed to start!")
@@ -193,10 +222,10 @@ if __name__ == '__main__':
 
     # --- 3. Основная логика выполнения задач ---
     try:
-        task_groups = task_groups_math_no_think
+        task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long + task_groups_math_no_think
         if args.add_reasoning_tasks:
             task_groups += task_groups_math_think
-            
+        #task_groups = task_groups_ifeval
         gen_config_settings = read_json(args.gen_config_settings)
 
         # Создаем и заполняем очередь задач
