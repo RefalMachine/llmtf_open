@@ -81,18 +81,6 @@ task_groups_long = [
     {'name': 'libra_rubabilong5', 'params': {'dataset_names': 'libra/rubabilong5', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}}
 ]
 
-task_groups_math_no_think = [
-    {'name': 'doom_math_no_think', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
-    {'name': 'doom_phys_no_think', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
-    {'name': 't-bank_t-math_no_think', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}}
-]
-
-task_groups_math_think = [
-    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
-    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
-    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True}
-]
-
 def run_eval(args, group, gpu_manager, gen_config_settings):
     gpu_ids = gpu_manager.acquire_gpu(count=args.tensor_parallel_size)
     if gpu_ids is None:
@@ -103,10 +91,10 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
     max_len = group['params'].get('max_len', args.max_len)
     name_suffix = group['params'].get('name_suffix', None)
 
-    conv_path = args.conv_path_think if group.get('think', False) else args.conv_path_no_think
+    conv_path = args.conv_path
     command = ['python', 'evaluate_model.py', '--model_name_or_path', args.model_dir, '--conv_path', conv_path, '--max_len', str(max_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
     command += ['--dataset_names'] + group['params']['dataset_names'].split()
-    command += ['--vllm', '--disable_sliding_window']
+    command += ['--vllm', '--tensor_parallel_size', args.tensor_parallel_size]
     if 'max_sample_per_dataset' in group['params']:
         command += ['--max_sample_per_dataset', group['params']['max_sample_per_dataset']]
 
@@ -159,23 +147,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_dir')
     parser.add_argument('--gen_config_settings')
-    parser.add_argument('--conv_path_no_think')
-    parser.add_argument('--conv_path_think', default=None)
+    parser.add_argument('--conv_path')
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--tensor_parallel_size', default=1, type=int)
     parser.add_argument('--num_gpus', type=int, default=torch.cuda.device_count())
-    parser.add_argument('--add_reasoning_tasks', action='store_true')
     parser.add_argument('--max_len', type=int, default=4000)
 
     args = parser.parse_args()
     print(args)
 
     gpu_manager = GPUManager(args.num_gpus)
-    task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long + task_groups_math_no_think
-    if args.add_reasoning_tasks:
-        assert args.conv_path_think is not None
-        task_groups += task_groups_math_think
+    task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long
         
     task_queue = TaskQueue(task_groups)
     gen_config_settings = read_json(args.gen_config_settings)

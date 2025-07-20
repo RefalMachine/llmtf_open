@@ -5,3 +5,6 @@ __pycache__/
 run_evaluate*
 dump*
 outputs/
+benchmark/balanced/
+benchmark/greedy/
+.ipynb_checkpoints
