@@ -27,6 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--repetition_penalty', type=float, default=1.0)
     parser.add_argument('--presence_penalty', type=float, default=0.0)
     parser.add_argument('--num_return_sequences', type=int, default=1)
+    parser.add_argument('--tensor_parallel_size', type=int, default=1)
 
     args = parser.parse_args()
     
@@ -34,7 +35,7 @@ if __name__ == '__main__':
     
     MODEL_CLASS = VLLMModel if args.vllm else HFModel
     model = MODEL_CLASS(
-        args.conv_path, device_map=args.device_map, disable_sliding_window=args.disable_sliding_window, enable_prefix_caching=not args.disable_prefix_caching, 
+        args.conv_path, device_map=args.device_map, tensor_parallel_size=args.tensor_parallel_size, 
         alpha_scale=args.alpha_scale, not_scale_lm_head=args.not_scale_lm_head, max_seq_len_to_capture=args.max_len)
     model.from_pretrained(args.model_name_or_path)
     

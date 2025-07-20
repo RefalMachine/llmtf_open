@@ -1049,7 +1049,6 @@ class VLLMModel(LocalHostedLLM):
             model=model_dir, device=self.device_map, #max_model_len=self.max_model_len,
             max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
-            disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching, 
             trust_remote_code=self.trust_remote_code, tensor_parallel_size=self.tensor_parallel_size,
             #rope_scaling='{"type": "extended", "factor": 8.0}'
         )
@@ -1061,7 +1060,6 @@ class VLLMModel(LocalHostedLLM):
             model=config.base_model_name_or_path, device=self.device_map,
             max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
-            disable_sliding_window=self.disable_sliding_window, enable_prefix_caching=self.enable_prefix_caching,
             enable_lora=True, trust_remote_code=self.trust_remote_code, tensor_parallel_size=self.tensor_parallel_size, 
             max_lora_rank=self._get_max_lora_rank(config)
         )
