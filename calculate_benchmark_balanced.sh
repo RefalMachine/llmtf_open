@@ -4,5 +4,4 @@ python benchmark/calculate_benchmark.py \
 --conv_path conversation_configs/qwen3-no-think.json \
 --output_dir /workdir/projects/devel/llmtf_open/benchmark/balanced/Qwen3-4B \
 --tensor_parallel_size 1 \
---force_recalc \
---add_reasoning_tasks
+--force_recalc
