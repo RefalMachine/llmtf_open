@@ -151,7 +151,7 @@ def contextual_bt_loss_and_grad(
     )
     grad[n_competitors:] -= np.dot(features.T, error)
 
-    return loss, grad, probs
+    return loss, grad
 
 
 def fit_contextual_bt(
@@ -180,8 +180,7 @@ def fit_contextual_bt(
         method="L-BFGS-B",
         options={"disp": False, "maxiter": 100, "gtol": tol},
     )
-    loss, grad, probs = contextual_bt_loss_and_grad(result["x"], n_models, matchups, features, outcomes, alpha, reg, half_reg)
-    return result["x"], loss, grad, probs
+    return result["x"]
 
 
 def compute_style_control(
@@ -191,7 +190,7 @@ def compute_style_control(
     features = calculate_style(df.model_a_style, df.model_b_style)
     matchups, models = get_matchups_models(df.model_a, df.model_b)
     outcomes = df.winner.values
-    params, loss, grad, probs = fit_contextual_bt(
+    params = fit_contextual_bt(
         matchups,
         features,
         outcomes,
@@ -201,37 +200,126 @@ def compute_style_control(
         tol=tol,
     )
     ratings = params[: len(models)]
-    weigths = params[len(models):]
-    return ratings, models, weigths, loss, grad, probs
+    return ratings, models
+
 
 def read_json(file_name):
     with open(file_name, encoding="utf-8") as r:
         return json.load(r)
 
+def get_results_from_file(sourse_files):
+    results = []
+    if isinstance(sourse_files, str):
+        sourse_files = [sourse_files]
+    if isinstance(sourse_files, list):
+        for file in sourse_files:
+            results += read_json(file)
+    return results
 
 def swap(data, key1, key2):
     tmp = data[key1]
     data[key1] = data[key2]
     data[key2] = tmp
 
+
 def scale_and_offset(
     ratings,
     models,
-    baseline_model,
-    scale=400,
-    init_rating=1000,
-    baseline_rating=1114,
+    baseline_model='',
+    baseline_rating=50,
 ):
     """convert ratings from the natural scale to the Elo rating scale with an anchored baseline"""
-    scaled_ratings = (ratings * scale) + init_rating
-    if baseline_model in models:
+    scaled_ratings = 50 * (1 + ratings)
+    if baseline_model and baseline_model in models:
         baseline_idx = models.index(baseline_model)
         scaled_ratings += baseline_rating - scaled_ratings[..., [baseline_idx]]
     return scaled_ratings
 
+def scale_to_elo(
+    ratings,
+    models,
+    baseline_model='',
+    baseline_rating=1000, # Стандартная начальная точка для Elo
+    scale_factor=400.0,
+):
+    """
+    Преобразует сырые рейтинги Брэдли-Терри в шкалу Elo.
+    Сырые рейтинги должны быть получены с alpha=log(10).
+    """
+    # Преобразуем сырые рейтинги в шкалу Elo
+    elo_ratings = scale_factor * ratings
+    
+    # Якорим одну из моделей для стабильности шкалы
+    if baseline_model and baseline_model in models:
+        baseline_idx = models.index(baseline_model)
+        # Смещаем все рейтинги так, чтобы у базовой модели был рейтинг baseline_rating
+        offset = baseline_rating - elo_ratings[baseline_idx]
+        elo_ratings += offset
+        
+    return elo_ratings
 
+def confident_score_mean(results: List[Dict], model_name=None) -> Dict:
+    '''
+    На вход подаются
+    results = [
+        {
+            'p': <model_proba_i>,
+            'id': <id_i>,
+            'model_name': <model_name_i>,
+            'reference_model_name': <reference_model_name_i>,
+            'style': {
+                'model':      [x, x, x, x, x],
+                'reference':  [x, x, x, x, x], # [ len_answer, header_count, list_count, bold_count, code_blocks_count ]
+            }
+        } for i in range(2*n*m) # на каждый instruction было по 2 sample
+    ]
+    '''
+    full_hash =  ['|'.join([str(r['id']), r['model_name'], r['reference_model_name']]) for r in results]
+    model_hash = ['|'.join([str(r['id']), r['model_name']]) for r in results]
+    reference_hash = ['|'.join([str(r['id']), r['reference_model_name']]) for r in results]
+
+    df = pd.DataFrame()
+    df['p'] = [r['p'] for r in results]
+    df['full_hash'] = full_hash
+    df['model_hash'] = model_hash
+    df['reference_hash'] = reference_hash
+
+    df['model_name'] = [r['model_name'] for r in results]
+    df['reference_model_name'] = [r['reference_model_name'] for r in results]
+
+    df['model_style'] = [np.array(r['styles']['model']) for r in results]
+    df['reference_style'] = [np.array(r['styles']['reference']) for r in results]
+
+    data = []
+    for _, group in df.groupby('model_hash'):
+        for _, subgroup in group.groupby('full_hash'):
+            # assert subgroup.shape[0] == 2
+            if (subgroup['model_name'] == subgroup['reference_model_name']).all(): # or (subgroup['model_style'].tolist()[0] == subgroup['reference_style'].tolist()[0]).all():
+                continue
+            pred = int(subgroup['p'].mean() >= 0.5)
+            data.append([
+                    subgroup['model_name'].tolist()[0],
+                    subgroup['reference_model_name'].tolist()[0], 
+                    pred, subgroup['model_style'].tolist()[0], 
+                    subgroup['reference_style'].tolist()[0]
+                ])
+    new_df = pd.DataFrame(data, columns=['model_a', 'model_b', 'winner', 'model_a_style', 'model_b_style'])
+    ratings, models = compute_style_control(new_df)
+    baseline_model_name = 'gpt-4o-mini'
+    elo_ratings = scale_to_elo(ratings, models, baseline_model=baseline_model_name)
+
+    model_rating_dict = dict(zip(models, elo_ratings))
+    # Округляем для красивого вывода
+    model_rating_dict_rounded = {k: round(v) for k, v in model_rating_dict.items()}
+    
+    print(' >> ELO RATINGS:\n', json.dumps(model_rating_dict_rounded, indent=4, ensure_ascii=False))
+    if model_name is not None:
+        return model_rating_dict[model_name]
+    return model_rating_dict
+
+    
 class LLMAsJudgeStyleControl(Task):
-    def __init__(self, model_outputs: Dict, references_outputs: List[Dict], custom_instruction=None, **kwargs):
+    def __init__(self, model_outputs: Dict, references_outputs: List[Dict], previous_battles_path: str='', custom_instruction=None, **kwargs):
         super().__init__(**kwargs)
         self.model_outputs = model_outputs
         '''
@@ -250,35 +338,15 @@ class LLMAsJudgeStyleControl(Task):
         '''
         self.custom_instruction = custom_instruction
         self.method = 'calculate_tokens_proba'
-        self.style_control = style_control
+        self.previous_battles_path = previous_battles_path
         self._max_new_tokens = 1
 
     @property
     def choices(self) -> List:
         return ["m", "M"]
-    
+
     def task_name(self):
         return 'llm_as_judge'
-
-    def _calculate_score(self, df, model_name):
-        # taken from https://github.com/VikhrModels/ru_llm_arena/blob/master/show_result.py
-        df['winner'] = df['winner'].map({
-                1: Winner.X,
-                0: Winner.Y
-        })
-
-        result = bradley_terry(
-            df['model_a'],
-            df['model_b'],
-            df['winner'],
-            weights=df['answer_style_deltas'],
-            tolerance=1e-8
-        )
-
-        df = pairwise_frame(result.scores)
-        np.fill_diagonal(df.values, np.nan)
-        return df.loc[model_name].mean()
-
 
     def _confident_score_mean(self, results: Dict) -> Dict:
         '''
@@ -296,41 +364,12 @@ class LLMAsJudgeStyleControl(Task):
             } for i in range(2*n*m) # на каждый instruction было по 2 sample
         ]
         '''
+        
+        if self.previous_battles_path:
+            results += get_results_from_file(self.previous_battles_path)
 
-        full_hash =  ['|'.join([str(r['id']), r['model_name'], r['reference_model_name']]) for r in results]
-        model_hash = ['|'.join([str(r['id']), r['model_name']]) for r in results]
-        reference_hash = ['|'.join([str(r['id']), r['reference_model_name']]) for r in results]
-
-        df = pd.DataFrame()
-        df['p'] = [r['p'] for r in results]
-        df['full_hash'] = full_hash
-        df['model_hash'] = model_hash
-        df['reference_hash'] = reference_hash
-
-        df['model_name'] = [r['model_name'] for r in results]
-        df['reference_model_name'] = [r['reference_model_name'] for r in results]
-
-        df['model_style'] = [np.array(r['styles']['model']) for r in results]
-        df['reference_style'] = [np.array(r['styles']['reference']) for r in results]
-
-        data = []
-        for _, group in df.groupby('model_hash'):
-            for _, subgroup in group.groupby('full_hash'):
-                assert subgroup.shape[0] == 2
-                if (subgroup['model_name'] == subgroup['reference_model_name']).all(): # or (subgroup['model_style'].tolist()[0] == subgroup['reference_style'].tolist()[0]).all():
-                    continue
-                pred = int(subgroup['p'].mean() >= 0.5)
-
-                data.append([subgroup['model_name'].tolist()[0], subgroup['reference_model_name'].tolist()[0], pred, subgroup['model_style'].tolist()[0], subgroup['reference_style'].tolist()[0]])
-        new_df = pd.DataFrame(data, columns=['model_a', 'model_b', 'winner', 'model_a_style', 'model_b_style'])
-        ratings, models, weigths, loss, grad, probs = compute_style_control(new_df)
-        ratings = scale_and_offset(ratings, models, new_df['model_a'][0])
-        print('RATINGS:', ratings)
-        print('PROBS:', probs)
-        new_df['answer_style_deltas'] = probs
-        score = self._calculate_score(new_df, new_df['model_a'][0])
-
-        return score
+        model_rating_dict = confident_score_mean(results)
+        return model_rating_dict[self.model_outputs['model_name']]
 
 
     def aggregation(self) -> Dict:
@@ -522,13 +561,3 @@ Please provide the ranking that the majority of humans would give.'''
             {'role': 'assistant', 'content': instruction_bot}
         ]
         return messages
-
-        
-
-
-
-
-
-
-                
-

@@ -38,6 +38,7 @@ class ApiVLLMModel(LLM):
         self.max_model_len = None
         self.generation_config = None
         self.enable_thinking = enable_thinking
+        self._tokenize_warning_shown = False
 
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']
@@ -277,6 +278,8 @@ class ApiVLLMModel(LLM):
         return _messages
     
     def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
+        if self._tokenize_warning_shown:
+            return 0
         _messages = self._preprocess_messages(messages)
         last_role = _messages[-1]['role']
         r = requests.post(
@@ -290,7 +293,9 @@ class ApiVLLMModel(LLM):
             }
         )
         if r.status_code != 200:
-            raise Exception(r.text)
+            print('Can\'t tokenize, fallback to 0 len assumtion')
+            self._tokenize_warning_shown = True
+            return 0
 
         assert r.status_code == 200
         data = r.json()
