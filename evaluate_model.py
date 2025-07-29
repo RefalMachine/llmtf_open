@@ -1,8 +1,6 @@
 import argparse
 from llmtf.model import HFModel, VLLMModel
 from llmtf.evaluator import Evaluator
-import os
-import torch
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

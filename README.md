@@ -1,39 +1,141 @@
-# llmtf_open
-llmtf_open - это фреймворк для быстрой и удобной оценки качества как базовых (foundation), так и инструктивных LLM, ориентированные на представление задач (Task) в виде последовательности сообщений (messages).
+# LLMTF Open
+
+**LLMTF Open** — это открытый фреймворк для комплексной оценки больших языковых моделей (LLM) с поддержкой русского языка и реализованным на его основе бенчмарком.
+
+## Основные возможности
+
+- **Быстрая оценка моделей** с поддержкой VLLM для ускорения инференса
+- **Гибкая архитектура задач** на основе message-формата
+- **Поддержка различных методов оценки**: генерация текста, расчет вероятностей токенов, перплексия
+- **Богатый набор задач**: от классификации до RAG и длинных контекстов
+- **Автоматизированный бенчмарк** с параллельным выполнением на нескольких GPU
+- **LLM-as-a-Judge** оценка с ELO рейтингами
+
+## Быстрый старт
+
+### Установка
+
+**TODO**
+
+### Базовое использование
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python evaluate_model.py --model_name_or_path openchat/openchat-3.5-0106 \
---conv_path conversation_configs/openchat_3.5_1210.json --output_dir evaluate_results_openchat_3.5_0106_k1 \
---few_shot_count 1 --max_len 4000 --device_map "cuda:0" --batch_size 8 --vllm --disable_sliding_window
+# Оценка модели с VLLM
+CUDA_VISIBLE_DEVICES=0 python evaluate_model.py \
+  --model_name_or_path openchat/openchat-3.5-0106 \
+  --conv_path conversation_configs/openchat_3.5_1210.json \
+  --output_dir results_openchat \
+  --few_shot_count 1 \
+  --max_len 4000 \
+  --batch_size 8 \
+  --vllm
+
+# Запуск полного бенчмарка
+python benchmark/calculate_benchmark_api.py \
+  --model_dir /path/to/model \
+  --gen_config_settings benchmark/config_balanced.json \
+  --api_key EMPTY \
+  --num_gpus 4
 ```
 
-В случае наличия нескольких GPU и запуска с --vllm обязательно нужно указывать CUDA_VISIBLE_DEVICES перед запуском, иначе vllm норовит залезть и на другую GPU (требуется проверка).
+## Архитектура
 
-## Ключевые особенности:
-1) Помимо стандартного инфера на hf реализовано использование vllm (--vllm ключ для evaluate_model.py), благодаря чему существенно ускоряется процесс оценки качества.
-2) Модели можно оценивать как на генеративных задачах, так и с оценкой вероятностей следующего токена. (в планах добавления расчета перплексии как отдельного режима)
-3) В основе messages формат работы с моделями. Поддержка чат темплейтов инстракт моделей (нужно задать соответствующий конфиг).
-4) Возможность достаточно просто добавлять свои датасеты для оценки.
-5) Помимо итогового скора логгируется весь input и output для каждого сэмпла.
-6) Для не инструктивных моделей (базовые, foundation) конфиг conversation_configs/non_instruct_simple.json.
+### Основные компоненты
 
-## Примеры работы с фреймворком:
-1) Пример добавления новой задачи в examples/create_new_task.ipynb. Соответствующие логи в example_rucula_custom_openchat_3.5_0106_eval
-2) Пример добавления нового conversation config в examples/create_new_model_conversation_config.ipynb. Моделируется случай, когда нет подходящего конфига в conversation_configs.
+- **`llmtf/`** — ядро фреймворка
+  - `base.py` — базовые классы Task и LLM
+  - `model.py` — реализации HFModel и VLLMModel
+  - `evaluator.py` — основной класс для оценки
+  - `tasks/` — коллекция задач для оценки
 
-## Из датасетов на данный момент:
-1) darumeru бенчмарк (https://huggingface.co/datasets/RefalMachine/darumeru). Создан на основе validation или train сплитов ['rcb', 'use', 'rwsd', 'parus', 'rutie', 'multiq', 'rummlu', 'ruworldtree', 'ruopenbookqa'] датасетов из MERA с некоторыми изменениями (пополнение multiq вариантов ответов, при оценки USE прощаются лишние пробелы между вариантами ответов: .strip(), везде добавлена часть с "Ответ:", всё преобразовано в message формат)
-2) mmlu_ru и mmlu_en из NLPCoreTeam/mmlu_ru. Получаемые скоры сопостовимы с получаемыми через https://github.com/NLP-Core-Team/mmlu_ru с небольшим отличием. (конфиг для полного воспроизведения будет добавлен позже). 
-3) rucola (RussianNLP/rucola): оценка проводится на валидационном множестве с few-shot примерами из train (начиная с 29 индекса, так как там в первых 5 примерах сбалансированно представлены классы, что влияет на качество работы языковых моделей)
+- **`benchmark/`** — автоматизированный бенчмарк
+  - `calculate_benchmark_api.py` — параллельное выполнение задач через API
+  - `llmaaj/` — LLM-as-a-Judge оценка
 
-## Некоторые особенности/условности:
-1) По умолчанию зафиксирован xformers бэкенд для vllm в качестве flash attention, так как FA2 с батчем > 1 выдает некорректные результаты в logprobs.
-2) Так как darumeru бенч создан на основе валидации/трейна, что-то могло попасть в обучение каким-либо моделям. Это не новость, просто нужно иметь в виду.
-3) В случае желания оценить lora адаптеры: 1. если были modules_to_save то vllm не позволяет такое оценивать -> используйте без --vllm флага. 2. В общем не проводилось пока тестирование этого случая.
-4) Квантизация не тестировалась и почти наверняка могут быть проблемы с этим.
-5) Для более стабильных результатов batch_size=1
-6) В случае использования моделей с sliding_window и vllm могут быть особенности. Внимательно читайти логи запуска по этому поводу.
-7) Длина max_len, задаваемая при запуске, может быть изменена для оценки задач, в случае, если max_len + Task.max_new_tokens > max_model_len. Читайте логи.
-8) darumeru/rutie имеет смысл сравнивать при одинаковых значениях max_len!!! В ином случае, чем max_len меньше, тем качество будет выше, так как длина context в промпте фиксируется и старые сообщения диалога отбрасываются.
-9) Параметры генерации фиксируются при инициализации модели. Захардкожено в коде на данный момент. Их можно переписать передав на функцию оценки generation_config с нужными параметрами, но этот случай пока что особо не тестировался.
-10) Task может иметь кастомные stop_tokens для генерации. В случае vllm работает и для последовательности токенов, в случае hf берется всегда только первый токен из последовательности (будет изменено в будущем)
+- **`conversation_configs/`** — конфигурации чат-шаблонов для различных моделей
+
+## Поддерживаемые задачи
+
+### Знания и рассуждения
+- **MMLU** (русский/английский) — тест общих знаний
+- **Shlepa** — специализированные домены (фильмы, музыка, право, книги)
+- **DaruMeru** — комплексный русскоязычный бенчмарк
+
+### Навыки и способности
+- **Перевод** — Flores ru↔en
+- **Суммаризация** — новостные тексты
+- **Анализ тональности** — извлечение мнений
+- **NER** — распознавание именованных сущностей
+- **RAG** — вопросно-ответные системы с контекстом
+
+### Специализированные задачи
+- **IFEval** — следование инструкциям
+- **Libra** — работа с длинными контекстами (до 32K токенов)
+- **Математика** — решение задач по математике и физике
+
+
+## Добавление новых задач
+
+Создайте класс, наследующий от `SimpleFewShotHFTask`:
+
+```python
+from llmtf.base import SimpleFewShotHFTask
+
+class MyTask(SimpleFewShotHFTask):
+    def dataset_args(self):
+        return {"path": "my_dataset", "name": "default"}
+    
+    def create_messages(self, sample, with_answer=False):
+        messages = [{"role": "user", "content": sample["question"]}]
+        if with_answer:
+            messages.append({"role": "assistant", "content": sample["answer"]})
+        return messages
+    
+    def evaluate(self, sample, prediction):
+        return {"accuracy": int(sample["answer"] == prediction)}
+```
+
+## LLM-as-a-Judge
+
+Фреймворк включает систему оценки моделей с помощью LLM-судей:
+
+```bash
+# Генерация ответов моделей
+python benchmark/llmaaj/generate_llmaaj.py \
+  --base_url http://localhost:8000 \
+  --model_name_or_path /path/to/model \
+  --api_key EMPTY \
+  --model_name my_model \
+  --benchmark_name ru_arena-hard-v0.1
+
+# Оценка судьей
+python benchmark/llmaaj/judge_llmaaj.py \
+  --judge_base_url http://localhost:8001 \
+  --judge_model_name_or_path /path/to/judge_model \
+  --judge_api_key EMPTY \
+  --judge_model_name deepseek \
+  --benchmark_name ru_arena-hard-v0.1 \
+  --model_name my_model
+
+# Показ результатов
+python benchmark/llmaaj/show_benchmark.py \
+  --benchmark_name ru_arena-hard-v0.1 \
+  --judge_model_name deepseek
+```
+
+## Особенности использования
+
+- **VLLM**: Рекомендуется для ускорения, но требует `CUDA_VISIBLE_DEVICES`
+- **Длинные контексты**: Параметр `max_len` может автоматически корректироваться
+- **Квантизация**: Экспериментальная поддержка, возможны проблемы, лучше не использовать
+
+## Примеры
+
+В директории `examples/` находятся Jupyter notebook'и с примерами:
+- Создание новой задачи
+- Настройка конфигурации модели
+- Результаты оценки различных моделей
+
+## Лицензия
+
+Проект распространяется под открытой лицензией. См. файл LICENSE для деталей.

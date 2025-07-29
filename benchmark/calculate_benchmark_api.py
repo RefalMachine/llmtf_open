@@ -11,7 +11,17 @@ import requests
 from contextlib import closing
 import socket
 
+import nltk
+nltk.download('punkt_tab')
+
 # Определение групп задач (без изменений)
+
+task_groups_math_think = [
+    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
+    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
+    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True}
+]
+
 task_groups_knowledge = [
     {'name': 'nlpcoreteam_mmlu_ru_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
     {'name': 'nlpcoreteam_mmlu_en_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
@@ -40,17 +50,6 @@ task_groups_long = [
     {'name': 'libra_rubabilong3', 'params': {'dataset_names': 'libra/rubabilong3', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
     {'name': 'libra_rubabilong4', 'params': {'dataset_names': 'libra/rubabilong4', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
     {'name': 'libra_rubabilong5', 'params': {'dataset_names': 'libra/rubabilong5', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}}
-]
-task_groups_math_no_think = [
-    {'name': 'doom_math_no_think', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
-    {'name': 'doom_phys_no_think', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
-    {'name': 't-bank_t-math_no_think', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}}
-]
-
-task_groups_math_think = [
-    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
-    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
-    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True}
 ]
 
 # Функция run_eval теперь принимает base_url как явный аргумент
@@ -147,7 +146,6 @@ if __name__ == '__main__':
     parser.add_argument('--api_key', default='EMPTY') # vLLM по умолчанию использует 'EMPTY'
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
-    parser.add_argument('--add_reasoning_tasks', action='store_true')
     parser.add_argument('--max_len', type=int, default=4000)
 
     # Старый аргумент base_url больше не нужен
@@ -222,10 +220,7 @@ if __name__ == '__main__':
 
     # --- 3. Основная логика выполнения задач ---
     try:
-        task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long + task_groups_math_no_think
-        if args.add_reasoning_tasks:
-            task_groups += task_groups_math_think
-        #task_groups = task_groups_ifeval
+        task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long + task_groups_math_think
         gen_config_settings = read_json(args.gen_config_settings)
 
         # Создаем и заполняем очередь задач

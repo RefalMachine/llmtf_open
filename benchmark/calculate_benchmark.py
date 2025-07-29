@@ -51,6 +51,12 @@ class TaskQueue:
             except Empty:
                 return None
 
+task_groups_math_think = [
+    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
+    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
+    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True}
+]
+
 task_groups_knowledge = [
     {'name': 'nlpcoreteam_mmlu_ru_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
     {'name': 'nlpcoreteam_mmlu_en_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
@@ -82,6 +88,7 @@ task_groups_long = [
 ]
 
 def run_eval(args, group, gpu_manager, gen_config_settings):
+    """Запускает один таск оценки модели через прямой вызов evaluate_model.py."""
     gpu_ids = gpu_manager.acquire_gpu(count=args.tensor_parallel_size)
     if gpu_ids is None:
         return False
@@ -94,9 +101,15 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
     conv_path = args.conv_path
     command = ['python', 'evaluate_model.py', '--model_name_or_path', args.model_dir, '--conv_path', conv_path, '--max_len', str(max_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
     command += ['--dataset_names'] + group['params']['dataset_names'].split()
-    command += ['--vllm', '--tensor_parallel_size', args.tensor_parallel_size]
+    command += ['--vllm', '--tensor_parallel_size', str(args.tensor_parallel_size)]
+    
+    # Поддержка thinking режима (для задач с think=True используем специальные конфиги)
+    if group.get('think', False):
+        # Для thinking задач можно добавить специальные параметры если нужно
+        pass
+    
     if 'max_sample_per_dataset' in group['params']:
-        command += ['--max_sample_per_dataset', group['params']['max_sample_per_dataset']]
+        command += ['--max_sample_per_dataset', str(group['params']['max_sample_per_dataset'])]
 
     if args.output_dir is not None:
         output_dir = args.output_dir
@@ -120,34 +133,56 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
         if var_name in env:
             del env[var_name]
     command = [str(c) for c in command]
-    print(f"Running on GPUs {gpu_ids}: {command}")
+    print(f"Running on GPUs {gpu_ids}: {' '.join(command)}", flush=True)
 
     try:
         subprocess.run(command, env=env, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing task '{group['name']}': {e}", flush=True)
+        return False
     finally:
         for gpu_id in gpu_ids:
             gpu_manager.release_gpu(gpu_id)
     return True
 
-def worker(args, task_queue, gpu_manager, gen_config_settings):
+def worker(worker_id, task_queue, args, gpu_manager, gen_config_settings):
+    """
+    Функция-воркер. Получает задачи из очереди и выполняет их,
+    используя закрепленные за ним GPU.
+    """
+    print(f"[Worker-{worker_id}] Started")
     while True:
-        group = task_queue.get_task()
-        if group is None:
-            break
-        while True:
-            if run_eval(args, group, gpu_manager, gen_config_settings):
+        try:
+            # Неблокирующее получение задачи из очереди
+            task_group = task_queue.get_task()
+            if task_group is None:
+                print(f"[Worker-{worker_id}] No more tasks. Exiting.", flush=True)
                 break
-            time.sleep(5)  # Wait before retrying
+            print(f"[Worker-{worker_id}] Took task: {task_group['name']}", flush=True)
+            
+            # Повторяем попытки выполнения задачи до успеха
+            while True:
+                if run_eval(args, task_group, gpu_manager, gen_config_settings):
+                    break
+                time.sleep(5)  # Wait before retrying
+                
+        except Exception as e:
+            print(f"[Worker-{worker_id}] An unexpected error occurred: {e}", flush=True)
+            # Можно добавить логику повтора или просто пропустить задачу
+            continue
 
 def read_json(file_name):
     with open(file_name, encoding="utf-8") as r:
         return json.load(r)
     
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model_dir')
-    parser.add_argument('--gen_config_settings')
-    parser.add_argument('--conv_path')
+    # Используем 'spawn' для безопасности при работе с CUDA
+    mp.set_start_method('spawn', force=True)
+    
+    parser = argparse.ArgumentParser(description="Run local model evaluation and distribute tasks across GPUs.")
+    parser.add_argument('--model_dir', required=True)
+    parser.add_argument('--gen_config_settings', required=True)
+    parser.add_argument('--conv_path', required=True)
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--tensor_parallel_size', default=1, type=int)
@@ -155,21 +190,34 @@ if __name__ == '__main__':
     parser.add_argument('--max_len', type=int, default=4000)
 
     args = parser.parse_args()
-    print(args)
+    print("Parsed arguments:", args)
+    
+    # Проверка корректности аргументов
+    if args.num_gpus % args.tensor_parallel_size != 0:
+        raise ValueError("`num_gpus` must be divisible by `tensor_parallel_size`")
+
+    num_workers = args.num_gpus // args.tensor_parallel_size
+    print(f"Planning to use {num_workers} workers with {args.tensor_parallel_size} GPU(s) each.")
 
     gpu_manager = GPUManager(args.num_gpus)
-    task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long
+    task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long + task_groups_math_think
         
+    # Создаем и заполняем очередь задач
     task_queue = TaskQueue(task_groups)
     gen_config_settings = read_json(args.gen_config_settings)
-    # Create worker processes
-    num_workers = min(args.num_gpus // args.tensor_parallel_size, len(task_groups))
-    processes = []
-    for _ in range(num_workers):
-        p = mp.Process(target=worker, args=(args, task_queue, gpu_manager, gen_config_settings))
-        p.start()
-        processes.append(p)
     
-    # Wait for all processes to complete
+    print(f'TOTAL WORKERS: {num_workers}')
+    print(f'TOTAL TASKS: {len(task_groups)}')
+    
+    # Создаем и запускаем процессы-воркеры
+    processes = []
+    for i in range(num_workers):
+        p = mp.Process(target=worker, args=(i, task_queue, args, gpu_manager, gen_config_settings))
+        processes.append(p)
+        p.start()
+    
+    # Ожидаем завершения всех воркеров
     for p in processes:
         p.join()
+        
+    print("\nAll evaluation tasks completed.")
