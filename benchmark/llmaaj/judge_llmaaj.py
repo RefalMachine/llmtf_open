@@ -1,7 +1,7 @@
 import argparse
 from llmtf.model import ApiVLLMModel
 from llmtf.evaluator import Evaluator
-from llmtf.tasks.llm_as_a_judge_style_control import LLMAsJudgeStyleControl, confident_score_mean, get_results_from_file
+from llmtf.tasks.llm_as_a_judge import LLMAsJudgeStyleControl, confident_score_mean_with_ties_and_ci, get_results_from_file
 import os
 import json
 import codecs
@@ -34,7 +34,6 @@ if __name__ == '__main__':
     parser.add_argument('--judge_model_name')
     parser.add_argument('--benchmark_name')
     parser.add_argument('--model_name')
-    parser.add_argument('--model_results_path')
     parser.add_argument('--load_prev_results', action='store_true')
     parser.add_argument('--disable_thinking', action='store_true')
     parser.add_argument('--max_len', type=int, default=int(4096*2.5))
@@ -42,8 +41,10 @@ if __name__ == '__main__':
     parser.add_argument('--repetition_penalty', type=float, default=1.0)
     parser.add_argument('--presence_penalty', type=float, default=0.0)
     parser.add_argument('--force_recalc', action='store_true')
-
     args = parser.parse_args()
+
+    assert os.getcwd().endswith('llmtf_open')
+    
     os.environ['OPENAI_API_KEY'] = args.judge_api_key
     evaluator = Evaluator()
     
@@ -77,12 +78,12 @@ if __name__ == '__main__':
         print(f'Results for {args.model_name} already calculated in {battles_dir}. Skip judge.')
     else:
         task = LLMAsJudgeStyleControl(
-            model_outputs={'model_name': args.model_name, 'path': args.model_results_path},
+            model_outputs={'model_name': args.model_name, 'path': f'benchmark/llmaaj/{args.benchmark_name}/model_results/{args.model_name}.json'},
             references_outputs=references,
             previous_battles_path=previous_battles_path if args.load_prev_results else []
         )
 
-        output_dir = f'benchmark/llmaaj/{args.benchmark_name}/judges/{args.judge_model_name}/outputs/{args.model_name}'
+        output_dir = f'benchmark/llmaaj/{args.benchmark_name}/judges/{args.judge_model_name}/battles_raw/{args.model_name}'
         evaluator = Evaluator()
         evaluator.evaluate_dataset(
             task=task,
@@ -92,7 +93,7 @@ if __name__ == '__main__':
             few_shot_count=0,
             generation_config=None,
             batch_size=256000,
-            max_sample_per_dataset=10000000000000000
+            max_sample_per_dataset=100000000000000
         )
 
         convert_battles(f'{output_dir}/llm_as_judge.jsonl', curr_battles_path)
@@ -102,5 +103,5 @@ if __name__ == '__main__':
     if not args.load_prev_results:
         previous_battles_path = [curr_battles_path]
     battles = get_results_from_file(previous_battles_path)
-    rating = confident_score_mean(battles, args.model_name)
+    rating = confident_score_mean_with_ties_and_ci(battles, args.model_name, n_bootstrap=1000, confidence_level=0.95)
     print(f'Model: {args.model_name}\nRating: {rating}')

@@ -24,8 +24,10 @@ if __name__ == '__main__':
     parser.add_argument('--temperature', type=float, default=0.0)
     parser.add_argument('--repetition_penalty', type=float, default=1.05)
     parser.add_argument('--presence_penalty', type=float, default=0.0)
-
     args = parser.parse_args()
+    
+    assert os.getcwd().endswith('llmtf_open')
+
     os.environ['OPENAI_API_KEY'] = args.api_key
     evaluator = Evaluator()
     
