@@ -94,7 +94,7 @@ def show_benchmark(benchmark_name, judge_model_name):
         ci_lower = ratings[model_name]['ci_lower']
         ci_upper = ratings[model_name]['ci_upper']
         avg_length = length_stats[model_name]
-        markdown_lines.append(f"| {model_name} | {rating} | {std} | [{ci_lower}, {ci_upper}] | {avg_length:.1f} |")
+        markdown_lines.append(f"| {model_name} | {rating} | {std} | [{ci_lower}, {ci_upper}] | {avg_length} |")
     
     
     # Print markdown

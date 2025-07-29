@@ -11,6 +11,8 @@ MAX_HEALTH_CHECKS=60
 # Добавьте определение переменных
 HOST_URL="ХОСТ МАШИНА"  # или ваш хост
 JUDGE_URL="URL ДЛЯ ВАШЕГО JUDGE"  # укажите правильный URL
+
+
 # --- КОНЕЦ КОНФИГУРАЦИИ ---
 
 # Функция для остановки и удаления контейнера
@@ -134,62 +136,64 @@ run_tests() {
 }
 
 # Основной скрипт
+# ==========================================================
+# НОВАЯ ВЕРСИЯ ФУНКЦИИ MAIN
+# ==========================================================
 main() {
-    # Модель 1: Qwen3/Qwen3-1.7B
-    model_name_or_path=Qwen/Qwen3-1.7B
-    model_name=Qwen3-1.7B
-    echo "=== Обработка $model_name ==="
-    container_id=$(run_model \
-        $model_name_or_path \
-        $model_name \
-        "1")
-    ACTIVE_CONTAINER_ID="$container_id"
-    if [ $? -eq 0 ] && [ -n "$container_id" ]; then
-        run_tests \
-            $model_name_or_path \
-            $model_name \
-            "" \
-            "--disable_thinking"
+    # Читаем список моделей и их параметров в цикле.
+    # Каждая строка - это триплет: model_path, model_name, tp_size.
+    # Просто добавьте новую строку в блок EOF, чтобы обработать новую модель.
+    while read -r model_path model_name tp_size; do
+        # Пропускаем пустые строки или строки, начинающиеся с # (комментарии)
+        [[ -z "$model_path" || "$model_path" == \#* ]] && continue
+
+        echo ""
+        echo "========================================================"
+        echo "=== Обработка модели: $model_name"
+        echo "========================================================"
+
+        container_id=$(run_model "$model_path" "$model_name" "$tp_size")
         
-        run_tests \
-            $model_name_or_path \
-            $model_name \
-            "-think" \
-            ""
+        # Устанавливаем ID активного контейнера для очистки в случае прерывания
+        ACTIVE_CONTAINER_ID="$container_id" 
         
-        stop_container "$container_id"
-        ACTIVE_CONTAINER_ID=""
-    fi
-    
-    # Модель 2: Qwen3-32B
-    echo ""
-    model_name_or_path=/workdir/data/models/qwen3/Qwen3-32B
-    model_name=Qwen3-32B
-    echo "=== Обработка $model_name ==="
-    container_id=$(run_model \
-        $model_name_or_path \
-        $model_name \
-        "2")
-    ACTIVE_CONTAINER_ID="$container_id"
-    if [ $? -eq 0 ] && [ -n "$container_id" ]; then
-        run_tests \
-            $model_name_or_path \
-            $model_name \
-            "" \
-            "--disable_thinking"
-        
-        run_tests \
-            $model_name_or_path \
-            $model_name \
-            "-think" \
-            ""
-        
-        stop_container "$container_id"
-        ACTIVE_CONTAINER_ID=""
-    fi
+        if [ $? -eq 0 ] && [ -n "$container_id" ]; then
+            # Запускаем тесты без "мышления"
+            run_tests \
+                "$model_path" \
+                "$model_name" \
+                "" \
+                "--disable_thinking"
+            
+            # Запускаем тесты с "мышлением"
+            run_tests \
+                "$model_path" \
+                "$model_name" \
+                "-think" \
+                ""
+            
+            # Останавливаем контейнер после завершения тестов для текущей модели
+            stop_container "$container_id"
+            sleep 10
+            ACTIVE_CONTAINER_ID=""
+        else
+            echo "Не удалось запустить модель $model_name. Перехожу к следующей." >&2
+            # Сбрасываем ID, так как запуск не удался
+            ACTIVE_CONTAINER_ID=""
+        fi
+
+    done <<EOF
+# Формат: model_name_or_path                     model_name        tp_size
+/workdir/data/models/qwen3/QVikhr-3-4B-Instruction                              QVikhr-3-4B-Instruction        1
+Qwen/Qwen3-8B                              Qwen3-8B        1
+/workdir/data/models/qwen3/Qwen3-32B         Qwen3-32B         2
+# /path/to/your/next/model                     My-Cool-Model-7B  1
+EOF
 }
 
 # Запуск основного скрипта
 main
 
+echo ""
+echo "--- Вся обработка завершена ---"
 exit 0
