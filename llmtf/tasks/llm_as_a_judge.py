@@ -624,8 +624,9 @@ class LLMAsJudgeStyleControl(Task):
                 samples.append({'sample': sample_reverse})
                 messages.append({'messages': self._prepare_messages(sample_reverse, model, max_len)})
 
-        for m in messages:
-            m['tokens_of_interest'] = self.choices
+        if self.method == 'calculate_tokens_proba':
+            for m in messages:
+                m['tokens_of_interest'] = self.choices
         '''
         samples = [
             {
@@ -752,3 +753,257 @@ Which response is better? Respond with **only a single character** and no other 
             {'role': 'user', 'content': user_content},
         ]
         return messages
+
+
+class LLMAsJudgeGenStyleControl(LLMAsJudgeStyleControl):
+    """
+    Генеративная версия LLM as a Judge с детальной оценкой по трем критериям:
+    content, language, style с условной логикой оценки.
+    """
+    
+    def __init__(self, model_outputs: Dict, references_outputs: List[Dict], previous_battles_path: str='', custom_instruction=None, **kwargs):
+        super().__init__(model_outputs, references_outputs, previous_battles_path, custom_instruction, **kwargs)
+        self.method = 'generate'  # Используем генеративный подход
+        self._max_new_tokens = 2048  # Увеличиваем для JSON ответа
+    
+    def create_messages(self, sample: Dict, with_answer=False):
+        """Создает промпт для генеративной оценки с JSON выводом"""
+        instruction_system = 'You are a meticulous and impartial assistant designed to evaluate the quality of language model responses. Your task is to follow a strict, step-by-step evaluation procedure to determine the superior response using a point-wise scoring approach.'
+        
+        instruction_user = '''I will provide you with a prompt and two responses from models 'm' and 'M'. Your task is to evaluate each response independently across three criteria and provide detailed point-wise scores. The primary language of the content is Russian.
+
+**Prompt**:
+{instruction}
+
+**Model 'm' Response**:
+"""{output_m}"""
+
+**Model 'M' Response**:
+"""{output_M}"""
+
+---
+**Evaluation Criteria**
+
+You must evaluate **each response independently** (when you evaluate model m, you do not take into account the response of model M and vice versa!!!) on three criteria:
+
+**1. Content Quality**
+- Relevance and completeness: How accurately and thoroughly does the response address the user's prompt?
+- Factual accuracy and helpfulness: Are the provided facts correct? Does the response effectively solve the user's task?
+- Depth and creativity: Does the response provide insightful analysis or creative solutions?
+
+**2. Language Quality** 
+- Grammar and spelling: Is the text free of spelling, punctuation, or grammatical errors?
+- Fluency and naturalness: Does the text read smoothly and naturally in Russian? Is the word choice appropriate?
+- Clarity of expression: Is the language clear and easy to understand?
+
+**3. Style and Structure**
+- Readability and formatting: Is the text easy to read? Does it use paragraphs, lists, or formatting to improve clarity?
+- Tone appropriateness: Is the tone suitable for the context and audience?
+- Logical organization: Is the information presented in a clear and logical manner?
+
+---
+**Scoring Instructions**
+
+For each criterion and each response, provide:
+- **reasoning**: Brief justification (maximum 100 words)
+- **score**: Rating from 1 to 10 (where 10 is excellent, 1 is very poor)
+
+Then determine the final decision based on these rules:
+1. **Style is evaluated only** when content and language scores are equal
+2. **Language is evaluated** only when there's a significant difference (>2 points) OR when content scores are equal
+3. **Priority order**: Content > Language > Style
+
+---
+**Response Format**
+
+Respond with ONLY a JSON object in this exact format:
+
+{{
+  "content_m": {{"reasoning": "brief justification", "score": X}},
+  "language_m": {{"reasoning": "brief justification", "score": X}},
+  "style_m": {{"reasoning": "brief justification", "score": X}},
+  "content_M": {{"reasoning": "brief justification", "score": X}},
+  "language_M": {{"reasoning": "brief justification", "score": X}},
+  "style_M": {{"reasoning": "brief justification", "score": X}},
+  "decision": "m/M/T"
+}}'''
+
+        user_content = instruction_user.format(
+            instruction=sample['instruction'],
+            output_m=sample['output_m'],
+            output_M=sample['output_M']
+        )
+        
+        messages = [
+            {'role': 'system', 'content': instruction_system},
+            {'role': 'user', 'content': user_content},
+        ]
+        return messages
+    
+    def evaluate(self, sample, y_pred) -> Dict:
+        """
+        Обрабатывает генеративный ответ судьи и возвращает результат оценки
+        y_pred - это строка с JSON ответом от модели
+        """
+        try:
+            # Парсим JSON ответ
+            decision_result = self._parse_judge_response(y_pred, sample)
+            
+            # Определяем исход на основе решения
+            outcome = self._determine_outcome(decision_result['decision'], sample['model_label'])
+            
+            # Подготавливаем данные о стилях
+            model_mask_mapping = lambda x: 'model' if x == sample['model_label'] else 'reference'
+            styles = {
+                model_mask_mapping('m'): get_element_counts(sample['output_m']),
+                model_mask_mapping('M'): get_element_counts(sample['output_M'])
+            }
+
+            answers = {
+                model_mask_mapping('m'): sample['output_m'],
+                model_mask_mapping('M'): sample['output_M']
+            }
+            
+            return {
+                "score": {
+                    'outcome': outcome,
+                    'id': sample['id'],
+                    'model_name': sample['model_name'],
+                    'reference_model_name': sample['reference_model_name'],
+                    'styles': styles,
+                    'answers': answers,
+                    'detailed_scores': decision_result  # Добавляем детальные оценки
+                }
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Ошибка при обработке ответа судьи: {e}. Используем fallback.")
+            # Fallback к случайному решению при ошибке
+            return {
+                "score": {
+                    'outcome': "tie",
+                    'id': sample['id'],
+                    'model_name': sample['model_name'],
+                    'reference_model_name': sample['reference_model_name'],
+                    'styles': {
+                        'model': get_element_counts(sample['output_m'] if sample['model_label'] == 'm' else sample['output_M']),
+                        'reference': get_element_counts(sample['output_M'] if sample['model_label'] == 'm' else sample['output_m'])
+                    },
+                    'answers': {
+                        'model': sample['output_m'] if sample['model_label'] == 'm' else sample['output_M'],
+                        'reference': sample['output_M'] if sample['model_label'] == 'm' else sample['output_m']
+                    }
+                }
+            }
+    
+    def _parse_judge_response(self, response: str, sample: Dict) -> Dict:
+        """Парсит JSON ответ судьи"""
+        import json
+        import re
+        
+        # Попытка извлечь JSON из ответа
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group()
+            try:
+                data = json.loads(json_str)
+            except json.JSONDecodeError:
+                # Попытка исправить распространенные ошибки JSON
+                json_str = json_str.replace("'", '"')  # Заменяем одинарные кавычки
+                json_str = re.sub(r'(\w+):', r'"\1":', json_str)  # Добавляем кавычки к ключам
+                data = json.loads(json_str)
+        else:
+            raise ValueError("JSON не найден в ответе")
+        
+        # Извлекаем оценки
+        content_m = data.get('content_m', {}).get('score', 5)
+        content_M = data.get('content_M', {}).get('score', 5)
+        language_m = data.get('language_m', {}).get('score', 5)
+        language_M = data.get('language_M', {}).get('score', 5)
+        style_m = data.get('style_m', {}).get('score', 5)
+        style_M = data.get('style_M', {}).get('score', 5)
+        
+        # Применяем логику условной оценки
+        final_decision = self._calculate_decision(
+            content_m, content_M, language_m, language_M, style_m, style_M
+        )
+        
+        return {
+            'content_m': content_m,
+            'content_M': content_M,
+            'language_m': language_m,
+            'language_M': language_M,
+            'style_m': style_m,
+            'style_M': style_M,
+            'decision': final_decision,
+            'raw_data': data
+        }
+    
+    def _calculate_decision(self, content_m, content_M, language_m, language_M, style_m, style_M):
+        """Вычисление итогового решения с учетом условий"""
+        
+        # Определяем победителя по content
+        if content_m > content_M:
+            content_winner = 'm'
+        elif content_M > content_m:
+            content_winner = 'M'
+        else:
+            content_winner = 'T'
+        
+        # Определяем победителя по language
+        if language_m > language_M:
+            language_winner = 'm'
+        elif language_M > language_m:
+            language_winner = 'M'
+        else:
+            language_winner = 'T'
+        
+        # Определяем победителя по style
+        if style_m > style_M:
+            style_winner = 'm'
+        elif style_M > style_m:
+            style_winner = 'M'
+        else:
+            style_winner = 'T'
+        
+        # Применяем логику условной оценки
+        
+        # 1. Если есть явный победитель по content, он и побеждает (если нет существенного отличия по language)
+        language_diff = abs(language_m - language_M)
+        if content_winner != 'T' and language_diff <= 2:  # Несущественное отличие по language
+            return content_winner
+        
+        # 2. Если content одинаковый, учитываем language
+        if content_winner == 'T':
+            if language_winner != 'T':
+                return language_winner
+            # Если и content и language одинаковые, учитываем style
+            return style_winner
+        
+        # 3. Если есть существенное отличие по language при разном content
+        if language_diff > 2:
+            # Взвешиваем content и language
+            total_m = content_m + language_m
+            total_M = content_M + language_M
+            if total_m > total_M:
+                return 'm'
+            elif total_M > total_m:
+                return 'M'
+            else:
+                return style_winner
+        
+        # 4. Оценивать по Style только при одинаковых значениях по content и language
+        if content_winner == 'T' and language_winner == 'T':
+            return style_winner
+        
+        # По умолчанию возвращаем победителя по content
+        return content_winner
+    
+    def _determine_outcome(self, decision: str, model_label: str) -> str:
+        """Определяет исход на основе решения судьи"""
+        if decision == 'T':
+            return "tie"
+        elif decision == model_label:
+            return "model_wins"
+        else:
+            return "reference_wins"
