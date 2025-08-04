@@ -17,6 +17,8 @@ import random
 import torch
 import numpy as np
 import re
+from typing import List, Dict
+from sklearn.utils import resample
 
 
 def set_random_seed(seed):
@@ -90,6 +92,12 @@ class Evaluator(Base):
         
         task.logger.info(f'Results for {task.run_name()}:')
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
+
+        # bootstrapping
+        if hasattr(task, "n_bags"):
+            assert hasattr(task, "n_samples")
+            metrics_res.update(self._bootstrap(task, metrics))
+
         with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
             logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res)})
 
@@ -168,6 +176,12 @@ class Evaluator(Base):
 
         task.logger.info(f'Results for {task.run_name()}:')
         metrics_res = {'ppl': np.mean([m['ppl'] for m in metrics])}
+
+        # bootstrapping
+        if hasattr(task, "n_bags"):
+            assert hasattr(task, "n_samples")
+            metrics_res.update(self._bootstrap(task, metrics))
+
         with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
             logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': metrics_res['ppl']})
 
@@ -198,3 +212,24 @@ class Evaluator(Base):
         self.logger.info('\n' + '\t'.join(task_names) + '\n' + '\t'.join([f'{m:.3f}' for m in task_metrics]))
                 
 
+    def _bootstrap(self, task, metrics: List[Dict]):
+        aggregation = task.aggregation()
+        metrics_bags_res = {}
+        for metric in metrics[0].keys():
+            metrics_bags_res[metric] = []
+
+        for _ in range(task.n_bags):
+            metrics_bag = resample(metrics, replace=True, n_samples=task.n_samples) # random_state?
+            assert metrics_bag is not None
+            for metric in metrics[0].keys():
+                metrics_bags_res[metric].append(aggregation[metric]([m[metric] for m in metrics_bag]))
+
+        bootstrapped_metrics = {}
+        for metric in metrics[0].keys():
+            metric_bags_res_mean = np.mean(metrics_bags_res[metric])
+            metric_bags_res_std = np.std(metrics_bags_res[metric])
+            bootstrapped_metrics[metric + "_std"] = metric_bags_res_std
+            bootstrapped_metrics[metric + "_lower"] = metric_bags_res_mean - metric_bags_res_std
+            bootstrapped_metrics[metric + "_upper"] = metric_bags_res_mean + metric_bags_res_std
+
+        return bootstrapped_metrics
