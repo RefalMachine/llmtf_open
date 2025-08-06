@@ -172,14 +172,16 @@ class SimpleFewShotHFTask(Task):
         zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
         if zero_shot_messages_len >= max_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+
+        message_groups = [self.create_messages(copy.deepcopy(prompt_dataset[i]), with_answer=True) for i in range(k-1, -1, -1)]
+        message_groups.append(zero_shot_messages)
         
-        messages = zero_shot_messages
         for i in range(k):
-            few_shot_messages = self.create_messages(copy.deepcopy(prompt_dataset[i]), with_answer=True)
-            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(few_shot_messages + messages))
-            if few_shot_messages_len >= max_len:
-                break
-
-            messages = few_shot_messages + messages
-
-        return messages
+            messages = []
+            for group in message_groups[i:]:
+                messages += group
+            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
+            if few_shot_messages_len < max_len:
+                return messages
+        else:
+            return zero_shot_messages

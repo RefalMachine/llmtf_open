@@ -543,18 +543,18 @@ class RuOpinionNE(SimpleFewShotHFTask):
         zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
         if zero_shot_messages_len >= max_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+
+        message_groups = [self.create_messages(copy.deepcopy(prompt_dataset[i]), with_answer=True, full_instruct=(i==0)) for i in range(k)]
         
-        messages = []
         for i in range(k):
-            full_instruct = i == 0
-            few_shot_messages = self.create_messages(copy.deepcopy(prompt_dataset[i]), with_answer=True, full_instruct=full_instruct)
-            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages + few_shot_messages + zero_shot_messages))
-            if few_shot_messages_len >= max_len:
-                break
-
-            messages += few_shot_messages
-
-        return messages + zero_shot_messages
+            messages = []
+            for group in message_groups[:k-i]:
+                messages += group
+            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages + zero_shot_messages))
+            if few_shot_messages_len < max_len:
+                return messages + zero_shot_messages
+        else:
+            return zero_shot_messages
     
     def create_messages(self, sample, with_answer=False, full_instruct=True) -> List[Dict]:
         full_instruction = self.instruction
