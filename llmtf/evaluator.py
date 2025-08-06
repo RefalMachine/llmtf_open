@@ -212,7 +212,7 @@ class Evaluator(Base):
         self.logger.info('\n' + '\t'.join(task_names) + '\n' + '\t'.join([f'{m:.3f}' for m in task_metrics]))
                 
 
-    def _bootstrap(self, task, metrics: List[Dict]):
+    def _bootstrap(self, task, metrics: List[Dict]) -> Dict:
         aggregation = task.aggregation()
         metrics_bags_res = {}
         for metric in metrics[0].keys():
