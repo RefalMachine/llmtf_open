@@ -388,13 +388,27 @@ class LocalHostedLLM(LLM):
                 self.space_token = token_str[0]
                 self.leading_space = True
 
-    def _get_tokens_of_interest_ids_modify_prompt(self, messages, tokens_of_interest, incomplete_last_bot_message):
-        prompt = self.apply_model_prompt(messages, incomplete_last_bot_message=incomplete_last_bot_message)
-        tokens_of_interest_ids, add_space = self._calculate_tokens_of_interest_ids_and_addition_spaces(
-            prompt, tokens_of_interest)
-        if add_space:
-            prompt += ' '
-        return prompt, tokens_of_interest_ids
+    def _augment_tokens_of_interest(self, tokens_of_interest):
+        token_variants = []
+        for token_str in tokens_of_interest:
+            variants = []
+
+            tokens = self.tokenizer(token_str, add_special_tokens=False)['input_ids']
+            if len(tokens) == 1:
+                variants.append(tokens[0])
+
+            if token_str[0] != ' ':
+                augmented_token = ' ' + token_str
+            else:
+                augmented_token = token_str[1:]
+            augmented_token = self.tokenizer(augmented_token, add_special_tokens=False)['input_ids']
+
+            variants.append(augmented_token[0])
+
+            variants = list(set(variants))
+            token_variants.append(variants)
+
+        return token_variants
 
     def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
         _messages = []
@@ -405,46 +419,18 @@ class LocalHostedLLM(LLM):
                 _messages.append({'role': m['role'], 'content': m['content']})
 
         last_role = _messages[-1]['role']
-        add_generation_prompt = last_role == 'user' or (last_role == 'assistant' and not incomplete_last_bot_message)
+        add_generation_prompt = last_role == 'user'
 
         prompt = self.tokenizer.apply_chat_template(
             _messages,
             tokenize=False,
             add_generation_prompt=add_generation_prompt,
-            continue_final_message=incomplete_last_bot_message
+            continue_final_message=incomplete_last_bot_message and last_role == 'assistant'
         )
         return prompt
 
     def count_tokens_for_prompt(self, prompt):
         return len(self.tokenizer(prompt, add_special_tokens=False)['input_ids'])
-
-    def _calculate_tokens_of_interest_ids_and_addition_spaces(self, prompt, tokens_of_interest):
-        assert prompt[-1] != ' '
-
-        shift = len(self.tokenizer(prompt, add_special_tokens=False).input_ids)
-        tokens_of_interest_ids = []
-        add_spaces = []
-        for token_str in tokens_of_interest:
-            # print(token_str)
-            if prompt.endswith('\n'):
-                prompt_check = prompt + token_str
-            else:
-                prompt_check = prompt + ' ' + token_str
-            tokens_rest = self.tokenizer(prompt_check, add_special_tokens=False).input_ids[shift:]
-            skip = 0
-            is_ok = False
-            for token in tokens_rest:
-                if len(self.tokenizer.decode([token]).strip()) > 0 and token_str.startswith(self.tokenizer.decode([token]).strip()):
-                    is_ok = True
-                    break
-                skip += 1
-
-            assert skip <= 1 and is_ok
-            tokens_of_interest_ids.append(token)
-            add_spaces.append(skip > 0)
-        assert sum(add_spaces) == 0 or sum(add_spaces) == len(add_spaces)
-        assert len(tokens_of_interest_ids) == len(set(tokens_of_interest_ids))
-        return tokens_of_interest_ids, add_spaces[0]
 
     def _init_default_gen_params(self):
         self.generation_config.bos_token_id = self.tokenizer.bos_token_id
@@ -637,10 +623,11 @@ class HFModel(LocalHostedLLM):
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
         prompts_batch = []
         tokens_of_interest_ids_batch = []
-        for _messages, _tokens_of_interest in zip(*[messages, tokens_of_interest]):
-            prompt, tokens_of_interest_ids = self._get_tokens_of_interest_ids_modify_prompt(_messages, _tokens_of_interest, incomplete_last_bot_message)
+        for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
+            prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
             prompts_batch.append(prompt)
-            tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
+            token_variants = self._augment_tokens_of_interest(_tokens_of_interest)
+            tokens_of_interest_ids_batch.append(token_variants)
 
         data = self.tokenizer(
             prompts_batch, return_tensors="pt", truncation=True, padding=True,
@@ -651,24 +638,25 @@ class HFModel(LocalHostedLLM):
 
         with torch.no_grad():
             outputs = self.model(**data)
-        # shape (batch_size, sequence_length, vocab_size)
         logits = outputs.logits
-        # shape (batch_size, vocab_size)
         next_token_logits_batch = logits[:, -1, :]
 
         probs_batch = []
         infos = []
         for batch_idx in range(next_token_logits_batch.shape[0]):
-            next_token_logits = next_token_logits_batch[batch_idx]
-            next_token_logits = next_token_logits.flatten()
-            assert next_token_logits.shape == torch.Size((self.model.config.vocab_size, ))
-
+            next_token_logits = next_token_logits_batch[batch_idx].flatten()
             next_token_probs = torch.nn.functional.softmax(next_token_logits, dim=-1).cpu()
-            assert torch.isclose(next_token_probs.sum(), torch.tensor(1.0).to(next_token_probs.dtype), atol=1e-03)
 
-            probs = next_token_probs[tokens_of_interest_ids_batch[batch_idx]].tolist()
-            probs = dict(zip(tokens_of_interest[batch_idx], probs))
-            probs_batch.append(probs)
+            token_probs = {}
+            for token_str, variants in zip(tokens_of_interest[batch_idx], tokens_of_interest_ids_batch[batch_idx]):
+                max_prob = 0.0
+                for var_id in variants:
+                    prob = next_token_probs[var_id].item()
+                    if prob > max_prob:
+                        max_prob = prob
+                token_probs[token_str] = max_prob
+
+            probs_batch.append(token_probs)
 
             infos.append(
                 {
@@ -896,15 +884,19 @@ class VLLMModel(LocalHostedLLM):
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
         if len(messages) > 1 and self.attn_backend == FlashAttentionBackend:
             if not self.special_attn_warning_complete:
-                self.logger.warning('Flash Attention 2 most probably can work incorrectly with logproba and batch size > 1 (because of padding).\nHighly recommended to use Xformer backend in this case (set VLLM_ATTENTION_BACKEND env var to XFORMERS) or batch size=1.')
+                self.logger.warning(
+                    'Flash Attention 2 most probably can work incorrectly with logproba and batch size > 1 '
+                    '(because of padding).\nHighly recommended to use Xformer backend in this case '
+                    '(set VLLM_ATTENTION_BACKEND env var to XFORMERS) or batch size=1.'
+                )
                 self.special_attn_warning_complete = True
 
         prompts_tokens_batch = []
         tokens_of_interest_ids_batch = []
-        for _messages, _tokens_of_interest in zip(*[messages, tokens_of_interest]):
-            prompt, tokens_of_interest_ids = self._get_tokens_of_interest_ids_modify_prompt(_messages, _tokens_of_interest, incomplete_last_bot_message)
+        for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
+            prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
             prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=self.generation_config.max_length)['input_ids'])
-            tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
+            tokens_of_interest_ids_batch.append(self._augment_tokens_of_interest(_tokens_of_interest))
 
         sampling_params = SamplingParams(
             temperature=0,
@@ -916,24 +908,40 @@ class VLLMModel(LocalHostedLLM):
         prompts_vllm = []
         probs_batch = []
         infos = []
-        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
-        for i, response in enumerate(vllm_responses):
-            infos.append(
-                {
-                    'prompt_len': len(response.prompt_token_ids),
-                    'generated_len': len(response.outputs[0].token_ids),
-                    'generated_cumulative_logprob': response.outputs[0].cumulative_logprob,
-                    'generated_token': response.outputs[0].text
-                }
-            )
-            prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
 
+        vllm_responses = self.model.generate(
+            prompt_token_ids=prompts_tokens_batch,
+            sampling_params=sampling_params,
+            use_tqdm=False,
+            lora_request=self._get_lora_request()
+        )
+
+        for i, response in enumerate(vllm_responses):
             logprobs = response.outputs[0].logprobs[-1]
-            tokens = [lp for lp in logprobs]
-            probs = np.exp([logprobs[lp].logprob for lp in logprobs])
-            token2prob = {tokens[i]: probs[i] for i in range(len(tokens))}
-            token2prob = {tokens_of_interest[i][j]: token2prob[token] if token in token2prob else 0.0 for j, token in enumerate(tokens_of_interest_ids_batch[i])}
-            probs_batch.append(token2prob)
+
+            token2prob_by_id = {}
+            for token_rep, lp in logprobs.items():
+                token_id = token_rep
+                token2prob_by_id[token_id] = np.exp(lp.logprob)
+
+            result_probs = {}
+            for token_str, variant_ids in zip(tokens_of_interest[i], tokens_of_interest_ids_batch[i]):
+                max_prob = 0.0
+                for var_id in variant_ids:
+                    if var_id in token2prob_by_id:
+                        prob = token2prob_by_id[var_id]
+                        if prob > max_prob:
+                            max_prob = prob
+                result_probs[token_str] = max_prob
+
+            probs_batch.append(result_probs)
+            prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))
+            infos.append({
+                'prompt_len': len(response.prompt_token_ids),
+                'generated_len': len(response.outputs[0].token_ids),
+                'generated_cumulative_logprob': response.outputs[0].cumulative_logprob,
+                'generated_token': response.outputs[0].text
+            })
 
         return prompts_vllm, probs_batch, infos
 
