@@ -41,7 +41,23 @@ class Evaluator(Base):
         assert issubclass(task_cls, Task)
         TASK_REGISTRY[task_name] = {'class': task_cls, 'params': task_params}
 
-    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False, name_suffix=None):
+    def evaluate(
+        self,
+        model,
+        output_dir,
+        datasets_names='all',
+        max_len=4096,
+        few_shot_count=5,
+        generation_config=None,
+        batch_size=1,
+        max_sample_per_dataset=100000000,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True,
+        force_recalc=False,
+        name_suffix=None
+    ):
         set_out_handler_to_main_logger(output_dir)
         try:
             if generation_config is not None:
@@ -62,7 +78,20 @@ class Evaluator(Base):
 
                 # MaxLenContext changes model.generation_config.max_new_tokens param based on task.max_new_tokens
                 with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
-                    self.evaluate_dataset(task, model, output_dir, prompt_max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
+                    self.evaluate_dataset(
+                        task,
+                        model,
+                        output_dir,
+                        prompt_max_len,
+                        few_shot_count,
+                        generation_config,
+                        batch_size,
+                        max_sample_per_dataset,
+                        enable_thinking,
+                        add_reasoning_truncing_prompt,
+                        add_reasoning_info,
+                        add_assistant_prompt_to_output
+                    )
 
             self.logger.info(f'Ended eval')
             self.create_report(output_dir)
@@ -70,7 +99,21 @@ class Evaluator(Base):
             self.logger.error(e)
             self.logger.error(traceback.format_exc()) 
         
-    def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset):
+    def evaluate_dataset(
+        self,
+        task,
+        model,
+        output_dir,
+        max_len,
+        few_shot_count,
+        generation_config,
+        batch_size,
+        max_sample_per_dataset,
+        enable_thinking,
+        add_reasoning_truncing_prompt,
+        add_reasoning_info,
+        add_assistant_prompt_to_output
+    ):
         model.add_stop_strings(task.additional_stop_strings)
         with CustomTimer(task.logger, 'Loading Dataset'):
             messages, samples = task.load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
@@ -84,6 +127,11 @@ class Evaluator(Base):
                     messages_batch['generation_config'] = generation_config
                 for k, v in task.method_additional_args.items():
                     messages_batch[k] = v
+                if task.method == 'generate':
+                    messages_batch['enable_thinking'] = enable_thinking
+                    messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
+                    messages_batch['add_reasoning_info'] = add_reasoning_info
+                    messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
 
                 prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
                 for j in range(len(y_preds)):

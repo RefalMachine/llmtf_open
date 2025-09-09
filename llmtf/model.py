@@ -27,23 +27,23 @@ except:
 
 
 class ApiVLLMModel(LLM):
-    def __init__(self, api_base, enable_thinking=True, **kwargs):
+    def __init__(self, api_base, api_key=None, **kwargs):
         super().__init__(**kwargs)
         # requests.packages.urllib3.util.connection.HAS_IPV6 = False
         self.logger.info('ATTENTION! Hosting vLLM server must have vllm 0.6.3+')
         self.api_base = api_base
         self.num_procs = os.getenv('OPENAI_MAX_CONCURRENCY', 20)
-        self.api_key = os.getenv('OPENAI_API_KEY', '123')
+        self.api_key = api_key if api_base else os.getenv('OPENAI_API_KEY', '123')
         self.model_name = None
         self.max_model_len = None
         self.generation_config = None
-        self.enable_thinking = enable_thinking
         self._tokenize_warning_shown = False
 
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']
 
-    def from_pretrained(self, model_dir=None):
+    def from_pretrained(self, model_dir=None, end_thinking_token_id=None):
+        self.end_thinking_token_id = end_thinking_token_id
         url = self.api_base + '/v1/models'
         r = requests.get(url, headers={'Authorization': 'Bearer ' + self.api_key})
         if r.status_code != 200:
@@ -72,7 +72,37 @@ class ApiVLLMModel(LLM):
         self.eos_token_ids_base = copy.deepcopy(self.generation_config.eos_token_id)
         self.stop_strings_base = copy.deepcopy(self.generation_config.stop_strings)
 
-    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+    def generate(
+        self,
+        messages,
+        generation_config=None,
+        incomplete_last_bot_message=True,
+        return_tokens=False,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=True,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True
+    ):
+        prompts, outputs, infos = self.generate_batch(
+            [messages],
+            generation_config=generation_config,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            return_tokens=return_tokens,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            add_assistant_prompt_to_output=add_assistant_prompt_to_output
+        )
+        return prompts[0], outputs[0], infos[0]
+
+    def _generate(
+        self,
+        messages,
+        generation_config,
+        incomplete_last_bot_message,
+        return_tokens,
+        enable_thinking
+    ):
         if return_tokens:
             raise NotImplementedError
 
@@ -80,6 +110,20 @@ class ApiVLLMModel(LLM):
         last_role = messages[-1]['role']
 
         generation_config = self.generation_config if generation_config is None else generation_config
+        if enable_thinking and not self.end_thinking_token_id:
+            r = requests.post(
+                f'{self.api_base}/tokenize',
+                json={
+                    'prompt': '</think>',
+                    'model': self.model_name
+                }
+            )
+
+            if r.status_code == 200:
+                self.end_thinking_token_id = r.json()["tokens"][0]
+            else:
+                print(r.text)
+                raise Exception('Unable to get </think> token id. Make sure your endpoint supports tokenizer requests or manually set </think> token id when calling from_pretrained function.')
         num_return_sequences = generation_config.num_return_sequences if generation_config.num_return_sequences is not None else 1
         completion_tokens = []
         outputs = []
@@ -89,17 +133,19 @@ class ApiVLLMModel(LLM):
                 json={
                     'messages': messages,
                     'model': self.model_name,
-                    'max_tokens': generation_config.max_new_tokens,
+                    'max_tokens': generation_config.max_new_tokens_reasoning if enable_thinking else generation_config.max_new_tokens,
                     'temperature': generation_config.temperature if generation_config.do_sample else 0.0,
                     'top_p': generation_config.top_p,
                     'top_k': generation_config.top_k,
                     'repetition_penalty': generation_config.repetition_penalty,
                     'stop': generation_config.stop_strings,
+                    'stop_token_ids': [self.end_thinking_token_id] if enable_thinking else None,
                     'n': 1,
                     'add_generation_prompt': last_role == 'user',
                     'skip_special_tokens': False,
                     'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
-                    "chat_template_kwargs": {"enable_thinking": self.enable_thinking}
+                    'include_stop_str_in_output': enable_thinking,
+                    'chat_template_kwargs': {'enable_thinking': enable_thinking}
                 },
                 headers={'Authorization': 'Bearer ' + self.api_key}
             )
@@ -121,11 +167,128 @@ class ApiVLLMModel(LLM):
         }
         return messages, outputs, info
 
-    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+    def generate_batch(
+        self,
+        messages,
+        generation_config=None,
+        incomplete_last_bot_message=True,
+        return_tokens=False,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=True,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True
+    ):
+        generation_config = self.generation_config if generation_config is None else generation_config
+        if not enable_thinking:
+            return self._generate_batch(
+                messages,
+                generation_config=generation_config,
+                incomplete_last_bot_message=incomplete_last_bot_message,
+                return_tokens=return_tokens,
+                enable_thinking=False,
+                skip_special_tokens=True
+            )
+
+        prompt_messages = []
+        assistant_messages = []
+        for _messages in messages:
+            for i in range(len(_messages) - 1, -1, -1):
+                if _messages[i]["role"] not in ["assistant", "bot"]:
+                    prompt_messages.append(_messages[:i + 1])
+                    assistant_messages.append(_messages[i + 1:])
+                    break
+
+        reasoning_prompts, reasoning_outputs, reasoning_infos = self._generate_batch(
+            prompt_messages,
+            generation_config=generation_config,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            return_tokens=False,
+            enable_thinking=True,
+            skip_special_tokens=False
+        )
+
+        if add_reasoning_truncing_prompt:
+            if hasattr(generation_config, "reasoning_truncing_prompt"):
+                reasoning_truncing_prompt = generation_config.reasoning_truncing_prompt
+            else:
+                reasoning_truncing_prompt = "\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n"
+
+        updated_messages = []
+        for i, _messages in enumerate(prompt_messages):
+            reasoning_text = reasoning_outputs[i]
+
+            stopped_by_length = reasoning_infos[i]["generated_len"][0] >= generation_config.max_new_tokens_reasoning and not reasoning_text.endswith("</think>")
+
+            stopped_by_think = False
+            if "</think>" in reasoning_text:
+                stopped_by_think = True
+                if not reasoning_text.endswith("</think>"):
+                    raise Exception(f'Unexpected generation: </think> token is present but generation did not stop.\nReasoning text: "{reasoning_text}"')
+            if not (stopped_by_think or stopped_by_length):
+                    raise Exception(f'Unexpected generation: stopped by neither </think> token nor length limit.\nReasoning text: "{reasoning_text}"')
+
+            if stopped_by_length:
+                if add_reasoning_truncing_prompt:
+                    reasoning_text += reasoning_truncing_prompt
+                reasoning_text += "</think>"
+            reasoning_outputs[i] = reasoning_text
+
+            new_messages = [msg.copy() for msg in _messages]
+            new_messages.append({
+                'role': 'bot',
+                'content': reasoning_text
+            })
+            new_messages.extend(assistant_messages[i])
+            updated_messages.append(new_messages)
+
+        final_prompts, final_outputs, final_infos = self._generate_batch(
+            updated_messages,
+            generation_config=generation_config,
+            incomplete_last_bot_message=True,
+            return_tokens=return_tokens,
+            enable_thinking=False,
+            skip_special_tokens=True
+        )
+
+        if add_assistant_prompt_to_output:
+            for i in range(len(assistant_messages)):
+                assistant_prompt = "".join(list(map(lambda x: x["content"], assistant_messages[i])))
+                final_outputs[i] = assistant_prompt + final_outputs[i]
+
+        infos = []
+        for i in range(len(messages)):
+            info = {
+                'reasoning': {
+                    'prompt_len': reasoning_infos[i]['prompt_len'],
+                    'generated_len': reasoning_infos[i]['generated_len'],
+                    'generated_cumulative_logprob': reasoning_infos[i]['generated_cumulative_logprob']
+                },
+                'response': {
+                    'prompt_len': final_infos[i]['prompt_len'],
+                    'generated_len': final_infos[i]['generated_len'],
+                    'generated_cumulative_logprob': final_infos[i]['generated_cumulative_logprob']
+                }
+            }
+            if add_reasoning_info:
+                info['reasoning']['text'] = reasoning_outputs[i]
+            infos.append(info)
+
+        return reasoning_prompts, final_outputs, infos
+
+    def _generate_batch(
+        self,
+        messages,
+        generation_config,
+        incomplete_last_bot_message,
+        return_tokens,
+        enable_thinking,
+        skip_special_tokens
+    ):
         kwargs = {
             'generation_config': generation_config,
             'incomplete_last_bot_message': incomplete_last_bot_message,
-            'return_tokens': return_tokens
+            'return_tokens': return_tokens,
+            'enable_thinking': enable_thinking
         }
 
         # Список для хранения результатов в правильном порядке
@@ -135,7 +298,7 @@ class ApiVLLMModel(LLM):
             # Создаем словарь для сопоставления future с исходным индексом
             # Это нужно, чтобы сохранить исходный порядок результатов
             future_to_idx = {
-                executor.submit(self.generate, msg, **kwargs): i
+                executor.submit(self._generate, msg, **kwargs): i
                 for i, msg in enumerate(messages)
             }
 
@@ -276,7 +439,7 @@ class ApiVLLMModel(LLM):
         assert _messages[-1]['role'] in ['assistant', 'user']
         return _messages
 
-    def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
+    def apply_model_prompt(self, messages, incomplete_last_bot_message=True, add_think_token=False):
         if self._tokenize_warning_shown:
             return 0
         _messages = self._preprocess_messages(messages)
@@ -288,7 +451,7 @@ class ApiVLLMModel(LLM):
                 'model': self.model_name,
                 'add_generation_prompt': last_role == 'user',
                 'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
-                'chat_template_kwargs': {'enable_thinking': self.enable_thinking}
+                'chat_template_kwargs': {'enable_thinking': add_think_token}
             }
         )
         if r.status_code != 200:
@@ -410,7 +573,7 @@ class LocalHostedLLM(LLM):
 
         return token_variants
 
-    def apply_model_prompt(self, messages, incomplete_last_bot_message=True):
+    def apply_model_prompt(self, messages, incomplete_last_bot_message=True, add_think_token=False):
         _messages = []
         for m in messages:
             if m['role'] == 'bot':
@@ -425,8 +588,10 @@ class LocalHostedLLM(LLM):
             _messages,
             tokenize=False,
             add_generation_prompt=add_generation_prompt,
-            continue_final_message=incomplete_last_bot_message and last_role == 'assistant'
+            continue_final_message=incomplete_last_bot_message and last_role == 'assistant',
+            enable_thinking=add_think_token
         )
+
         return prompt
 
     def count_tokens_for_prompt(self, prompt):
@@ -534,16 +699,150 @@ class HFModel(LocalHostedLLM):
             'max_model_len': self.get_max_model_len()
         }
 
-    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
-        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message, return_tokens=return_tokens)
+    def generate(
+        self,
+        messages,
+        generation_config=None,
+        incomplete_last_bot_message=True,
+        return_tokens=False,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=True,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True
+    ):
+        prompts, outputs, infos = self.generate_batch(
+            [messages],
+            generation_config=generation_config,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            return_tokens=return_tokens,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            add_assistant_prompt_to_output=add_assistant_prompt_to_output
+        )
         return prompts[0], outputs[0], infos[0]
 
-    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False):
+    def generate_batch(
+        self,
+        messages,
+        generation_config=None,
+        incomplete_last_bot_message=True,
+        return_tokens=False,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=True,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True
+    ):
         generation_config = self.generation_config if generation_config is None else generation_config
+        if not enable_thinking:
+            return self._generate_batch(
+                messages,
+                generation_config=generation_config,
+                incomplete_last_bot_message=incomplete_last_bot_message,
+                return_tokens=return_tokens,
+                enable_thinking=False,
+                skip_special_tokens=True
+            )
+
+        prompt_messages = []
+        assistant_messages = []
+        for _messages in messages:
+            for i in range(len(_messages) - 1, -1, -1):
+                if _messages[i]["role"] not in ["assistant", "bot"]:
+                    prompt_messages.append(_messages[:i + 1])
+                    assistant_messages.append(_messages[i + 1:])
+                    break
+
+        reasoning_prompts, reasoning_outputs, reasoning_infos = self._generate_batch(
+            prompt_messages,
+            generation_config=generation_config,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            return_tokens=False,
+            enable_thinking=True,
+            skip_special_tokens=False
+        )
+
+        if add_reasoning_truncing_prompt:
+            if hasattr(generation_config, "reasoning_truncing_prompt"):
+                reasoning_truncing_prompt = generation_config.reasoning_truncing_prompt
+            else:
+                reasoning_truncing_prompt = "\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n"
+
+        updated_messages = []
+        for i, _messages in enumerate(prompt_messages):
+            reasoning_text = reasoning_outputs[i]
+
+            stopped_by_length = reasoning_infos[i]["generated_len"][0] >= generation_config.max_new_tokens_reasoning and not reasoning_text.endswith("</think>")
+
+            stopped_by_think = False
+            if "</think>" in reasoning_text:
+                stopped_by_think = True
+                if not reasoning_text.endswith("</think>"):
+                    raise Exception(f'Unexpected generation: </think> token is present but generation did not stop.\nReasoning text: "{reasoning_text}"')
+            if not (stopped_by_think or stopped_by_length):
+                    raise Exception(f'Unexpected generation: stopped by neither </think> token nor length limit.\nReasoning text: "{reasoning_text}"')
+
+            if stopped_by_length:
+                if add_reasoning_truncing_prompt:
+                    reasoning_text += reasoning_truncing_prompt
+                reasoning_text += "</think>"
+            reasoning_outputs[i] = reasoning_text
+
+            new_messages = [msg.copy() for msg in _messages]
+            new_messages.append({
+                'role': 'bot',
+                'content': reasoning_text
+            })
+            new_messages.extend(assistant_messages[i])
+            updated_messages.append(new_messages)
+
+        final_prompts, final_outputs, final_infos = self._generate_batch(
+            updated_messages,
+            generation_config=generation_config,
+            incomplete_last_bot_message=True,
+            return_tokens=return_tokens,
+            enable_thinking=False,
+            skip_special_tokens=True
+        )
+
+        if add_assistant_prompt_to_output:
+            for i in range(len(assistant_messages)):
+                assistant_prompt = "".join(list(map(lambda x: x["content"], assistant_messages[i])))
+                final_outputs[i] = assistant_prompt + final_outputs[i]
+
+        infos = []
+        for i in range(len(messages)):
+            info = {
+                'reasoning': {
+                    'prompt_len': reasoning_infos[i]['prompt_len'],
+                    'generated_len': reasoning_infos[i]['generated_len'],
+                    'generated_cumulative_logprob': reasoning_infos[i]['generated_cumulative_logprob']
+                },
+                'response': {
+                    'prompt_len': final_infos[i]['prompt_len'],
+                    'generated_len': final_infos[i]['generated_len'],
+                    'generated_cumulative_logprob': final_infos[i]['generated_cumulative_logprob']
+                }
+            }
+            if add_reasoning_info:
+                info['reasoning']['text'] = reasoning_outputs[i]
+            infos.append(info)
+
+        return reasoning_prompts, final_outputs, infos
+
+    def _generate_batch(
+        self,
+        messages,
+        generation_config,
+        incomplete_last_bot_message,
+        return_tokens,
+        enable_thinking,
+        skip_special_tokens
+    ):
         prompts = []
         for _messages in messages:
-            prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message))
-        data = self.tokenizer(
+            prompts.append(self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message, add_think_token=enable_thinking))
+        tokens = self.tokenizer(
             prompts,
             return_tensors="pt",
             truncation=True,
@@ -551,9 +850,19 @@ class HFModel(LocalHostedLLM):
             max_length=generation_config.max_length,
             padding=True
         )
-        data = {k: v.to(self.model.device) for k, v in data.items()}
+        data = {k: v.to(self.model.device) for k, v in tokens.items()}
 
         # TODO: upgrade to 4.40+ version with propper testing
+
+        if enable_thinking:
+            max_new_tokens = generation_config.max_new_tokens
+            generation_config.max_new_tokens = generation_config.max_new_tokens_reasoning
+
+            if not hasattr(self, "end_thinking_token_id"):
+                self.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
+            eos_token_id = generation_config.eos_token_id
+            generation_config.eos_token_id = self.end_thinking_token_id
+
         stop_strings = generation_config.stop_strings
         generation_config.stop_strings = None
         with torch.no_grad():
@@ -562,6 +871,15 @@ class HFModel(LocalHostedLLM):
                 generation_config=generation_config
             )
         generation_config.stop_strings = stop_strings
+
+        if enable_thinking:
+            generation_config.max_new_tokens = max_new_tokens
+            generation_config.eos_token_id = eos_token_id
+
+        stop_strings = (generation_config.stop_strings if generation_config.stop_strings else []).copy()
+        if enable_thinking:
+            stop_strings.append('<|endoftext|>')
+
         output_ids = output_ids.view(len(messages), -1, output_ids.shape[-1])
 
         outputs = []
@@ -572,8 +890,11 @@ class HFModel(LocalHostedLLM):
             prompt_len = int(data["attention_mask"][batch_idx].cpu().detach().sum())
             for sample_output_ids in sample_output_ids_all:
                 sample_output_ids = sample_output_ids[len(sample_input_ids):]
+
                 if return_tokens:
                     generated_ids = sample_output_ids.cpu().detach().tolist()
+
+                    # OUTDATED. Use stop_strings
                     eos_tokens = [self.tokenizer.eos_token_id]
                     if generation_config.eos_token_id is not None:
                         eos_tokens += generation_config.eos_token_id if type(generation_config.eos_token_id) == list else [generation_config.eos_token_id]
@@ -584,7 +905,7 @@ class HFModel(LocalHostedLLM):
 
                     # TODO: better stop strings tructation.
                     generated_tokens = [self.tokenizer.convert_tokens_to_string([t]) for t in self.tokenizer.convert_ids_to_tokens(generated_ids)]
-                    for stop_string in generation_config.stop_strings:
+                    for stop_string in stop_strings:
                         if stop_string in ''.join(generated_tokens):
                             for token_i, token in enumerate(generated_tokens):
                                 if stop_string in token:
@@ -593,10 +914,10 @@ class HFModel(LocalHostedLLM):
                     if len(generated_tokens) != len(generated_ids):
                         generated_ids = generated_ids[:len(generated_tokens)]
 
-                    sample_output_all.append({'tokens': generated_ids, 'text': self.tokenizer.decode(generated_ids, skip_special_tokens=True)})
+                    sample_output_all.append({'tokens': generated_ids, 'text': self.tokenizer.decode(generated_ids, skip_special_tokens=skip_special_tokens)})
                 else:
-                    sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=True)
-                    for stop_string in generation_config.stop_strings:
+                    sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=skip_special_tokens)
+                    for stop_string in stop_strings:
                         if stop_string in sample_output:
                             sample_output = sample_output[:sample_output.find(stop_string)]
                     sample_output_all.append(sample_output)
@@ -826,31 +1147,195 @@ class VLLMModel(LocalHostedLLM):
         self.attn_backend = self.model.llm_engine.model_executor.driver_worker.model_runner.attn_backend
         self.special_attn_warning_complete = False
 
-    def generate(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False, allowed_token_ids=None):
-        prompts, outputs, infos = self.generate_batch([messages], generation_config=generation_config, incomplete_last_bot_message=incomplete_last_bot_message, return_tokens=return_tokens, allowed_token_ids=[allowed_token_ids])
+    def generate(
+        self,
+        messages,
+        generation_config=None,
+        incomplete_last_bot_message=True,
+        return_tokens=False,
+        allowed_token_ids=None,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=True,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True
+    ):
+        prompts, outputs, infos = self.generate_batch(
+            [messages],
+            generation_config=generation_config,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            return_tokens=return_tokens,
+            allowed_token_ids=[allowed_token_ids],
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            add_assistant_prompt_to_output=add_assistant_prompt_to_output
+        )
         return prompts[0], outputs[0], infos[0]
 
-    def generate_batch(self, messages, generation_config=None, incomplete_last_bot_message=True, return_tokens=False, allowed_token_ids=None):
+    def generate_batch(
+        self,
+        messages,
+        generation_config=None,
+        incomplete_last_bot_message=True,
+        return_tokens=False,
+        allowed_token_ids=None,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=True,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True
+    ):
+        generation_config = self.generation_config if generation_config is None else generation_config
+        if not enable_thinking:
+            return self._generate_batch(
+                messages,
+                generation_config=generation_config,
+                incomplete_last_bot_message=incomplete_last_bot_message,
+                return_tokens=return_tokens,
+                allowed_token_ids=allowed_token_ids,
+                enable_thinking=False,
+                skip_special_tokens=True
+            )
+
+        prompt_messages = []
+        assistant_messages = []
+        for _messages in messages:
+            for i in range(len(_messages) - 1, -1, -1):
+                if _messages[i]["role"] not in ["assistant", "bot"]:
+                    prompt_messages.append(_messages[:i + 1])
+                    assistant_messages.append(_messages[i + 1:])
+                    break
+
+        reasoning_prompts, reasoning_outputs, reasoning_infos = self._generate_batch(
+            prompt_messages,
+            generation_config=generation_config,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            return_tokens=False,
+            allowed_token_ids=allowed_token_ids,
+            enable_thinking=True,
+            skip_special_tokens=False
+        )
+
+        if add_reasoning_truncing_prompt:
+            if hasattr(generation_config, "reasoning_truncing_prompt"):
+                reasoning_truncing_prompt = generation_config.reasoning_truncing_prompt
+            else:
+                reasoning_truncing_prompt = "\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n"
+
+        updated_messages = []
+        for i, _messages in enumerate(prompt_messages):
+            reasoning_text = reasoning_outputs[i]
+
+            stopped_by_length = reasoning_infos[i]["generated_len"][0] >= generation_config.max_new_tokens_reasoning and not reasoning_text.endswith("</think>")
+
+            stopped_by_think = False
+            if "</think>" in reasoning_text:
+                stopped_by_think = True
+                if not reasoning_text.endswith("</think>"):
+                    raise Exception(f'Unexpected generation: </think> token is present but generation did not stop.\nReasoning text: "{reasoning_text}"')
+            if not (stopped_by_think or stopped_by_length):
+                raise Exception(f'Unexpected generation: stopped by neither </think> token nor length limit.\nReasoning text: "{reasoning_text}"')
+
+            if stopped_by_length:
+                if add_reasoning_truncing_prompt:
+                    reasoning_text += reasoning_truncing_prompt
+                reasoning_text += "</think>"
+            reasoning_outputs[i] = reasoning_text
+
+            new_messages = [msg.copy() for msg in _messages]
+            new_messages.append({
+                'role': 'bot',
+                'content': reasoning_text
+            })
+            new_messages.extend(assistant_messages[i])
+            updated_messages.append(new_messages)
+
+        final_prompts, final_outputs, final_infos = self._generate_batch(
+            updated_messages,
+            generation_config=generation_config,
+            incomplete_last_bot_message=True,
+            return_tokens=return_tokens,
+            allowed_token_ids=allowed_token_ids,
+            enable_thinking=False,
+            skip_special_tokens=True
+        )
+
+        if add_assistant_prompt_to_output:
+            for i in range(len(assistant_messages)):
+                assistant_prompt = "".join(list(map(lambda x: x["content"], assistant_messages[i])))
+                final_outputs[i] = assistant_prompt + final_outputs[i]
+
+        infos = []
+        for i in range(len(messages)):
+            info = {
+                'reasoning': {
+                    'prompt_len': reasoning_infos[i]['prompt_len'],
+                    'generated_len': reasoning_infos[i]['generated_len'],
+                    'generated_cumulative_logprob': reasoning_infos[i]['generated_cumulative_logprob']
+                },
+                'response': {
+                    'prompt_len': final_infos[i]['prompt_len'],
+                    'generated_len': final_infos[i]['generated_len'],
+                    'generated_cumulative_logprob': final_infos[i]['generated_cumulative_logprob']
+                }
+            }
+            if add_reasoning_info:
+                info['reasoning']['text'] = reasoning_outputs[i]
+            infos.append(info)
+
+        return reasoning_prompts, final_outputs, infos
+
+    def _generate_batch(
+        self,
+        messages,
+        generation_config,
+        incomplete_last_bot_message,
+        return_tokens,
+        allowed_token_ids,
+        enable_thinking,
+        skip_special_tokens
+    ):
         prompts_tokens_batch = []
         allowed_token_ids_batch = [] if allowed_token_ids is not None else None
         for i, _messages in enumerate(messages):
-            prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
-            prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=self.generation_config.max_length)['input_ids'])
+            prompt = self.apply_model_prompt(
+                _messages,
+                incomplete_last_bot_message=incomplete_last_bot_message,
+                add_think_token=enable_thinking
+            )
+            # TODO: fix
+            prompts_tokens_batch.append(
+                self.tokenizer(
+                    prompt,
+                    add_special_tokens=False,
+                    truncation=True,
+                    max_length=self.generation_config.max_length
+                )['input_ids']
+            )
             if allowed_token_ids_batch is not None:
                 allowed_token_ids_batch += allowed_token_ids[i]
 
         if allowed_token_ids_batch is not None:
             allowed_token_ids_batch = list(set(allowed_token_ids_batch))
 
+        stop_token_ids = []
+        max_new_tokens = generation_config.max_new_tokens
+        if enable_thinking:
+            if not hasattr(self, "end_thinking_token_id"):
+                self.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
+            stop_token_ids = [self.end_thinking_token_id]
+            max_new_tokens = generation_config.max_new_tokens_reasoning
+
         generation_config = self.generation_config if generation_config is None else generation_config
         sampling_params = SamplingParams(
             temperature=generation_config.temperature,
             top_p=generation_config.top_p,
             top_k=generation_config.top_k,
-            max_tokens=generation_config.max_new_tokens,
+            max_tokens=max_new_tokens,
             repetition_penalty=generation_config.repetition_penalty,
             stop=generation_config.stop_strings,
-            n=generation_config.num_return_sequences  # ,
+            stop_token_ids=stop_token_ids,
+            n=generation_config.num_return_sequences,
+            include_stop_str_in_output=enable_thinking # ,
             # allowed_token_ids=allowed_token_ids_batch
         )
 
@@ -858,7 +1343,13 @@ class VLLMModel(LocalHostedLLM):
         outputs = []
         infos = []
 
-        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=True, lora_request=self._get_lora_request())
+        vllm_responses = self.model.generate(
+            prompt_token_ids=prompts_tokens_batch,
+            sampling_params=sampling_params,
+            use_tqdm=True,
+            lora_request=self._get_lora_request(),
+        )
+
         for response in vllm_responses:
             infos.append(
                 {
