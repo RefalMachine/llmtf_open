@@ -81,7 +81,8 @@ class ApiVLLMModel(LLM):
         enable_thinking=False,
         add_reasoning_truncing_prompt=True,
         add_reasoning_info=True,
-        add_assistant_prompt_to_output=True
+        add_assistant_prompt_to_output=True,
+        include_stop_str_in_output=False
     ):
         prompts, outputs, infos = self.generate_batch(
             [messages],
@@ -91,7 +92,8 @@ class ApiVLLMModel(LLM):
             enable_thinking=enable_thinking,
             add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
             add_reasoning_info=add_reasoning_info,
-            add_assistant_prompt_to_output=add_assistant_prompt_to_output
+            add_assistant_prompt_to_output=add_assistant_prompt_to_output,
+            include_stop_str_in_output=include_stop_str_in_output
         )
         return prompts[0], outputs[0], infos[0]
 
@@ -101,7 +103,8 @@ class ApiVLLMModel(LLM):
         generation_config,
         incomplete_last_bot_message,
         return_tokens,
-        enable_thinking
+        enable_thinking,
+        include_stop_str_in_output
     ):
         if return_tokens:
             raise NotImplementedError
@@ -144,7 +147,7 @@ class ApiVLLMModel(LLM):
                     'add_generation_prompt': last_role == 'user',
                     'skip_special_tokens': False,
                     'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
-                    'include_stop_str_in_output': enable_thinking,
+                    'include_stop_str_in_output': enable_thinking or include_stop_str_in_output,
                     'chat_template_kwargs': {'enable_thinking': enable_thinking}
                 },
                 headers={'Authorization': 'Bearer ' + self.api_key}
@@ -176,7 +179,8 @@ class ApiVLLMModel(LLM):
         enable_thinking=False,
         add_reasoning_truncing_prompt=True,
         add_reasoning_info=True,
-        add_assistant_prompt_to_output=True
+        add_assistant_prompt_to_output=True,
+        include_stop_str_in_output=False
     ):
         generation_config = self.generation_config if generation_config is None else generation_config
         if not enable_thinking:
@@ -186,7 +190,8 @@ class ApiVLLMModel(LLM):
                 incomplete_last_bot_message=incomplete_last_bot_message,
                 return_tokens=return_tokens,
                 enable_thinking=False,
-                skip_special_tokens=True
+                skip_special_tokens=True,
+                include_stop_str_in_output=include_stop_str_in_output
             )
 
         prompt_messages = []
@@ -204,7 +209,8 @@ class ApiVLLMModel(LLM):
             incomplete_last_bot_message=incomplete_last_bot_message,
             return_tokens=False,
             enable_thinking=True,
-            skip_special_tokens=False
+            skip_special_tokens=False,
+            include_stop_str_in_output=True
         )
 
         if add_reasoning_truncing_prompt:
@@ -247,7 +253,8 @@ class ApiVLLMModel(LLM):
             incomplete_last_bot_message=True,
             return_tokens=return_tokens,
             enable_thinking=False,
-            skip_special_tokens=True
+            skip_special_tokens=True,
+            include_stop_str_in_output=include_stop_str_in_output
         )
 
         if add_assistant_prompt_to_output:
@@ -282,13 +289,15 @@ class ApiVLLMModel(LLM):
         incomplete_last_bot_message,
         return_tokens,
         enable_thinking,
-        skip_special_tokens
+        skip_special_tokens,
+        include_stop_str_in_output
     ):
         kwargs = {
             'generation_config': generation_config,
             'incomplete_last_bot_message': incomplete_last_bot_message,
             'return_tokens': return_tokens,
-            'enable_thinking': enable_thinking
+            'enable_thinking': enable_thinking,
+            'include_stop_str_in_output': include_stop_str_in_output
         }
 
         # Список для хранения результатов в правильном порядке
@@ -708,7 +717,8 @@ class HFModel(LocalHostedLLM):
         enable_thinking=False,
         add_reasoning_truncing_prompt=True,
         add_reasoning_info=True,
-        add_assistant_prompt_to_output=True
+        add_assistant_prompt_to_output=True,
+        include_stop_str_in_output=False
     ):
         prompts, outputs, infos = self.generate_batch(
             [messages],
@@ -718,7 +728,8 @@ class HFModel(LocalHostedLLM):
             enable_thinking=enable_thinking,
             add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
             add_reasoning_info=add_reasoning_info,
-            add_assistant_prompt_to_output=add_assistant_prompt_to_output
+            add_assistant_prompt_to_output=add_assistant_prompt_to_output,
+            include_stop_str_in_output=include_stop_str_in_output
         )
         return prompts[0], outputs[0], infos[0]
 
@@ -731,7 +742,8 @@ class HFModel(LocalHostedLLM):
         enable_thinking=False,
         add_reasoning_truncing_prompt=True,
         add_reasoning_info=True,
-        add_assistant_prompt_to_output=True
+        add_assistant_prompt_to_output=True,
+        include_stop_str_in_output=False
     ):
         generation_config = self.generation_config if generation_config is None else generation_config
         if not enable_thinking:
@@ -741,7 +753,8 @@ class HFModel(LocalHostedLLM):
                 incomplete_last_bot_message=incomplete_last_bot_message,
                 return_tokens=return_tokens,
                 enable_thinking=False,
-                skip_special_tokens=True
+                skip_special_tokens=True,
+                include_stop_str_in_output=include_stop_str_in_output
             )
 
         prompt_messages = []
@@ -759,7 +772,8 @@ class HFModel(LocalHostedLLM):
             incomplete_last_bot_message=incomplete_last_bot_message,
             return_tokens=False,
             enable_thinking=True,
-            skip_special_tokens=False
+            skip_special_tokens=False,
+            include_stop_str_in_output=True
         )
 
         if add_reasoning_truncing_prompt:
@@ -802,7 +816,8 @@ class HFModel(LocalHostedLLM):
             incomplete_last_bot_message=True,
             return_tokens=return_tokens,
             enable_thinking=False,
-            skip_special_tokens=True
+            skip_special_tokens=True,
+            include_stop_str_in_output=include_stop_str_in_output
         )
 
         if add_assistant_prompt_to_output:
@@ -837,7 +852,8 @@ class HFModel(LocalHostedLLM):
         incomplete_last_bot_message,
         return_tokens,
         enable_thinking,
-        skip_special_tokens
+        skip_special_tokens,
+        include_stop_str_in_output
     ):
         prompts = []
         for _messages in messages:
@@ -894,22 +910,13 @@ class HFModel(LocalHostedLLM):
                 if return_tokens:
                     generated_ids = sample_output_ids.cpu().detach().tolist()
 
-                    # OUTDATED. Use stop_strings
-                    eos_tokens = [self.tokenizer.eos_token_id]
-                    if generation_config.eos_token_id is not None:
-                        eos_tokens += generation_config.eos_token_id if type(generation_config.eos_token_id) == list else [generation_config.eos_token_id]
-                    eos_tokens = list(set(eos_tokens))
-                    for eos_token in eos_tokens:
-                        if eos_token in generated_ids:
-                            generated_ids = generated_ids[:generated_ids.index(eos_token)]
-
                     # TODO: better stop strings tructation.
                     generated_tokens = [self.tokenizer.convert_tokens_to_string([t]) for t in self.tokenizer.convert_ids_to_tokens(generated_ids)]
                     for stop_string in stop_strings:
                         if stop_string in ''.join(generated_tokens):
                             for token_i, token in enumerate(generated_tokens):
                                 if stop_string in token:
-                                    generated_tokens = generated_tokens[:token_i]
+                                    generated_tokens = generated_tokens[:token_i + include_stop_str_in_output]
                                     break
                     if len(generated_tokens) != len(generated_ids):
                         generated_ids = generated_ids[:len(generated_tokens)]
@@ -919,7 +926,7 @@ class HFModel(LocalHostedLLM):
                     sample_output = self.tokenizer.decode(sample_output_ids, skip_special_tokens=skip_special_tokens)
                     for stop_string in stop_strings:
                         if stop_string in sample_output:
-                            sample_output = sample_output[:sample_output.find(stop_string)]
+                            sample_output = sample_output[:sample_output.find(stop_string) + include_stop_str_in_output * len(stop_string)]
                     sample_output_all.append(sample_output)
                 generated_len.append(len(sample_output_ids))
 
@@ -1157,7 +1164,8 @@ class VLLMModel(LocalHostedLLM):
         enable_thinking=False,
         add_reasoning_truncing_prompt=True,
         add_reasoning_info=True,
-        add_assistant_prompt_to_output=True
+        add_assistant_prompt_to_output=True,
+        include_stop_str_in_output=False
     ):
         prompts, outputs, infos = self.generate_batch(
             [messages],
@@ -1168,7 +1176,8 @@ class VLLMModel(LocalHostedLLM):
             enable_thinking=enable_thinking,
             add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
             add_reasoning_info=add_reasoning_info,
-            add_assistant_prompt_to_output=add_assistant_prompt_to_output
+            add_assistant_prompt_to_output=add_assistant_prompt_to_output,
+            include_stop_str_in_output=include_stop_str_in_output
         )
         return prompts[0], outputs[0], infos[0]
 
@@ -1182,7 +1191,8 @@ class VLLMModel(LocalHostedLLM):
         enable_thinking=False,
         add_reasoning_truncing_prompt=True,
         add_reasoning_info=True,
-        add_assistant_prompt_to_output=True
+        add_assistant_prompt_to_output=True,
+        include_stop_str_in_output=False
     ):
         generation_config = self.generation_config if generation_config is None else generation_config
         if not enable_thinking:
@@ -1193,7 +1203,8 @@ class VLLMModel(LocalHostedLLM):
                 return_tokens=return_tokens,
                 allowed_token_ids=allowed_token_ids,
                 enable_thinking=False,
-                skip_special_tokens=True
+                skip_special_tokens=True,
+                include_stop_str_in_output=include_stop_str_in_output
             )
 
         prompt_messages = []
@@ -1212,7 +1223,8 @@ class VLLMModel(LocalHostedLLM):
             return_tokens=False,
             allowed_token_ids=allowed_token_ids,
             enable_thinking=True,
-            skip_special_tokens=False
+            skip_special_tokens=False,
+            include_stop_str_in_output=True
         )
 
         if add_reasoning_truncing_prompt:
@@ -1256,7 +1268,8 @@ class VLLMModel(LocalHostedLLM):
             return_tokens=return_tokens,
             allowed_token_ids=allowed_token_ids,
             enable_thinking=False,
-            skip_special_tokens=True
+            skip_special_tokens=True,
+            include_stop_str_in_output=include_stop_str_in_output
         )
 
         if add_assistant_prompt_to_output:
@@ -1292,17 +1305,17 @@ class VLLMModel(LocalHostedLLM):
         return_tokens,
         allowed_token_ids,
         enable_thinking,
-        skip_special_tokens
+        skip_special_tokens,
+        include_stop_str_in_output
     ):
         prompts_tokens_batch = []
-        allowed_token_ids_batch = [] if allowed_token_ids is not None else None
+        # allowed_token_ids_batch = [] if allowed_token_ids is not None else None
         for i, _messages in enumerate(messages):
             prompt = self.apply_model_prompt(
                 _messages,
                 incomplete_last_bot_message=incomplete_last_bot_message,
                 add_think_token=enable_thinking
             )
-            # TODO: fix
             prompts_tokens_batch.append(
                 self.tokenizer(
                     prompt,
@@ -1311,11 +1324,11 @@ class VLLMModel(LocalHostedLLM):
                     max_length=self.generation_config.max_length
                 )['input_ids']
             )
-            if allowed_token_ids_batch is not None:
-                allowed_token_ids_batch += allowed_token_ids[i]
+            # if allowed_token_ids_batch is not None:
+            #     allowed_token_ids_batch += allowed_token_ids[i]
 
-        if allowed_token_ids_batch is not None:
-            allowed_token_ids_batch = list(set(allowed_token_ids_batch))
+        # if allowed_token_ids_batch is not None:
+        #     allowed_token_ids_batch = list(set(allowed_token_ids_batch))
 
         stop_token_ids = []
         max_new_tokens = generation_config.max_new_tokens
@@ -1335,7 +1348,7 @@ class VLLMModel(LocalHostedLLM):
             stop=generation_config.stop_strings,
             stop_token_ids=stop_token_ids,
             n=generation_config.num_return_sequences,
-            include_stop_str_in_output=enable_thinking # ,
+            include_stop_str_in_output=enable_thinking or include_stop_str_in_output# ,
             # allowed_token_ids=allowed_token_ids_batch
         )
 

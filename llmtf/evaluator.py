@@ -55,6 +55,7 @@ class Evaluator(Base):
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True,
         add_assistant_prompt_to_output=True,
+        include_stop_str_in_output=False,
         force_recalc=False,
         name_suffix=None
     ):
@@ -90,7 +91,8 @@ class Evaluator(Base):
                         enable_thinking,
                         add_reasoning_truncing_prompt,
                         add_reasoning_info,
-                        add_assistant_prompt_to_output
+                        add_assistant_prompt_to_output,
+                        include_stop_str_in_output
                     )
 
             self.logger.info(f'Ended eval')
@@ -112,7 +114,8 @@ class Evaluator(Base):
         enable_thinking,
         add_reasoning_truncing_prompt,
         add_reasoning_info,
-        add_assistant_prompt_to_output
+        add_assistant_prompt_to_output,
+        include_stop_str_in_output
     ):
         model.add_stop_strings(task.additional_stop_strings)
         with CustomTimer(task.logger, 'Loading Dataset'):
@@ -132,6 +135,7 @@ class Evaluator(Base):
                     messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
                     messages_batch['add_reasoning_info'] = add_reasoning_info
                     messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
+                    messages_batch['include_stop_str_in_output'] = include_stop_str_in_output
 
                 prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
                 for j in range(len(y_preds)):
