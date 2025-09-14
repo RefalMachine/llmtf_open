@@ -69,3 +69,36 @@ def r_precision(labels, scores):
     total_labels = np.array(labels).astype(int).sum()
     order_relevance = get_order_relevance_k(labels, scores, total_labels)
     return order_relevance.sum() / total_labels
+
+llm_judge_instruction = [
+    {"role": "user", "content": "Look at the following two responses and judge whether they are equivalent. Respond only with yes or no."},
+    {"role": "user", "content": "Response 1: Yes\nResponse 2: No\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Response 1: Banana\nResponse 2: banana  \n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Response 1: 4/8\nResponse 2: x=1/2\n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Response 1: 1.5\nResponse 2: 2.5\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Response 1: USA\nResponse 2: United States of America\n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Response 1: Russia\nResponse 2: Moscow\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Response 1: Tokio\nResponse 2: Paris\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Response 1: Natalie\nResponse 2: Maria\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Response 1:  no, he's not\nResponse 2: No he is not in example\n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Response 1: {}\nResponse 2: {}\n"},
+]
+
+def llm_judge_accuracy(model, gold, generated, instruction=llm_judge_instruction):
+    instruction = instruction[:-1] + [{"role": instruction[-1]["role"], "content": instruction[-1]["content"].format(gold, generated)}]
+    _, response, _ = model.generate(instruction)
+    if response[:3] == "Yes":
+        return 1
+    elif response[:2] == "No":
+        return 0
+    else:
+        raise Exception(f"LLM metric generated unexpected text. Expected `Yes` or `No`, generated: {response}")

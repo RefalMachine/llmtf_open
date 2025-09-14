@@ -7,7 +7,7 @@ from tqdm import tqdm
 import os
 from datasets import load_dataset, Dataset
 from typing import Dict, List, Tuple
-from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score
+from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score, llm_judge_accuracy, llm_judge_instruction_ru
 import transformers.data.metrics.squad_metrics as squad_metrics
 import re
 from llmtf.base import Task, SimpleFewShotHFTask, LLM
@@ -138,6 +138,30 @@ class MultiQ(DarumeruTask):
     
     def get_answer(self, sample):
         return ' ' + sample['outputs'][0]['segment']
+
+class MultiQLLMJudge(MultiQ):
+    def __init__(self, model, llm_judge_instruction=llm_judge_instruction_ru, **kwargs):
+        super().__init__(**kwargs)
+        self.model = model
+        self.llm_judge_instruction=llm_judge_instruction
+
+    def evaluate(self, sample, y_pred) -> Dict:
+        y_true = [answer["segment"] for answer in sample['outputs']]
+
+        llm_judge_acc = metric_max_over_ground_truths(lambda x, y: llm_judge_accuracy(self.model, y, x, instruction=self.llm_judge_instruction), y_pred, y_true)
+        f1 = metric_max_over_ground_truths(squad_metrics.compute_f1, y_pred, y_true)
+        em = metric_max_over_ground_truths(squad_metrics.compute_exact, y_pred, y_true)
+        return {
+            "llm_judge_accuracy": llm_judge_acc,
+            "f1": f1,
+            "em": em
+        }
+
+    def aggregation(self) -> Dict:
+        return {"llm_judge_accuracy": mean, "f1": mean, "em": mean}
+
+    def leaderboard_aggregation(self, metrics: Dict) -> float:
+        return metrics["llm_judge_accuracy"]
 
 class PARus(DarumeruTask):
     def __init__(self, **kwargs):

@@ -1359,7 +1359,7 @@ class VLLMModel(LocalHostedLLM):
         vllm_responses = self.model.generate(
             prompt_token_ids=prompts_tokens_batch,
             sampling_params=sampling_params,
-            use_tqdm=True,
+            use_tqdm=False, #True,
             lora_request=self._get_lora_request(),
         )
 

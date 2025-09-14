@@ -1,6 +1,6 @@
 from llmtf.base import SimpleFewShotHFTask
 from typing import Any, Dict
-from llmtf.metrics import metric_max_over_ground_truths, rougel, mean
+from llmtf.metrics import metric_max_over_ground_truths, rougel, mean, llm_judge_accuracy, llm_judge_instruction_ru
 
 def convert_context(context):
     segments = [f'**Сегмент №{i+1}**:\n' + c['chunk'] for i, c in enumerate(context)]
@@ -56,3 +56,23 @@ class RusbeirRag(SimpleFewShotHFTask):
     
     def get_answer(self, sample):
         return sample['answer'].strip()
+
+class RusbeirRagLLMJudge(RusbeirRag):
+    def __init__(self, model, llm_judge_instruction=llm_judge_instruction_ru, **kwargs):
+        super().__init__(**kwargs)
+        self.model = model
+        self.llm_judge_instruction=llm_judge_instruction
+
+    def evaluate(self, sample, y_pred) -> Dict:
+        llm_judge_acc = metric_max_over_ground_truths(lambda x, y: llm_judge_accuracy(self.model, y, x, instruction=self.llm_judge_instruction), y_pred, sample['answers'])
+        rougel_metric = metric_max_over_ground_truths(lambda x, y: rougel(x, y).fmeasure, y_pred, sample['answers'])
+        return {
+            "llm_judge_accuracy": llm_judge_acc,
+            "rougel": rougel_metric
+        }
+
+    def aggregation(self) -> Dict:
+        return {"llm_judge_accuracy": mean, "rougel": mean}
+
+    def leaderboard_aggregation(self, metrics: Dict) -> float:
+        return metrics["llm_judge_accuracy"]
