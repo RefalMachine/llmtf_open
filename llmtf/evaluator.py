@@ -51,11 +51,11 @@ class Evaluator(Base):
         generation_config=None,
         batch_size=1,
         max_sample_per_dataset=100000000,
+        include_stop_str_in_output=False,
         enable_thinking=False,
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True,
         add_assistant_prompt_to_output=True,
-        include_stop_str_in_output=False,
         force_recalc=False,
         name_suffix=None
     ):
@@ -112,10 +112,10 @@ class Evaluator(Base):
         batch_size,
         max_sample_per_dataset,
         enable_thinking,
+        include_stop_str_in_output,
         add_reasoning_truncing_prompt,
         add_reasoning_info,
-        add_assistant_prompt_to_output,
-        include_stop_str_in_output
+        add_assistant_prompt_to_output
     ):
         model.add_stop_strings(task.additional_stop_strings)
         with CustomTimer(task.logger, 'Loading Dataset'):

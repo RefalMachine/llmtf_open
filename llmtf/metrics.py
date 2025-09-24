@@ -70,7 +70,7 @@ def r_precision(labels, scores):
     order_relevance = get_order_relevance_k(labels, scores, total_labels)
     return order_relevance.sum() / total_labels
 
-llm_judge_instruction = [
+llm_judge_instruction_en = [
     {"role": "user", "content": "Look at the following two responses and judge whether they are equivalent. Respond only with yes or no."},
     {"role": "user", "content": "Response 1: Yes\nResponse 2: No\n"},
     {"role": "assistant", "content": "No"},
@@ -93,12 +93,36 @@ llm_judge_instruction = [
     {"role": "user", "content": "Response 1: {}\nResponse 2: {}\n"},
 ]
 
-def llm_judge_accuracy(model, gold, generated, instruction=llm_judge_instruction):
+llm_judge_instruction_ru = [
+    {"role": "user", "content": "Посмотри на следующие два ответа и реши эквивалентны они или нет. Отвечай только Yes или No."},
+    {"role": "user", "content": "Ответ 1: Да\Ответ 2: Нет\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Ответ 1: Банан\nОтвет 2: банан  \n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Ответ 1: 4/8\nОтвет 2: x=1/2\n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Ответ 1: 1.5\nОтвет 2: 2.5\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Ответ 1: США\nОтвет 2: Соединенные штаты америки\n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Ответ 1: Россия\nОтвет 2: Москва\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Ответ 1: Токия\Ответ 2: Париж\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Ответ 1: Натали\nОтвет 2: Мария\n"},
+    {"role": "assistant", "content": "No"},
+    {"role": "user", "content": "Ответ 1:  нет\nОтвет 2: Нет, он не в примере\n"},
+    {"role": "assistant", "content": "Yes"},
+    {"role": "user", "content": "Ответ 1: {}\nОтвет 2: {}\n"},
+]
+
+def llm_judge_accuracy(model, gold, generated, instruction=llm_judge_instruction_en):
     instruction = instruction[:-1] + [{"role": instruction[-1]["role"], "content": instruction[-1]["content"].format(gold, generated)}]
-    _, response, _ = model.generate(instruction)
+    _, response, _ = model.generate(instruction, enable_thinking=False)
     if response[:3] == "Yes":
         return 1
     elif response[:2] == "No":
         return 0
     else:
         raise Exception(f"LLM metric generated unexpected text. Expected `Yes` or `No`, generated: {response}")
+    
