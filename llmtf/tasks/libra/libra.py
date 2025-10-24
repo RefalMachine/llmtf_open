@@ -1,4 +1,3 @@
-
 import json
 import re
 import pymorphy2
@@ -67,9 +66,8 @@ def custom_index_walk(K):
 
 class LibraTask(SimpleFewShotHFTask):
     DATASET_PATH = "ai-forever/LIBRA"
-    ALLOWED_LENGTHS = {"4k", "8k", "16k", "32k"}
 
-    def __init__(self, dataset_slice, config_path=str(Path(__file__).parent / 'libra_config.json'), **kwargs):
+    def __init__(self, dataset_slice, allowed_lengths={"4k", "8k", "16k", "32k", "64k", "128k"}, config_path=str(Path(__file__).parent / 'libra_config.json'), **kwargs):
         super().__init__(**kwargs)
         self.dataset_slice = dataset_slice
         self.config = self.load_config(config_path)[dataset_slice]
@@ -77,14 +75,14 @@ class LibraTask(SimpleFewShotHFTask):
         self._max_new_tokens = int(self.config["max_new_tokens"])
         self.instruction = self.config["instruction"]
         self.metric_name = self.config["metric"]
-        self.allowed_lengths = self.ALLOWED_LENGTHS
+        self.allowed_lengths = allowed_lengths
 
     def load_config(self, config_path):
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def task_name(self) -> str:
-        return f"LIBRA_{self.dataset_slice}"
+        return f"forever/libra/{self.dataset_slice}"
 
     def dataset_args(self):
         return {

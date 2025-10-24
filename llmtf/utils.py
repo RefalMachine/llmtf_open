@@ -1,3 +1,4 @@
+from typing import List, Dict, Union
 import os
 import codecs
 import time
@@ -132,3 +133,59 @@ def check_if_system_standard(tokenizer):
     
     text = tokenizer.apply_chat_template([{'role': 'system', 'content': '{scontent}'}, {'role': 'user', 'content': '{ucontent}'}], tokenize=False)
     return text.startswith(maybe_system_message_template) and '{scontent}' in maybe_system_message_template
+
+class Multiset():
+    def __init__(self, l: Union[List, Dict]):
+        if type(l) == list:
+            data = {}
+            for e in l:
+                if e in data.keys():
+                    data[e] += 1
+                else:
+                    data[e] = 1
+            self.data = data
+        elif type(l) == dict:
+            self.data = l
+        else:
+            raise Exception("Multiset can be initialized only with list or dictionary")
+
+    def count(self):
+        count = 0
+        for v in self.data.values():
+            count += v
+        return count
+    
+    def union(self, m):
+        data = self.data.copy()
+        for k, v in m.data.items():
+            if k in self.data.keys():
+                data[k] = max(data[k], v)
+            else:
+                data[k] = v
+        return Multiset(data)
+
+    def intersect(self, m):
+        data = {}
+        for k, v in self.data.items():
+            if k in m.data.keys():
+                data[k] = min(self.data[k], m.data[k])
+        return Multiset(data)
+
+    def subtract(self, m):
+        data = {}
+        for k, v in self.data.items():
+            if k in m.data.keys():
+                if self.data[k] > m.data[k]:
+                    data[k] = self.data[k] - m.data[k]
+            else:
+                data[k] = self.data[k]
+        return Multiset(data)
+
+    def add(self, m):
+        data = self.data.copy()
+        for k, v in m.data.items():
+            if k in self.data.keys():
+                data[k] += v
+            else:
+                data[k] = v
+        return Multiset(data)

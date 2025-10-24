@@ -7,13 +7,16 @@ from . import (
     habrqa,
     ruopinionne,
     ruparam,
-    nerel,
+    rublimp,
     translation,
     ifeval,
     libra,
     math,
-    rag
+    rag,
+    ner
 )
+from pathlib import Path
+import json
 
 ########################################
 # All tasks
@@ -99,6 +102,7 @@ doom_instruction = '''Реши следующую задачу эффектив�
 {task}
 '''.strip()
 
+# outdated
 nerel_default_prompt = '''Извлеки из заданного ниже текста все вложенные именованные сущности всех представленных ниже классов.
 Сущности могут быть представлены только целым словом, окружённым пробелами или знаками препинания, либо непрерывной последовательностью целых слов, разделённых пробелами.
 Оставь сущности в том виде, в каком они даны в тексте, не изменяй и не склоняй их, иначе тебе будет выставлен штраф 100$.
@@ -208,33 +212,22 @@ TASK_REGISTRY = {
     'ruopinionne': {'class': ruopinionne.RuOpinionNE, 'params': {'instruction': ruopinionne_default_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruopinionne_simple': {'class': ruopinionne.RuOpinionNESimple, 'params': {'instruction': ruopinionne_simple_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruparam': {'class': ruparam.RuParam, 'params': {'instruction': ruparam_default_instruction}},
-    'nerel': {'class': nerel.NestedNER, 'params': {'instruction': nerel_default_prompt}},
-    'nerel-bio': {'class': nerel.NEREL_BIO, 'params': {'instruction': nerel_bio_default_prompt}},
+    'russiannlp/rublimp (classify)': {'class': rublimp.RuBlimpClassify, 'params': {}},
+    'russiannlp/rublimp (choice)': {'class': rublimp.RuBlimpChoice, 'params': {}},
+    'MalakhovIlya/NEREL (dict)': {'class': ner.NestedNerDict, 'params': {}},
+    'MalakhovIlya/NEREL (json)': {'class': ner.NestedNerJson, 'params': {}},
+    'MalakhovIlya/NEREL (in-place)': {'class': ner.NestedNerInPlace, 'params': {}},
+    'nerel-ds/NEREL-BIO (dict)': {'class': ner.NerelBioDict, 'params': {}},
+    'nerel-ds/NEREL-BIO (json)': {'class': ner.NerelBioJson, 'params': {}},
+    'nerel-ds/NEREL-BIO (in-place)': {'class': ner.NerelBioInPlace, 'params': {}},
+    'Mykes/patient_queries_ner (dict)': {'class': ner.PatientQueriesNerDict, 'params': {}},
+    'Mykes/patient_queries_ner (json)': {'class': ner.PatientQueriesNerJson, 'params': {}},
+    'Mykes/patient_queries_ner (in-place)': {'class': ner.PatientQueriesNerInPlace, 'params': {}},
     'ruifeval':  {
         'class': ifeval.RuIFEvalTask
     },
     'enifeval':  {
         'class': ifeval.EnIFEvalTask
-    },
-    'libra/rubabilong1': {
-        'class': libra.LibraTask,
-        'params': {'dataset_slice': 'ru_babilong_qa1'}
-    },
-    'libra/rubabilong2': {
-        'class': libra.LibraTask,
-        'params': {'dataset_slice': 'ru_babilong_qa2'}
-    },
-    'libra/rubabilong3': {
-        'class': libra.LibraTask,
-        'params': {'dataset_slice': 'ru_babilong_qa3'}
-    },
-    'libra/rubabilong4': {
-        'class': libra.LibraTask,
-        'params': {'dataset_slice': 'ru_babilong_qa4'}
-    },
-    'libra/rubabilong5': {
-        'class': libra.LibraTask,
-        'params': {'dataset_slice': 'ru_babilong_qa5'}
     },
     'doom/math': {
         'class': math.DOoM,
@@ -281,3 +274,12 @@ TASK_REGISTRY = {
         'params': {'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_xquadqa', 'name_suffix': 'data_first'}
     }
 }
+
+# LIBRA
+with open(str(Path(__file__).parent / 'libra' / 'libra_config.json'), "r", encoding="utf-8") as f:
+    libra_tasks = list(json.load(f).keys())
+for task in libra_tasks:
+    TASK_REGISTRY[task] = {
+        'class': libra.LibraTask,
+        'params': {'dataset_slice': task}
+    }

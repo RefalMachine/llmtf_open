@@ -135,7 +135,6 @@ class Evaluator(Base):
                     messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
                     messages_batch['add_reasoning_info'] = add_reasoning_info
                     messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
-                    messages_batch['include_stop_str_in_output'] = include_stop_str_in_output
 
                 prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
                 for j in range(len(y_preds)):

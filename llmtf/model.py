@@ -26,7 +26,7 @@ except:
 
 
 class ReasoningModel():
-    def __reasoning_from_pretrained__(
+    def reasoning_from_pretrained(
         self,
         max_new_tokens_reasoning=None,
         reasoning_truncing_prompt="\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n",
@@ -38,31 +38,40 @@ class ReasoningModel():
             self.generation_config.max_new_tokens_reasoning = self.generation_config.max_new_tokens
         self.generation_config.reasoning_truncing_prompt = reasoning_truncing_prompt
         if end_thinking_token_id:
-            self.get_end_thinking_token_id()
-        else:
             self.generation_config.end_thinking_token_id=end_thinking_token_id
-        if not hasattr(self.generation_config, "stop_token_ids"):
-            self.generation_config.stop_token_ids = None
+        else:
+            self.get_end_thinking_token_id()
+        if not hasattr(self.generation_config, "stop_strings") or self.generation_config.stop_strings == None:
+            self.generation_config.stop_strings = []
+            
 
     @abstractmethod
-    def __get_end_thinking_token_id__(self):
-        self.generation_config.end_thinking_token_id
+    def get_end_thinking_token_id(self):
+        pass
 
     def prepare_generation_config(self, old_params=None):
         if old_params:
-            self.generation_config.stop_token_ids = old_params["stop_token_ids"]
+            if "stop_token_ids" in old_params.keys():
+                self.generation_config.stop_token_ids = old_params["stop_token_ids"]
+            if "eos_token_id" in old_params.keys():
+                self.generation_config.eos_token_id = old_params["eos_token_id"]
             self.generation_config.max_new_tokens = old_params["max_new_tokens"]
             self.generation_config.stop_strings = old_params["stop_strings"]
         else:
             old_params = {}
-            old_params["stop_token_ids"] = self.generation_config.stop_token_ids
+            if hasattr(self.generation_config, "stop_token_ids"):
+                old_params["stop_token_ids"] = self.generation_config.stop_token_ids
+            if hasattr(self.generation_config, "eos_token_id"):
+                old_params["eos_token_id"] = self.generation_config.eos_token_id
             old_params["max_new_tokens"] = self.generation_config.max_new_tokens
             old_params["stop_strings"] = self.generation_config.stop_strings
-            self.generation_config.stop_token_ids = self.generation_config.end_thinking_token_id
+            
+            if "stop_token_ids" in old_params.keys():
+                self.generation_config.stop_token_ids = self.generation_config.stop_token_ids + [self.generation_config.end_thinking_token_id]
+            if "eos_token_id" in old_params.keys():
+                self.generation_config.eos_token_id = self.generation_config.end_thinking_token_id
             self.generation_config.max_new_tokens = self.generation_config.max_new_tokens_reasoning
-            if not self.generation_config.stop_strings:
-                self.generation_config.stop_strings = []
-            self.generation_config.stop_strings = self.generation_config.stop_strings + ["<|endoftext|>"]
+            self.generation_config.stop_strings = self.generation_config.stop_strings + ["</think>"]
             return old_params
     
     @abstractmethod
@@ -79,7 +88,7 @@ class ReasoningModel():
     ):
         pass
 
-    def __generate_reasoning__(
+    def _generate_reasoning(
         self,
         messages,
         generation_config=None,
@@ -107,7 +116,7 @@ class ReasoningModel():
         )
         return prompts[0], outputs[0], infos[0]
     
-    def __generate_batch_reasoning__(
+    def _generate_batch_reasoning(
         self,
         messages,
         generation_config=None,
@@ -546,11 +555,13 @@ class ApiVLLMModelReasoning(ApiVLLMModel, ReasoningModel):
         model_dir,
         max_new_tokens_reasoning=None,
         reasoning_truncing_prompt="\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n",
+        end_thinking_token_id=None,
     ):
         super().from_pretrained(model_dir)
-        self.__reasoning_from_pretrained__(
+        self.reasoning_from_pretrained(
             max_new_tokens_reasoning=max_new_tokens_reasoning,
-            reasoning_truncing_prompt=reasoning_truncing_prompt
+            reasoning_truncing_prompt=reasoning_truncing_prompt,
+            end_thinking_token_id=end_thinking_token_id
         )
     
     def get_end_thinking_token_id(self):
@@ -586,7 +597,7 @@ class ApiVLLMModelReasoning(ApiVLLMModel, ReasoningModel):
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True
     ):
-        return self.__generate_reasoning__(
+        return self._generate_reasoning(
             messages,
             generation_config=generation_config,
             incomplete_last_bot_message=incomplete_last_bot_message,
@@ -612,7 +623,7 @@ class ApiVLLMModelReasoning(ApiVLLMModel, ReasoningModel):
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True
     ):
-        return self.__generate_batch_reasoning__(
+        return self._generate_batch_reasoning(
             messages,
             generation_config=generation_config,
             incomplete_last_bot_message=incomplete_last_bot_message,
@@ -663,6 +674,9 @@ class LocalHostedLLM(LLM):
         self._check_if_leading_space()
         self._override_eos_token_conv_template()
 
+        if not hasattr(self.generation_config, "stop_strings"):
+            self.generation_config.stop_strings = []
+        
         self.logger.info(f"Model id: {self.model_name_or_path}")
 
     def _check_if_lora(self, model_dir):
@@ -1130,15 +1144,17 @@ class HFModelReasoning(HFModel, ReasoningModel):
         model_dir,
         max_new_tokens_reasoning=None,
         reasoning_truncing_prompt="\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n",
+        end_thinking_token_id=None,
     ):
         super().from_pretrained(model_dir)
-        self.__reasoning_from_pretrained__(
+        self.reasoning_from_pretrained(
             max_new_tokens_reasoning=max_new_tokens_reasoning,
-            reasoning_truncing_prompt=reasoning_truncing_prompt
+            reasoning_truncing_prompt=reasoning_truncing_prompt,
+            end_thinking_token_id=end_thinking_token_id
         )
     
     def get_end_thinking_token_id(self):
-        self.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
+        self.generation_config.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
 
     def _generate(*args, **kwargs):
         return HFModel.generate(*args, **kwargs)
@@ -1159,7 +1175,7 @@ class HFModelReasoning(HFModel, ReasoningModel):
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True
     ):
-        return self.__generate_reasoning__(
+        return self._generate_reasoning(
             messages,
             generation_config=generation_config,
             incomplete_last_bot_message=incomplete_last_bot_message,
@@ -1185,7 +1201,7 @@ class HFModelReasoning(HFModel, ReasoningModel):
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True
     ):
-        return self.__generate_batch_reasoning__(
+        return self._generate_batch_reasoning(
             messages,
             generation_config=generation_config,
             incomplete_last_bot_message=incomplete_last_bot_message,
@@ -1312,6 +1328,7 @@ class VLLMModel(LocalHostedLLM):
             max_tokens=generation_config.max_new_tokens,
             repetition_penalty=generation_config.repetition_penalty,
             stop=generation_config.stop_strings,
+            stop_token_ids=self.generation_config.stop_token_ids if hasattr(self.generation_config, "stop_token_ids") else None,
             n=generation_config.num_return_sequences,
             include_stop_str_in_output=enable_thinking or include_stop_str_in_output# ,
             # allowed_token_ids=allowed_token_ids_batch
@@ -1324,7 +1341,7 @@ class VLLMModel(LocalHostedLLM):
         vllm_responses = self.model.generate(
             prompt_token_ids=prompts_tokens_batch,
             sampling_params=sampling_params,
-            use_tqdm=False, #True,
+            use_tqdm=False,
             lora_request=self._get_lora_request(),
         )
 
@@ -1523,15 +1540,17 @@ class VLLMModelReasoning(VLLMModel, ReasoningModel):
         model_dir,
         max_new_tokens_reasoning=None,
         reasoning_truncing_prompt="\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n",
+        end_thinking_token_id=None
     ):
         super().from_pretrained(model_dir)
-        self.__reasoning_from_pretrained__(
+        self.reasoning_from_pretrained(
             max_new_tokens_reasoning=max_new_tokens_reasoning,
-            reasoning_truncing_prompt=reasoning_truncing_prompt
+            reasoning_truncing_prompt=reasoning_truncing_prompt,
+            end_thinking_token_id=end_thinking_token_id
         )
     
     def get_end_thinking_token_id(self):
-        self.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
+        self.generation_config.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
 
     def _generate(*args, **kwargs):
         return VLLMModel.generate(*args, **kwargs)
@@ -1552,7 +1571,7 @@ class VLLMModelReasoning(VLLMModel, ReasoningModel):
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True
     ):
-        return self.__generate_reasoning__(
+        return self._generate_reasoning(
             messages,
             generation_config=generation_config,
             incomplete_last_bot_message=incomplete_last_bot_message,
@@ -1578,7 +1597,7 @@ class VLLMModelReasoning(VLLMModel, ReasoningModel):
         add_reasoning_truncing_prompt=False,
         add_reasoning_info=True
     ):
-        return self.__generate_batch_reasoning__(
+        return self._generate_batch_reasoning(
             messages,
             generation_config=generation_config,
             incomplete_last_bot_message=incomplete_last_bot_message,
