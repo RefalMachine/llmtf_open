@@ -17,6 +17,8 @@ import random
 import torch
 import numpy as np
 import re
+from typing import List, Dict
+from sklearn.utils import resample
 
 
 def set_random_seed(seed):
@@ -39,7 +41,24 @@ class Evaluator(Base):
         assert issubclass(task_cls, Task)
         TASK_REGISTRY[task_name] = {'class': task_cls, 'params': task_params}
 
-    def evaluate(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, generation_config=None, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False, name_suffix=None):
+    def evaluate(
+        self,
+        model,
+        output_dir,
+        datasets_names='all',
+        max_len=4096,
+        few_shot_count=5,
+        generation_config=None,
+        batch_size=1,
+        max_sample_per_dataset=100000000,
+        include_stop_str_in_output=False,
+        enable_thinking=False,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        add_assistant_prompt_to_output=True,
+        force_recalc=False,
+        name_suffix=None
+    ):
         set_out_handler_to_main_logger(output_dir)
         try:
             if generation_config is not None:
@@ -60,7 +79,21 @@ class Evaluator(Base):
 
                 # MaxLenContext changes model.generation_config.max_new_tokens param based on task.max_new_tokens
                 with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
-                    self.evaluate_dataset(task, model, output_dir, prompt_max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset)
+                    self.evaluate_dataset(
+                        task,
+                        model,
+                        output_dir,
+                        prompt_max_len,
+                        few_shot_count,
+                        generation_config,
+                        batch_size,
+                        max_sample_per_dataset,
+                        enable_thinking,
+                        add_reasoning_truncing_prompt,
+                        add_reasoning_info,
+                        add_assistant_prompt_to_output,
+                        include_stop_str_in_output
+                    )
 
             self.logger.info(f'Ended eval')
             self.create_report(output_dir)
@@ -68,7 +101,22 @@ class Evaluator(Base):
             self.logger.error(e)
             self.logger.error(traceback.format_exc()) 
         
-    def evaluate_dataset(self, task, model, output_dir, max_len, few_shot_count, generation_config, batch_size, max_sample_per_dataset):
+    def evaluate_dataset(
+        self,
+        task,
+        model,
+        output_dir,
+        max_len,
+        few_shot_count,
+        generation_config,
+        batch_size,
+        max_sample_per_dataset,
+        enable_thinking,
+        include_stop_str_in_output,
+        add_reasoning_truncing_prompt,
+        add_reasoning_info,
+        add_assistant_prompt_to_output
+    ):
         model.add_stop_strings(task.additional_stop_strings)
         with CustomTimer(task.logger, 'Loading Dataset'):
             messages, samples = task.load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
@@ -82,6 +130,11 @@ class Evaluator(Base):
                     messages_batch['generation_config'] = generation_config
                 for k, v in task.method_additional_args.items():
                     messages_batch[k] = v
+                if task.method == 'generate':
+                    messages_batch['enable_thinking'] = enable_thinking
+                    messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
+                    messages_batch['add_reasoning_info'] = add_reasoning_info
+                    messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
 
                 prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
                 for j in range(len(y_preds)):
@@ -90,6 +143,12 @@ class Evaluator(Base):
         
         task.logger.info(f'Results for {task.run_name()}:')
         metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
+
+        # bootstrapping
+        if hasattr(task, "n_bags"):
+            assert hasattr(task, "n_samples")
+            metrics_res.update(self._bootstrap(task, metrics))
+
         with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
             logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res)})
 
@@ -168,6 +227,12 @@ class Evaluator(Base):
 
         task.logger.info(f'Results for {task.run_name()}:')
         metrics_res = {'ppl': np.mean([m['ppl'] for m in metrics])}
+
+        # bootstrapping
+        if hasattr(task, "n_bags"):
+            assert hasattr(task, "n_samples")
+            metrics_res.update(self._bootstrap(task, metrics))
+
         with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
             logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': metrics_res['ppl']})
 
@@ -198,3 +263,24 @@ class Evaluator(Base):
         self.logger.info('\n' + '\t'.join(task_names) + '\n' + '\t'.join([f'{m:.3f}' for m in task_metrics]))
                 
 
+    def _bootstrap(self, task, metrics: List[Dict]) -> Dict:
+        aggregation = task.aggregation()
+        metrics_bags_res = {}
+        for metric in metrics[0].keys():
+            metrics_bags_res[metric] = []
+
+        for _ in range(task.n_bags):
+            metrics_bag = resample(metrics, replace=True, n_samples=task.n_samples) # random_state?
+            assert metrics_bag is not None
+            for metric in metrics[0].keys():
+                metrics_bags_res[metric].append(aggregation[metric]([m[metric] for m in metrics_bag]))
+
+        bootstrapped_metrics = {}
+        for metric in metrics[0].keys():
+            metric_bags_res_mean = np.mean(metrics_bags_res[metric])
+            metric_bags_res_std = np.std(metrics_bags_res[metric])
+            bootstrapped_metrics[metric + "_std"] = metric_bags_res_std
+            bootstrapped_metrics[metric + "_lower"] = metric_bags_res_mean - metric_bags_res_std
+            bootstrapped_metrics[metric + "_upper"] = metric_bags_res_mean + metric_bags_res_std
+
+        return bootstrapped_metrics

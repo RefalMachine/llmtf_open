@@ -258,22 +258,18 @@ class MMLU(Task):
         if zero_shot_messages_with_headline_len >= max_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_with_headline_len} greater then {max_len}. Will be truncated.')
 
-        zero_shot_messages_without_headline = self._create_messages(subject, sample, int2str, add_headline=False, add_answer=False)
-        messages = copy.deepcopy(zero_shot_messages_without_headline)
+        zero_shot_messages_without_headline = copy.deepcopy(self._create_messages(subject, sample, int2str, add_headline=False, add_answer=False))
+        message_groups = [self._create_messages(subject, few_shot_samples[i], int2str, add_headline=(i == 0), add_answer=True) for i in range(k)]
         for i in range(k):
-            if i == 0:
-                few_shot_messages = self._create_messages(subject, few_shot_samples[i], int2str, add_headline=True, add_answer=True)
-                _messages = few_shot_messages + messages
-                few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(_messages))
-            else:
-                few_shot_messages = self._create_messages(subject, few_shot_samples[i], int2str, add_headline=False, add_answer=True)
-                _messages = messages[:-2] + few_shot_messages + messages[-2:]
-                few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(_messages))
-
-            if few_shot_messages_len >= max_len:
+            messages = []
+            for group in message_groups[:k-i]:
+                messages += group
+            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages + zero_shot_messages_without_headline))
+            if few_shot_messages_len < max_len:
+                messages += zero_shot_messages_without_headline
                 break
-
-            messages = _messages
+        else:
+            messages = zero_shot_messages_with_headline
 
         sample['answer'] = int2str(sample['answer'])
         sample['subject'] = subject
