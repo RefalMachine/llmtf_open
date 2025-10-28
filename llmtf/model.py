@@ -232,7 +232,7 @@ class ReasoningModel():
 
 
 class ApiVLLMModel(LLM):
-    def __init__(self, api_base, api_key=None, **kwargs):
+    def __init__(self, api_base, api_key='', **kwargs):
         super().__init__(**kwargs)
         # requests.packages.urllib3.util.connection.HAS_IPV6 = False
         self.logger.info('ATTENTION! Hosting vLLM server must have vllm 0.6.3+')
@@ -427,7 +427,7 @@ class ApiVLLMModel(LLM):
                 'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
                 'logprobs': True,
                 'top_logprobs': 50,
-                'chat_template_kwargs': {'enable_thinking': self.enable_thinking}
+                'chat_template_kwargs': {'enable_thinking': False}
             },
             headers={'Authorization': 'Bearer ' + self.api_key}
         )
@@ -574,7 +574,7 @@ class ApiVLLMModelReasoning(ApiVLLMModel, ReasoningModel):
         )
 
         if request.status_code == 200:
-            self.generation_config.end_thinking_token_id = r.json()["tokens"][0]
+            self.generation_config.end_thinking_token_id = request.json()["tokens"][0]
         else:
             raise Exception('Unable to get </think> token id. Make sure your endpoint supports tokenizer requests.\n' + request.text)
 

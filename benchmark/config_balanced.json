@@ -32,115 +32,121 @@
     "translation": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "summarization": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "sentiment": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 0.5,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "ner": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 0.5,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "rag": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "rag_data_first": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "ruifeval": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 5
     },
     "enifeval": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 5
     },
     "libra_rubabilong1": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "libra_rubabilong2": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "libra_rubabilong3": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "libra_rubabilong4": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "libra_rubabilong5": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "doom_math_no_think": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "doom_phys_no_think": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "t-bank_t-math_no_think": {
         "temperature": 0.3,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "doom_math": {
         "temperature": 0.8,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "doom_phys": {
         "temperature": 0.8,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     },
     "t-bank_t-math": {
         "temperature": 0.8,
         "repetition_penalty": 1.0,
-        "presence_penalty": 1.0,
+        "presence_penalty": 0.0,
+        "num_return_sequences": 1
+    },
+    "rublimp": {
+        "temperature": 0.0,
+        "repetition_penalty": 1.0,
+        "presence_penalty": 0.0,
         "num_return_sequences": 1
     }
 }

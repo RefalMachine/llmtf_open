@@ -5,7 +5,7 @@ from datasets import load_dataset, Dataset
 from llmtf.metrics import mean, f1_macro_score
 
 RUBLIMP_SLICES_ALL = ['add_new_suffix', 'add_verb_prefix', 'adposition_government', 'anaphor_agreement_gender', 'anaphor_agreement_number', 'change_declension_ending', 'change_declension_ending_has_dep', 'change_duration_aspect', 'change_repetition_aspect', 'change_verb_conjugation', 'change_verb_prefixes_order', 'clause_subj_predicate_agreement_gender', 'clause_subj_predicate_agreement_number', 'clause_subj_predicate_agreement_person', 'conj_verb_tense', 'deontic_imperative_aspect', 'external_possessor', 'floating_quantifier_agreement_case', 'floating_quantifier_agreement_gender', 'floating_quantifier_agreement_number', 'genitive_subj_predicate_agreement_gender', 'genitive_subj_predicate_agreement_number', 'genitive_subj_predicate_agreement_person', 'indefinite_pronoun_to_negative', 'negative_concord', 'negative_pronoun_to_indefinite', 'nominalization_case', 'noun_subj_predicate_agreement_gender', 'noun_subj_predicate_agreement_number', 'noun_subj_predicate_agreement_person', 'np_agreement_case', 'np_agreement_gender', 'np_agreement_number', 'single_verb_tense', 'subj_predicate_agreement_gender_attractor', 'subj_predicate_agreement_number_attractor', 'tense_marker', 'transitive_verb', 'transitive_verb_iobject', 'transitive_verb_object', 'transitive_verb_passive', 'transitive_verb_subject', 'verb_acc_object', 'verb_gen_object', 'verb_ins_object']
-
+RUBLIMP_SLICES_TEST = ['add_new_suffix', 'add_verb_prefix', 'adposition_government', 'anaphor_agreement_gender']
 RUBLIMP_CLASSIFY_INSTRUCTION_USER = """Ниже приведено предложение, в котором может содержаться морфологическая, синтаксическая или семантическая ошибка. Определи, есть ли в нём ошибка. Ответом должно служить одно число: 0 или 1, где:
 0 - предложение верно
 1 - предложение содержит ошибку
@@ -19,7 +19,7 @@ class RuBlimpClassify(SimpleFewShotHFTask):
 
     def __init__(
         self,
-        dataset_slices: List[str],
+        dataset_slices: List[str] = RUBLIMP_SLICES_ALL,
         instruction_user: str = RUBLIMP_CLASSIFY_INSTRUCTION_USER,
         instruction_bot: str = RUBLIMP_CLASSIFY_INSTRUCTION_BOT,
         **kwargs
@@ -120,7 +120,7 @@ class RuBlimpChoice(SimpleFewShotHFTask):
 
     def __init__(
         self,
-        dataset_slices: List[str],
+        dataset_slices: List[str] = RUBLIMP_SLICES_ALL,
         instruction_user: str = RUBLIMP_CHOICE_INSTRUCTION_USER,
         instruction_bot: str = RUBLIMP_CHOICE_INSTRUCTION_BOT,
         **kwargs

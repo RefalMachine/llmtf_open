@@ -53,7 +53,7 @@ class Evaluator(Base):
         max_sample_per_dataset=100000000,
         include_stop_str_in_output=False,
         enable_thinking=False,
-        add_reasoning_truncing_prompt=False,
+        add_reasoning_truncing_prompt=True,
         add_reasoning_info=True,
         add_assistant_prompt_to_output=True,
         force_recalc=False,

@@ -174,7 +174,7 @@ class NestedNerDict(NestedNerAbc, NerDictAbc):
     ):
         NestedNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 75
+        self._max_new_tokens = 256
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL (dict)"
@@ -220,7 +220,7 @@ class NestedNerJson(NestedNerAbc, NerJsonAbc):
     ):
         NestedNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 100
+        self._max_new_tokens = 256
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL (json)"
@@ -446,7 +446,7 @@ class NerelBioDict(NerelBioAbc, NerDictAbc):
     ):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 150
+        self._max_new_tokens = 256
 
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO (dict)"
@@ -474,7 +474,7 @@ class NerelBioJson(NerelBioAbc, NerJsonAbc):
     ):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 200
+        self._max_new_tokens = 256
 
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO (json)"
@@ -499,7 +499,7 @@ class NerelBioInPlace(NerelBioAbc, NerInPlaceAbc):
     ):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerInPlaceAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 512
+        self._max_new_tokens = 256
 
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO (in-place)"

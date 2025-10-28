@@ -212,14 +212,14 @@ TASK_REGISTRY = {
     'ruopinionne': {'class': ruopinionne.RuOpinionNE, 'params': {'instruction': ruopinionne_default_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruopinionne_simple': {'class': ruopinionne.RuOpinionNESimple, 'params': {'instruction': ruopinionne_simple_instruction, 'short_instruction': ruopinionne_default_instruction_short}},
     'ruparam': {'class': ruparam.RuParam, 'params': {'instruction': ruparam_default_instruction}},
-    'russiannlp/rublimp (classify)': {'class': rublimp.RuBlimpClassify, 'params': {}},
-    'russiannlp/rublimp (choice)': {'class': rublimp.RuBlimpChoice, 'params': {}},
-    'MalakhovIlya/NEREL (dict)': {'class': ner.NestedNerDict, 'params': {}},
-    'MalakhovIlya/NEREL (json)': {'class': ner.NestedNerJson, 'params': {}},
-    'MalakhovIlya/NEREL (in-place)': {'class': ner.NestedNerInPlace, 'params': {}},
-    'nerel-ds/NEREL-BIO (dict)': {'class': ner.NerelBioDict, 'params': {}},
-    'nerel-ds/NEREL-BIO (json)': {'class': ner.NerelBioJson, 'params': {}},
-    'nerel-ds/NEREL-BIO (in-place)': {'class': ner.NerelBioInPlace, 'params': {}},
+    'russiannlp/rublimp-(classify)': {'class': rublimp.RuBlimpClassify, 'params': {}},
+    'russiannlp/rublimp-(choice)': {'class': rublimp.RuBlimpChoice, 'params': {}},
+    'MalakhovIlya/NEREL-(dict)': {'class': ner.NestedNerDict, 'params': {}},
+    'MalakhovIlya/NEREL-(json)': {'class': ner.NestedNerJson, 'params': {}},
+    'MalakhovIlya/NEREL-(in-place)': {'class': ner.NestedNerInPlace, 'params': {}},
+    'nerel-ds/NEREL-BIO-(dict)': {'class': ner.NerelBioDict, 'params': {}},
+    'nerel-ds/NEREL-BIO-(json)': {'class': ner.NerelBioJson, 'params': {}},
+    'nerel-ds/NEREL-BIO-(in-place)': {'class': ner.NerelBioInPlace, 'params': {}},
     'Mykes/patient_queries_ner (dict)': {'class': ner.PatientQueriesNerDict, 'params': {}},
     'Mykes/patient_queries_ner (json)': {'class': ner.PatientQueriesNerJson, 'params': {}},
     'Mykes/patient_queries_ner (in-place)': {'class': ner.PatientQueriesNerInPlace, 'params': {}},
@@ -278,8 +278,9 @@ TASK_REGISTRY = {
 # LIBRA
 with open(str(Path(__file__).parent / 'libra' / 'libra_config.json'), "r", encoding="utf-8") as f:
     libra_tasks = list(json.load(f).keys())
+
 for task in libra_tasks:
-    TASK_REGISTRY[task] = {
+    TASK_REGISTRY['libra/'+ task] = {
         'class': libra.LibraTask,
         'params': {'dataset_slice': task}
     }

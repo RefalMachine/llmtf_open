@@ -1,5 +1,5 @@
 import argparse
-from llmtf.model import ApiVLLMModel
+from llmtf.model import ApiVLLMModelReasoning 
 from llmtf.evaluator import Evaluator
 import os
 import torch
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     os.environ['OPENAI_API_KEY'] = args.api_key
     evaluator = Evaluator()
     
-    model = ApiVLLMModel(args.base_url, enable_thinking=not args.disable_thinking)
+    model = ApiVLLMModelReasoning(api_base=args.base_url)
     model.from_pretrained(args.model_name_or_path)
     
     model.generation_config.temperature = args.temperature
@@ -38,4 +38,4 @@ if __name__ == '__main__':
     if args.temperature == 0.0:
         model.generation_config.do_sample = False
     
-    evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix)
+    evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix, enable_thinking=not args.disable_thinking)
