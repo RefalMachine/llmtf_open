@@ -37,12 +37,12 @@ class ReasoningModel():
         else:
             self.generation_config.max_new_tokens_reasoning = self.generation_config.max_new_tokens
         self.generation_config.reasoning_truncing_prompt = reasoning_truncing_prompt
+        if not hasattr(self.generation_config, "stop_strings") or self.generation_config.stop_strings == None:
+            self.generation_config.stop_strings = []
         if end_thinking_token_id:
             self.generation_config.end_thinking_token_id=end_thinking_token_id
         else:
             self.get_end_thinking_token_id()
-        if not hasattr(self.generation_config, "stop_strings") or self.generation_config.stop_strings == None:
-            self.generation_config.stop_strings = []
             
 
     @abstractmethod
@@ -243,6 +243,7 @@ class ApiVLLMModel(LLM):
         self.max_model_len = None
         self.generation_config = None
         self._tokenize_warning_shown = False
+        self.max_len_warning_shown = False
 
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']
@@ -320,8 +321,19 @@ class ApiVLLMModel(LLM):
                 headers={'Authorization': 'Bearer ' + self.api_key}
             )
             if r.status_code != 200:
-                print(r.text)
-            assert r.status_code == 200
+                if "maximum context length" in r.text:
+                    if not self._max_len_warning_shown:
+                        print("You requested more tokens than maximum model context length. Generation result will be defaulted to empty string.")
+                        self._max_len_warning_shown = True
+                    info = {
+                        'prompt_len': data['usage']['prompt_tokens'],
+                        'generated_len': 0,
+                        'generated_cumulative_logprob': 'TODO: implement'
+                    }
+                    return messages, "", info
+                else:
+                    print(r.text)
+                    assert r.status_code == 200
 
             data = r.json()
             outputs.append(data['choices'][0]['message']['content'])
@@ -432,8 +444,19 @@ class ApiVLLMModel(LLM):
             headers={'Authorization': 'Bearer ' + self.api_key}
         )
         if r.status_code != 200:
-            print(r.text)
-        assert r.status_code == 200
+            if "maximum context length" in r.text:
+                if not self._max_len_warning_shown:
+                    print("You requested more tokens than maximum model context length. Generation result will be defaulted to empty string.")
+                    self._max_len_warning_shown = True
+                info = {
+                    'prompt_len': data['usage']['prompt_tokens'],
+                    'generated_len': 0,
+                    'generated_cumulative_logprob': 'TODO: implement'
+                }
+                return messages, "", info
+            else:
+                print(r.text)
+                assert r.status_code == 200
 
         data = r.json()
         logprobs = data['choices'][0]['logprobs']['content'][0]['top_logprobs']
