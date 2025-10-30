@@ -130,11 +130,11 @@ class Evaluator(Base):
                     messages_batch['generation_config'] = generation_config
                 for k, v in task.method_additional_args.items():
                     messages_batch[k] = v
+                messages_batch['enable_thinking'] = enable_thinking
+                messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
+                messages_batch['add_reasoning_info'] = add_reasoning_info
                 if task.method == 'generate':
-                    messages_batch['enable_thinking'] = enable_thinking
                     messages_batch['include_stop_str_in_output'] = include_stop_str_in_output
-                    messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
-                    messages_batch['add_reasoning_info'] = add_reasoning_info
                     messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
 
                 prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
