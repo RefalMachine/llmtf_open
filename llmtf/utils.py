@@ -135,7 +135,7 @@ def check_if_system_standard(tokenizer):
     return text.startswith(maybe_system_message_template) and '{scontent}' in maybe_system_message_template
 
 class Multiset():
-    def __init__(self, l: Union[List, Dict]):
+    def __init__(self, l: Union[List, Dict]=[]):
         if type(l) == list:
             data = {}
             for e in l:
@@ -168,7 +168,7 @@ class Multiset():
         data = {}
         for k, v in self.data.items():
             if k in m.data.keys():
-                data[k] = min(self.data[k], m.data[k])
+                data[k] = min(v, m.data[k])
         return Multiset(data)
 
     def subtract(self, m):
@@ -176,9 +176,9 @@ class Multiset():
         for k, v in self.data.items():
             if k in m.data.keys():
                 if self.data[k] > m.data[k]:
-                    data[k] = self.data[k] - m.data[k]
+                    data[k] = v - m.data[k]
             else:
-                data[k] = self.data[k]
+                data[k] = v
         return Multiset(data)
 
     def add(self, m):
