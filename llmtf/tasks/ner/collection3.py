@@ -8,26 +8,18 @@ from .ner_abc import NerDictAbc, NerJsonAbc, NerInPlaceAbc
 from llmtf.base import LLM
 
 def check_sample(sample):
-    # remove samples with [ or ]
-    return not("[" in sample["query"] or "]" in sample["query"])
-
-def process_tags(merged_ner: str) -> List[str]:
-    tags = merged_ner.split(',')
+    tags = sample["ner_tags"]
     prev_base = ""
-    for i, tag in enumerate(tags):
-        mod_idx = tag.find('-') + 1
-        tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+    for tag in tags:
+        tag_b = tag % 2 == 1 if tag != 0 else True
+        tag_base = (tag + 1) // 2
 
-        # replace I-TAGs appearing without B-TAG prior with their B_TAG counterparts
-        if tag_mod == "I-" \
-            and prev_base != tag_base:
-            tags[i] = "B-" + tag_base
-        # join adjecent entities with same base tags
-        elif tag_mod == "B-" and prev_base == tag_base:
-            tags[i] = "I-" + tag_base
+        # remove samples where I-TAGs appearing without B-TAG prior with their B_TAG counterparts
+        if not tag_b and prev_base != tag_base:
+            return False
         
         prev_base = tag_base
-    return tags
+    return True
 
 NO_SPACE_AFTER = set(list(".,!?:;»)") + ["..."])
 NO_SPACE_BEFORE = set("(«")
@@ -42,32 +34,34 @@ def join_tokens(tokens):
         prev_token = token
     return text[1:]
 
-def process_sample(sample):
-    tags = process_tags(sample["merged_ner"])
-    # same splitting result as with razdel
-    tokens = re.findall(r"\d+.\d+|[\w]+|\.{3}|[.,!?:;()\[\]«»]", sample["query"])
-    query = join_tokens(tokens)
-    return {"query": query, "tokens": tokens, "tags": tags}
+def remove_sp(sample):
+    for i, token in enumerate(sample["tokens"]):
+        if token in ["[", "]"]:
+            del sample["tokens"][i]
+            del sample["ner_tags"][i]
 
-# CHILD tag was removed
-ALL_TAGS = ["SIM", "SUBW", "GEN", "SPEC", "CHILD"]
-DEFAULT_TAGS = ["SIM", "SUBW", "GEN", "SPEC"]
+def process_sample(sample):
+    remove_sp(sample)
+    query = join_tokens(sample["tokens"])
+    return {"query": query, "tokens": sample["tokens"], "tags": sample["ner_tags"]}
+
+ALL_TAGS = ["PER", "ORG", "LOC"]
+IDX_TO_TAGS = ["O", "PER", "ORG", "LOC"]
 
 TAG_DESCRIPTIONS = {
-    "SIM": "симптомы",
-    "SUBW": "станция метро",
-    "GEN": "пол",
-    "SPEC": "специальность врача",
-    "CHILD": "упоминание ребенка"
+    "PER": "человек (с именем)",
+    "ORG": "организация",
+    "LOC": "местоположение",
 }
 
-class PatientQueriesNerAbc(ABC):
-    DATASET_PATH = "Mykes/patient_queries_ner"
+class Collection3Abc(ABC):
+    DATASET_PATH = "RCC-MSU/collection3"
+    DATASET_SLICE = "main"
 
     def __init__(
         self,
         instruction: str,
-        tags=DEFAULT_TAGS,
+        tags=ALL_TAGS,
         tag_descriptions: Dict[str, str]=TAG_DESCRIPTIONS,
         **kwargs
     ):
@@ -75,7 +69,7 @@ class PatientQueriesNerAbc(ABC):
         self.instruction = instruction.replace("{tags}", "\n".join(f"{tag} - {description}." for tag, description in tag_descriptions.items() if tag in self.TAGS))
 
     def dataset_args(self) -> Dict[str, str]:
-        return {"path": self.DATASET_PATH}
+        return {"path": self.DATASET_PATH, "name": self.DATASET_SLICE}
     
     def test_split_name(self) -> str:
         return 'test'
@@ -99,7 +93,7 @@ class PatientQueriesNerAbc(ABC):
         return samples
 
 
-PATIENT_QUERIES_NER_DICT_INSTRUCTION = """Извлеки из заданного ниже текста все именованные сущности всех представленных ниже классов.
+COLLECTION3_DICT_INSTRUCTION = """Извлеки из заданного ниже текста все именованные сущности всех представленных ниже классов.
 Сущности могут быть представлены целым словом или последовательностей слов, разделенных пробелами.
 Оставь сущности в том виде, в каком они даны в тексте, не изменяй и не склоняй их.
 
@@ -119,28 +113,28 @@ PATIENT_QUERIES_NER_DICT_INSTRUCTION = """Извлеки из заданного
 {text}
 """
 
-class PatientQueriesNerDict(PatientQueriesNerAbc, NerDictAbc):
+class Collection3Dict(Collection3Abc, NerDictAbc):
     def __init__(
         self,
-        instruction: str = PATIENT_QUERIES_NER_DICT_INSTRUCTION,
+        instruction: str = COLLECTION3_DICT_INSTRUCTION,
         **kwargs
     ):
-        PatientQueriesNerAbc.__init__(self, instruction=instruction, **kwargs)
+        Collection3Abc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
         self._max_new_tokens = 75
 
     def task_name(self) -> str:
-        return "Mykes/patient_queries_ner (dict)"
+        return "RCC-MSU/collection3 (dict)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
         for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+            tag_b = tag % 2 == 1 if tag != 0 else True
+            tag_base = IDX_TO_TAGS[(tag + 1) // 2]
 
             if tag_base not in self.TAGS:
                 continue
-            if tag_mod == 'I-':
+            if not tag_b:
                 tagged_tokens[tag_base][-1] += " " + token
             else:
                 tagged_tokens[tag_base].append(token)
@@ -156,7 +150,7 @@ class PatientQueriesNerDict(PatientQueriesNerAbc, NerDictAbc):
         return answer_str
 
 
-PATIENT_QUERIES_NER_JSON_INSTRUCTION = """Извлеки из заданного ниже текста все именованные сущности всех представленных ниже классов.
+COLLECTION3_JSON_INSTRUCTION = """Извлеки из заданного ниже текста все именованные сущности всех представленных ниже классов.
 Сущности могут быть представлены целым словом или последовательностей слов, разделенных пробелами.
 Оставь сущности в том виде, в каком они даны в тексте, не изменяй и не склоняй их.
 
@@ -172,38 +166,35 @@ PATIENT_QUERIES_NER_JSON_INSTRUCTION = """Извлеки из заданного
 {text}
 """
 
-class PatientQueriesNerJson(PatientQueriesNerAbc, NerJsonAbc):
+class Collection3Json(Collection3Abc, NerJsonAbc):
     def __init__(
         self,
-        instruction: str = PATIENT_QUERIES_NER_JSON_INSTRUCTION,
+        instruction: str = COLLECTION3_JSON_INSTRUCTION,
         **kwargs
     ):
-        PatientQueriesNerAbc.__init__(self, instruction=instruction, **kwargs)
+        Collection3Abc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
         self._max_new_tokens = 100
 
     def task_name(self) -> str:
-        return 'Mykes/patient_queries_ner (json)'
+        return 'RCC-MSU/collection3 (json)'
 
     def get_answer(self, sample) -> List[str]:
         tagged_tokens = []
         last_tag_idx = {}
         i = 0
         for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+            tag_b = tag % 2 == 1 if tag != 0 else True
+            tag_base = IDX_TO_TAGS[(tag + 1) // 2]
 
             if tag_base not in self.TAGS:
                 continue
-            if tag_mod == 'B-':
+            if tag_b:
                 tagged_tokens.append([tag_base, token])
                 last_tag_idx[tag_base] = i
                 i += 1
-            elif tag_mod == 'I-':
-                tagged_tokens[last_tag_idx[tag_base]][1] += " " + token
             else:
-                tagged_tokens.append([tag_base, token])
-                i += 1
+                tagged_tokens[last_tag_idx[tag_base]][1] += " " + token
         return tagged_tokens
     
     def get_answer_str(self, sample) -> str:
@@ -212,7 +203,7 @@ class PatientQueriesNerJson(PatientQueriesNerAbc, NerJsonAbc):
         return answer_str
 
 
-PATIENT_QUERIES_NER_IN_PLACE_INSTRUCTION = """Твоя задача точно повторить заданный ниже текст, помечая все именованные сущности всех представленных ниже классов.
+COLLECTION3_IN_PLACE_INSTRUCTION = """Твоя задача точно повторить заданный ниже текст, помечая все именованные сущности всех представленных ниже классов.
 Сущности могут быть представлены целым словом или последовательностей слов.
 Оставь сущности в том виде, в каком они даны в тексте, не изменяй и не склоняй их.
 
@@ -226,38 +217,35 @@ PATIENT_QUERIES_NER_IN_PLACE_INSTRUCTION = """Твоя задача точно �
 {text}
 """
 
-class PatientQueriesNerInPlace(PatientQueriesNerAbc, NerInPlaceAbc):
+class Collection3InPlace(Collection3Abc, NerInPlaceAbc):
     def __init__(
         self,
-        instruction: str = PATIENT_QUERIES_NER_IN_PLACE_INSTRUCTION,
+        instruction: str = COLLECTION3_IN_PLACE_INSTRUCTION,
         **kwargs
     ):
-        PatientQueriesNerAbc.__init__(self, instruction=instruction, **kwargs)
+        Collection3Abc.__init__(self, instruction=instruction, **kwargs)
         NerInPlaceAbc.__init__(self, **kwargs)
         self._max_new_tokens = 256
 
     def task_name(self) -> str:
-        return 'Mykes/patient_queries_ner (in place)'
+        return 'RCC-MSU/collection3 (in place)'
     
     def get_answer(self, sample) -> List[str]:
         tagged_tokens = []
         last_tag_idx = {}
         i = 0
         for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+            tag_b = tag % 2 == 1 if tag != 0 else True
+            tag_base = IDX_TO_TAGS[(tag + 1) // 2]
 
             if tag_base not in self.TAGS:
                 continue
-            if tag_mod == 'B-':
+            if tag_b:
                 tagged_tokens.append([tag_base, token])
                 last_tag_idx[tag_base] = i
                 i += 1
-            elif tag_mod == 'I-':
-                tagged_tokens[last_tag_idx[tag_base]][1] += " " + token
             else:
-                tagged_tokens.append([tag_base, token])
-                i += 1
+                tagged_tokens[last_tag_idx[tag_base]][1] += " " + token
         return tagged_tokens
 
     def get_answer_str(self, sample) -> str:
@@ -265,20 +253,18 @@ class PatientQueriesNerInPlace(PatientQueriesNerAbc, NerInPlaceAbc):
         entity_tokens = []
         prev_tag_base = ""
         for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+            tag_b = tag % 2 == 1 if tag != 0 else True
+            tag_base = IDX_TO_TAGS[(tag + 1) // 2]
     
-            if not tag_mod == "I-" and entity_tokens:
+            if tag_b and entity_tokens:
                 new_tokens.append(f"<{prev_tag_base}>{' '.join(entity_tokens)}</{prev_tag_base}>")
                 entity_tokens = []
             if tag_base not in self.TAGS:
                 new_tokens.append(token)
-            elif tag_mod == "B-":
+            elif tag_b:
                 entity_tokens = [token]
-            elif tag_mod == "I-":
-                entity_tokens.append(token)
             else:
-                new_tokens.append(f"<{tag_base}>{token}</{tag_base}>]")
+                entity_tokens.append(token)
             prev_tag_base = tag_base
         if len(entity_tokens) > 0:
             new_tokens.append(f"<{tag_base}>{' '.join(entity_tokens)}</{tag_base}>")
