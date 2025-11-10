@@ -11,7 +11,7 @@ class RuColaCustomTask(SimpleFewShotHFTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = str(sample['label'])

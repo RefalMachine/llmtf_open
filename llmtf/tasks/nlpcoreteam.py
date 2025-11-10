@@ -175,7 +175,7 @@ class MMLU(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
 
     @property
     def choices(self):

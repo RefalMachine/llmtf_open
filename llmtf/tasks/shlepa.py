@@ -18,7 +18,7 @@ class ShlepaSmallMMLU(Task):
         super().__init__(**kwargs)
         self.dataset_name = dataset_name
         self.method = 'calculate_tokens_proba'
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = str(sample['gold'])

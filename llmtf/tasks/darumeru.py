@@ -19,7 +19,7 @@ class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._max_new_tokens = 64
+        self._max_task_new_tokens = 64
 
     def dataset_args(self) -> Dict:
         return {'path': self.DARUMERU_HF_PATH, 'name': self.dataset_name}
@@ -45,11 +45,11 @@ class CopyText(DarumeruTask):
         super().__init__(**kwargs)
         assert subtask in ['para', 'sent', 'doc']
         self.main_metric = 'len' if subtask == 'sent' else 'lcs'
-        self._max_new_tokens = 1024
+        self._max_task_new_tokens = 1024
         if subtask == 'sent':
-            self._max_new_tokens = 128
+            self._max_task_new_tokens = 128
         elif subtask == 'doc':
-            self._max_new_tokens = 1024 * 4
+            self._max_task_new_tokens = 1024 * 4
             
         self.method = 'generate'
         self.method_additional_args = {'return_tokens': True}
@@ -81,7 +81,7 @@ class CopyText(DarumeruTask):
             y_true = ' ' + y_true
         y_true_tokens = self.model_tokenizer(y_true, add_special_tokens=False)['input_ids']
 
-        src_tokens_len = min(len(y_true_tokens), self._max_new_tokens)
+        src_tokens_len = min(len(y_true_tokens), self._max_task_new_tokens)
         predict_tokens_len = len(y_pred_tokens)
 
         len_metric = min(predict_tokens_len / src_tokens_len, src_tokens_len / predict_tokens_len)

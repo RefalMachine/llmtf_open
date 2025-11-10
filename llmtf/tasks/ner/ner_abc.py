@@ -10,7 +10,10 @@ from llmtf.metrics import mean
 def list_to_dict_multiset(l, tags):
     d = {tag: [] for tag in tags}
     tags = set(tags)
-    for (tag, entity) in l:
+    for item in l:
+        if len(item) != 2:
+            continue
+        tag, entity = item
         if tag in tags:
             d[tag].append(entity)
     for tag in tags:
@@ -24,12 +27,15 @@ def f1_macro(tp_fn_fp, tags):
 
     for s in tp_fn_fp:
         tt, fn, fp = s
-        for tag in tags:
-            if tag not in tt.keys():
-                continue
-            tp_total[tag] += tt[tag]
-            fn_total[tag] += fn[tag]
-            fp_total[tag] += fp[tag]
+        for k, v in tt.items():
+            if k in tags:
+                tp_total[k] += tt[k]
+        for k, v in fn.items():
+            if k in tags:
+                fn_total[k] += fn[k]
+        for k, v in fp.items():
+            if k in tags:
+                fp_total[k] += fp[k]
 
     f1 = [2 * tp_total[tag] / (2 * tp_total[tag] + fp_total[tag] + fn_total[tag]) \
           if tp_total[tag] > 0 else 0 for tag in tags]
@@ -92,15 +98,33 @@ class NerDictAbc(NerAbc):
         return answer
 
     def evaluate(self, sample, gen_pred: str) -> Dict:
-        y_pred = self.extract_answer(gen_pred)
-        y_gold = self.get_answer(sample)
-        
-        y_pred = {k: Multiset(v) for k, v in y_pred.items()}
-        y_gold = {k: Multiset(v) for k, v in y_gold.items()}
+        y_pred_raw = self.extract_answer(gen_pred)
+        y_gold_raw = self.get_answer(sample)
 
-        true_positives = {k: v.intersect(y_gold[k]).count() for k, v in y_pred.items() if k in y_gold.keys()}
-        false_negatives = {k: v.subtract(y_gold[k]).count() for k, v in y_pred.items() if k in y_gold.keys()}
-        false_positives = {k: v.subtract(y_pred[k]).count() for k, v in y_gold.items() if k in y_pred.keys()}
+        pred_tags = y_pred_raw.keys()
+        gold_tags = y_gold_raw.keys()
+        combined_tags = set(list(pred_tags) + list(gold_tags))
+
+        y_pred, y_gold = {}, {}
+        empty_multiset = Multiset()
+        for tag in combined_tags:
+            if tag in pred_tags:
+                y_pred[tag] = Multiset(y_pred_raw[tag])
+            else:
+                y_pred[tag] = empty_multiset
+
+            if tag in gold_tags:
+                y_gold[tag] = Multiset(y_gold_raw[tag])
+            else:
+                y_gold[tag] = empty_multiset
+
+        true_positives = {tag: y_pred[tag].intersect(y_gold[tag]).count() for tag in combined_tags}
+        false_negatives = {tag: y_gold[tag].subtract(y_pred[tag]).count() for tag in combined_tags}
+        false_positives = {tag: y_pred[tag].subtract(y_gold[tag]).count() for tag in combined_tags}
+
+        true_positives = {k: v for k, v in true_positives.items() if v != 0}
+        false_negatives = {k: v for k, v in false_negatives.items() if v != 0}
+        false_positives = {k: v for k, v in false_positives.items() if v != 0}
         return {"f1-macro": (true_positives, false_negatives, false_positives)}
 
 
@@ -123,13 +147,21 @@ class NerJsonAbc(NerAbc):
     def evaluate(self, sample, gen_pred) -> Dict:
         y_pred = self.extract_answer(gen_pred)
         y_gold = self.get_answer(sample)
-        
-        y_pred = list_to_dict_multiset(y_pred, self.TAGS)
-        y_gold = list_to_dict_multiset(y_gold, self.TAGS)
 
-        true_positives = {k: v.intersect(y_gold[k]).count() for k, v in y_pred.items() if k in y_gold.keys()}
-        false_negatives = {k: v.subtract(y_gold[k]).count() for k, v in y_pred.items() if k in y_gold.keys()}
-        false_positives = {k: v.subtract(y_pred[k]).count() for k, v in y_gold.items() if k in y_pred.keys()}
+        pred_tags = set(map(lambda x: x[0], y_pred))
+        gold_tags = set(map(lambda x: x[0], y_gold))
+        combined_tags = set(list(pred_tags) + list(gold_tags))
+        
+        y_pred = list_to_dict_multiset(y_pred, combined_tags)
+        y_gold = list_to_dict_multiset(y_gold, combined_tags)
+
+        true_positives = {tag: y_pred[tag].intersect(y_gold[tag]).count() for tag in combined_tags}
+        false_negatives = {tag: y_gold[tag].subtract(y_pred[tag]).count() for tag in combined_tags}
+        false_positives = {tag: y_pred[tag].subtract(y_gold[tag]).count() for tag in combined_tags}
+
+        true_positives = {k: v for k, v in true_positives.items() if v != 0}
+        false_negatives = {k: v for k, v in false_negatives.items() if v != 0}
+        false_positives = {k: v for k, v in false_positives.items() if v != 0}
         return {"f1-macro": (true_positives, false_negatives, false_positives)}
 
 
@@ -154,11 +186,19 @@ class NerInPlaceAbc(NerAbc):
         else:
             y_pred = self.extract_answer(gen_pred)
         y_gold = self.get_answer(sample)
-        
-        y_pred = list_to_dict_multiset(y_pred, self.TAGS)
-        y_gold = list_to_dict_multiset(y_gold, self.TAGS)
 
-        true_positives = {k: v.intersect(y_gold[k]).count() for k, v in y_pred.items() if k in y_gold.keys()}
-        false_negatives = {k: v.subtract(y_gold[k]).count() for k, v in y_pred.items() if k in y_gold.keys()}
-        false_positives = {k: v.subtract(y_pred[k]).count() for k, v in y_gold.items() if k in y_pred.keys()}
+        pred_tags = set(map(lambda x: x[0], y_pred))
+        gold_tags = set(map(lambda x: x[0], y_gold))
+        combined_tags = set(list(pred_tags) + list(gold_tags))
+        
+        y_pred = list_to_dict_multiset(y_pred, combined_tags)
+        y_gold = list_to_dict_multiset(y_gold, combined_tags)
+
+        true_positives = {tag: y_pred[tag].intersect(y_gold[tag]).count() for tag in combined_tags}
+        false_negatives = {tag: y_gold[tag].subtract(y_pred[tag]).count() for tag in combined_tags}
+        false_positives = {tag: y_pred[tag].subtract(y_gold[tag]).count() for tag in combined_tags}
+
+        true_positives = {k: v for k, v in true_positives.items() if v != 0}
+        false_negatives = {k: v for k, v in false_negatives.items() if v != 0}
+        false_positives = {k: v for k, v in false_positives.items() if v != 0}
         return {"f1-macro": (true_positives, false_negatives, false_positives)}

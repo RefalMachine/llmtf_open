@@ -46,7 +46,7 @@ class Evaluator(Base):
         model,
         output_dir,
         datasets_names='all',
-        max_len=4096,
+        max_prompt_len=4096,
         few_shot_count=5,
         generation_config=None,
         batch_size=1,
@@ -78,12 +78,12 @@ class Evaluator(Base):
                     continue
 
                 # MaxLenContext changes model.generation_config.max_new_tokens param based on task.max_new_tokens
-                with MaxLenContext(task, model, max_len, generation_config) as prompt_max_len:
+                with MaxLenContext(task, model, max_prompt_len, generation_config) as max_prompt_len:
                     self.evaluate_dataset(
                         task,
                         model,
                         output_dir,
-                        prompt_max_len,
+                        max_prompt_len,
                         few_shot_count,
                         generation_config,
                         batch_size,
@@ -106,7 +106,7 @@ class Evaluator(Base):
         task,
         model,
         output_dir,
-        max_len,
+        max_prompt_len,
         few_shot_count,
         generation_config,
         batch_size,
@@ -119,7 +119,7 @@ class Evaluator(Base):
     ):
         model.add_stop_strings(task.additional_stop_strings)
         with CustomTimer(task.logger, 'Loading Dataset'):
-            messages, samples = task.load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
+            messages, samples = task.load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count)
 
         metrics = []
         with SimpleTaskLogger(output_dir, task.run_name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):
@@ -130,10 +130,11 @@ class Evaluator(Base):
                     messages_batch['generation_config'] = generation_config
                 for k, v in task.method_additional_args.items():
                     messages_batch[k] = v
+                messages_batch['enable_thinking'] = enable_thinking
+                messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
+                messages_batch['add_reasoning_info'] = add_reasoning_info
                 if task.method == 'generate':
-                    messages_batch['enable_thinking'] = enable_thinking
-                    messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
-                    messages_batch['add_reasoning_info'] = add_reasoning_info
+                    messages_batch['include_stop_str_in_output'] = include_stop_str_in_output
                     messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
 
                 prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
@@ -156,13 +157,13 @@ class Evaluator(Base):
             params = {}
             params['custom_generation_config'] = generation_config
             params['model_params'] = model.get_params()
-            params['task_params'] = {'max_len': max_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': task.method}
+            params['task_params'] = {'max_prompt_len': max_prompt_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': task.method}
             logger.log_json(params)
 
         model.reset_stop_strings()
         task.logger.info(str(metrics_res))
 
-    def evaluate_ppl(self, model, output_dir, datasets_names='all', max_len=4096, few_shot_count=5, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False, name_suffix=None):
+    def evaluate_ppl(self, model, output_dir, datasets_names='all', max_prompt_len=4096, few_shot_count=5, batch_size=1, max_sample_per_dataset=100000000, force_recalc=False, name_suffix=None):
         set_out_handler_to_main_logger(output_dir)
         try:
             if datasets_names == 'all':
@@ -182,8 +183,8 @@ class Evaluator(Base):
                     self.logger.info(f"Skip task {task.run_name()} because method get_answer not implemented")
                     continue
 
-                with MaxLenContext(task, model, max_len, None) as prompt_max_len:
-                    self.evaluate_dataset_ppl(task, model, output_dir, prompt_max_len, few_shot_count, batch_size, max_sample_per_dataset)
+                with MaxLenContext(task, model, max_prompt_len, None) as max_prompt_len:
+                    self.evaluate_dataset_ppl(task, model, output_dir, max_prompt_len, few_shot_count, batch_size, max_sample_per_dataset)
 
             self.logger.info(f'Ended eval')
             self.create_report(output_dir)
@@ -191,11 +192,11 @@ class Evaluator(Base):
             self.logger.error(e)
             self.logger.error(traceback.format_exc()) 
 
-    def evaluate_dataset_ppl(self, task, model, output_dir, max_len, few_shot_count, batch_size, max_sample_per_dataset):
+    def evaluate_dataset_ppl(self, task, model, output_dir, max_prompt_len, few_shot_count, batch_size, max_sample_per_dataset):
         assert 'get_answer' in dir(task)
         assert model.support_method('calculate_logsoftmax')
 
-        messages, samples = task.load_dataset(model, max_len=max_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count)
+        messages, samples = task.load_dataset(model, max_prompt_len=max_prompt_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count)
         shifts = []
         for m, s in zip(*[messages, samples]):
             shift = len(model.apply_model_prompt(m['messages']))
@@ -239,7 +240,7 @@ class Evaluator(Base):
         with SimpleTaskLogger(output_dir, task.run_name() + '_params') as logger:
             params = {}
             params['model_params'] = model.get_params()
-            params['task_params'] = {'max_len': max_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': 'calculate_logsoftmax'}
+            params['task_params'] = {'max_prompt_len': max_prompt_len, 'few_shot_count': few_shot_count, 'batch_size': batch_size, 'max_sample_per_dataset': max_sample_per_dataset, 'method': 'calculate_logsoftmax'}
             logger.log_json(params)
 
         task.logger.info(str(metrics_res))

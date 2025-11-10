@@ -39,7 +39,7 @@ def accuracy_reward(completion: str, solution: str) -> float:
 class MathDataset(SimpleFewShotHFTask):
     def __init__(self, system_prompt, instruction, max_new_tokens=30000, **kwargs):
         super().__init__(**kwargs)
-        self._max_new_tokens = max_new_tokens
+        self._max_task_new_tokens = max_new_tokens
         self.system_prompt = system_prompt
         self.instruction = instruction
         self.method = 'generate'

@@ -37,12 +37,13 @@ class ReasoningModel():
         else:
             self.generation_config.max_new_tokens_reasoning = self.generation_config.max_new_tokens
         self.generation_config.reasoning_truncing_prompt = reasoning_truncing_prompt
+        if not hasattr(self.generation_config, "stop_strings") or self.generation_config.stop_strings == None:
+            self.generation_config.stop_strings = []
+            print("DEBUG") #DEBUG
         if end_thinking_token_id:
             self.generation_config.end_thinking_token_id=end_thinking_token_id
         else:
             self.get_end_thinking_token_id()
-        if not hasattr(self.generation_config, "stop_strings") or self.generation_config.stop_strings == None:
-            self.generation_config.stop_strings = []
             
 
     @abstractmethod
@@ -183,7 +184,7 @@ class ReasoningModel():
                     reasoning_text += generation_config.reasoning_truncing_prompt
                 if not reasoning_text.endswith("\n"):
                     reasoning_text += "\n"
-                reasoning_text += "</think>"
+                reasoning_text += "</think>\n"
             reasoning_output_batch[i] = reasoning_text
 
             new_messages = [message.copy() for message in messages]
@@ -230,6 +231,129 @@ class ReasoningModel():
 
         return reasoning_prompt_batch, final_output_batch, infos_batch
 
+    @abstractmethod
+    def _calculate_tokens_proba_batch(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True
+    ):
+        pass
+
+    def _calculate_tokens_proba_reasoning(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        prompts, outputs, infos = self._calculate_tokens_proba_batch_reasoning(
+            [messages],
+            [tokens_of_interest],
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            generation_config=generation_config
+        )
+        return prompts[0], outputs[0], infos[0]
+    
+    def _calculate_tokens_proba_batch_reasoning(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        messages_batch = messages
+        generation_config = self.generation_config if generation_config is None else generation_config
+        if not enable_thinking:
+            return self._calculate_tokens_proba_batch(
+                messages_batch,
+                tokens_of_interest,
+                incomplete_last_bot_message=incomplete_last_bot_message
+            )
+
+        prompt_messages_batch = []
+        assistant_messages_batch = []
+        for messages in messages_batch:
+            for i in range(len(messages) - 1, -1, -1):
+                if messages[i]["role"] not in ["assistant", "bot"]:
+                    prompt_messages_batch.append(messages[:i + 1])
+                    assistant_messages_batch.append(messages[i + 1:])
+                    break
+
+        old_params = self.prepare_generation_config()
+        reasoning_prompt_batch, reasoning_output_batch, reasoning_infos_batch = self._generate_batch(
+            prompt_messages_batch,
+            generation_config=generation_config,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            include_stop_str_in_output=True,
+            return_tokens=False,
+            enable_thinking=True,
+            skip_special_tokens=False
+        )
+        self.prepare_generation_config(old_params)
+
+        updated_messages_batch = []
+        for i, messages in enumerate(prompt_messages_batch):
+            reasoning_text = reasoning_output_batch[i]
+            stopped_by_length = reasoning_infos_batch[i]["generated_len"][0] >= generation_config.max_new_tokens_reasoning and not reasoning_text.endswith("</think>")
+            stopped_by_think = False
+            if "</think>" in reasoning_text:
+                stopped_by_think = True
+                if not reasoning_text.endswith("</think>"):
+                    raise Exception(f'Unexpected generation: </think> token is present but generation did not stop.\nReasoning text: "{reasoning_text}"')
+            if not (stopped_by_think or stopped_by_length):
+                    raise Exception(f'Unexpected generation: stopped by neither </think> token nor length limit.\nReasoning text: "{reasoning_text}"')
+
+            if stopped_by_length:
+                if add_reasoning_truncing_prompt:
+                    reasoning_text += generation_config.reasoning_truncing_prompt
+                if not reasoning_text.endswith("\n"):
+                    reasoning_text += "\n"
+                reasoning_text += "</think>\n"
+            reasoning_output_batch[i] = reasoning_text
+
+            new_messages = [message.copy() for message in messages]
+            new_messages.append({
+                'role': 'assistant',
+                'content': reasoning_text
+            })
+            new_messages.extend(assistant_messages_batch[i])
+            updated_messages_batch.append(new_messages)
+
+        _, final_output_batch, final_infos_batch = self._calculate_tokens_proba_batch(
+            updated_messages_batch,
+            tokens_of_interest,
+            incomplete_last_bot_message=incomplete_last_bot_message
+        )
+
+        infos_batch = []
+        for i in range(len(messages_batch)):
+            info = {
+                'reasoning': {
+                    'prompt_len': reasoning_infos_batch[i]['prompt_len'],
+                    'generated_len': reasoning_infos_batch[i]['generated_len'],
+                    'generated_cumulative_logprob': reasoning_infos_batch[i]['generated_cumulative_logprob']
+                },
+                'response': {
+                    'generated_len': final_infos_batch[i]['generated_len'],
+                    'generated_token': final_infos_batch[i]['generated_token'],
+                }
+            }
+            if add_reasoning_info:
+                info['reasoning']['text'] = reasoning_output_batch[i]
+            infos_batch.append(info)
+
+        return reasoning_prompt_batch, final_output_batch, infos_batch
+
 
 class ApiVLLMModel(LLM):
     def __init__(self, api_base, api_key='', **kwargs):
@@ -243,6 +367,7 @@ class ApiVLLMModel(LLM):
         self.max_model_len = None
         self.generation_config = None
         self._tokenize_warning_shown = False
+        self.max_len_warning_shown = False
 
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']
@@ -320,8 +445,19 @@ class ApiVLLMModel(LLM):
                 headers={'Authorization': 'Bearer ' + self.api_key}
             )
             if r.status_code != 200:
-                print(r.text)
-            assert r.status_code == 200
+                if "maximum context length" in r.text:
+                    if not self._max_len_warning_shown:
+                        print("You requested more tokens than maximum model context length. Generation result will be defaulted to empty string.")
+                        self._max_len_warning_shown = True
+                    info = {
+                        'prompt_len': "error",
+                        'generated_len': 0,
+                        'generated_cumulative_logprob': 'TODO: implement'
+                    }
+                    return messages, "", info
+                else:
+                    print(r.text)
+                    assert r.status_code == 200
 
             data = r.json()
             outputs.append(data['choices'][0]['message']['content'])
@@ -426,21 +562,31 @@ class ApiVLLMModel(LLM):
                 'skip_special_tokens': False,
                 'continue_final_message': incomplete_last_bot_message and last_role == 'assistant',
                 'logprobs': True,
-                'top_logprobs': 50,
+                'top_logprobs': 20,
                 'chat_template_kwargs': {'enable_thinking': False}
             },
             headers={'Authorization': 'Bearer ' + self.api_key}
         )
         if r.status_code != 200:
-            print(r.text)
-        assert r.status_code == 200
+            if "maximum context length" in r.text:
+                if not self._max_len_warning_shown:
+                    print("You requested more tokens than maximum model context length. Generation result will be defaulted to empty string.")
+                    self._max_len_warning_shown = True
+                info = {
+                    'generated_len': 0,
+                    'generated_token': ""
+                }
+                return messages, "", info
+            else:
+                print(r.text)
+                assert r.status_code == 200
 
         data = r.json()
         logprobs = data['choices'][0]['logprobs']['content'][0]['top_logprobs']
         probs = {lp['token']: np.exp(lp['logprob']) for lp in logprobs}
 
-        tokens_of_interest_augmented = [(' ' + token, token) for token in tokens_of_interest]
-        probs = {token: max(probs.get(token, 0.0), probs.get(token_augm, 0.0)) for token_augm, token in tokens_of_interest_augmented}
+        tokens_of_interest_augmented = [(token, ['Ġ' + token, ' ' + token, token]) for token in tokens_of_interest]
+        probs = {token: max(*list(map(lambda x: probs.get(x, 0.0), tokens))) for token, tokens in tokens_of_interest_augmented}
 
         info = {
             'generated_len': 1,
@@ -456,8 +602,8 @@ class ApiVLLMModel(LLM):
             # Создаем словарь для сопоставления future с исходным индексом
             # Это нужно, чтобы сохранить исходный порядок результатов
             future_to_idx = {
-                executor.submit(self.calculate_tokens_proba, msg, toi, **kwargs): i
-                for i, (msg, toi) in enumerate(zip(*[messages, tokens_of_interest]))
+                executor.submit(ApiVLLMModel.calculate_tokens_proba, self, msg, toi, **kwargs): i
+                for i, (msg, toi) in enumerate(zip(messages, tokens_of_interest))
             }
 
             # Создаем tqdm, который будет итерироваться по завершающимся задачам
@@ -577,9 +723,6 @@ class ApiVLLMModelReasoning(ApiVLLMModel, ReasoningModel):
             self.generation_config.end_thinking_token_id = request.json()["tokens"][0]
         else:
             raise Exception('Unable to get </think> token id. Make sure your endpoint supports tokenizer requests.\n' + request.text)
-
-    def _generate(*args, **kwargs):
-        return ApiVLLMModel.generate(*args, **kwargs)
     
     def _generate_batch(*args, **kwargs):
         return ApiVLLMModel.generate_batch(*args, **kwargs)
@@ -635,6 +778,50 @@ class ApiVLLMModelReasoning(ApiVLLMModel, ReasoningModel):
             add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
             add_reasoning_info=add_reasoning_info
         )
+    
+    def _calculate_tokens_proba_batch(*args, **kwargs):
+        return ApiVLLMModel.calculate_tokens_proba_batch(*args, **kwargs)
+    
+    def calculate_tokens_proba(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        return self._calculate_tokens_proba_reasoning(
+            messages,
+            tokens_of_interest,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            generation_config=generation_config
+        )
+    
+    def calculate_tokens_proba_batch(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        return self._calculate_tokens_proba_batch_reasoning(
+            messages,
+            tokens_of_interest,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            generation_config=generation_config
+        )
+
 
 class LocalHostedLLM(LLM):
     def support_method(self, method):
@@ -1155,9 +1342,6 @@ class HFModelReasoning(HFModel, ReasoningModel):
     
     def get_end_thinking_token_id(self):
         self.generation_config.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
-
-    def _generate(*args, **kwargs):
-        return HFModel.generate(*args, **kwargs)
     
     def _generate_batch(*args, **kwargs):
         return HFModel.generate_batch(*args, **kwargs)
@@ -1212,6 +1396,49 @@ class HFModelReasoning(HFModel, ReasoningModel):
             enable_thinking=enable_thinking,
             add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
             add_reasoning_info=add_reasoning_info
+        )
+
+    def _calculate_tokens_proba_batch(*args, **kwargs):
+        return HFModel.calculate_tokens_proba_batch(*args, **kwargs)
+    
+    def calculate_tokens_proba(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        return self._calculate_tokens_proba_reasoning(
+            messages,
+            tokens_of_interest,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            generation_config=generation_config
+        )
+    
+    def calculate_tokens_proba_batch(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        return self._calculate_tokens_proba_batch_reasoning(
+            messages,
+            tokens_of_interest,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            generation_config=generation_config
         )
 
 
@@ -1551,9 +1778,6 @@ class VLLMModelReasoning(VLLMModel, ReasoningModel):
     
     def get_end_thinking_token_id(self):
         self.generation_config.end_thinking_token_id = self.tokenizer.convert_tokens_to_ids("</think>")
-
-    def _generate(*args, **kwargs):
-        return VLLMModel.generate(*args, **kwargs)
     
     def _generate_batch(*args, **kwargs):
         return VLLMModel.generate_batch(*args, **kwargs)
@@ -1608,4 +1832,47 @@ class VLLMModelReasoning(VLLMModel, ReasoningModel):
             enable_thinking=enable_thinking,
             add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
             add_reasoning_info=add_reasoning_info
+        )
+
+    def _calculate_tokens_proba_batch(*args, **kwargs):
+        return VLLMModel.calculate_tokens_proba_batch(*args, **kwargs)
+    
+    def calculate_tokens_proba(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        return self._calculate_tokens_proba_reasoning(
+            messages,
+            tokens_of_interest,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            generation_config=generation_config
+        )
+    
+    def calculate_tokens_proba_batch(
+        self,
+        messages,
+        tokens_of_interest,
+        incomplete_last_bot_message=True,
+        enable_thinking=True,
+        add_reasoning_truncing_prompt=False,
+        add_reasoning_info=True,
+        generation_config=None
+    ):
+        return self._calculate_tokens_proba_batch_reasoning(
+            messages,
+            tokens_of_interest,
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            enable_thinking=enable_thinking,
+            add_reasoning_truncing_prompt=add_reasoning_truncing_prompt,
+            add_reasoning_info=add_reasoning_info,
+            generation_config=generation_config
         )

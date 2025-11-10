@@ -14,7 +14,7 @@ class HabrQASbS(SimpleFewShotHFTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
 
     def task_name(self):
         return 'vikhrmodels/habr_qa_sbs'
@@ -68,7 +68,7 @@ class HabrQASbS(SimpleFewShotHFTask):
         messages = []
         instruction_user = 'Тебе будет показан вопрос и два варианта ответа на него с QA платформы. Твоя задача выбрать, какой ответ получил больше лайков (то есть больше понравился пользователям).\n\n***Вопрос***\n{question}\n\n***Варианты ответа***\n{answers}\n\nОтветь одной буквой.'
         instruction_bot = 'Буква правильного ответа: {outputs}'
-        instruction_bot_incomplete = 'Буква правильного ответа:'
+        instruction_bot_incomplete = 'Буква правильного ответа: '
 
         user_content = instruction_user.replace('{question}', sample['question']).replace('{answers}', sample['answers'])
         bot_content = instruction_bot.replace('{outputs}', sample['outputs']) if with_answer else instruction_bot_incomplete
