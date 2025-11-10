@@ -59,33 +59,44 @@ class CustomTimer():
         self.logger.info(f'{self.prefix}: {time_passed:.2f}s')
 
 class MaxLenContext():
-    def __init__(self, task, model, max_len, custom_generation_config):
+    def __init__(self, task, model, max_prompt_len, custom_generation_config):
         self.task = task
         self.model = model
-        self.max_len = max_len
+        self.max_prompt_len = max_prompt_len
         self.logger = logging.getLogger(__name__ + '.MaxLenContext')
         self.saved_max_new_tokens = self.model.generation_config.max_new_tokens
+        self.reasoning = False
+        if hasattr(self.model.generation_config, "max_new_tokens_reasoning"):
+            self.saved_max_new_tokens_reasoning = self.model.generation_config.max_new_tokens_reasoning
+            self.reasoning = True
+        else:
+            self.saved_max_new_tokens_reasoning = 0
         self.custom_generation_config = custom_generation_config
 
     def __enter__(self):
         model_max_len = self.model.get_max_model_len()
-        max_len = self.max_len
+        max_prompt_len = self.max_prompt_len
 
-        max_new_tokens = self.task.max_new_tokens if self.custom_generation_config is None else self.custom_generation_config.max_new_tokens
-        if max_new_tokens is None:
-            max_new_tokens = self.task.max_new_tokens
+        max_new_tokens = self.task.max_task_new_tokens if self.custom_generation_config is None else self.custom_generation_config.max_new_tokens
+        max_new_tokens_reasoning = self.saved_max_new_tokens_reasoning
 
-        if model_max_len < self.max_len + max_new_tokens:
-            self.logger.warning(f'model_max_len ({model_max_len}) < max_len ({self.max_len}) + max_new_tokens ({max_new_tokens})')
-            max_len = model_max_len - max_new_tokens
-            self.logger.warning(f'Lowering max_len to {max_len}')
-
-        self.saved_max_new_tokens = self.model.generation_config.max_new_tokens
+        if model_max_len < max_prompt_len + max_new_tokens + max_new_tokens_reasoning:
+            self.logger.warning(f'model_max_len ({model_max_len}) < max_prompt_len ({self.max_prompt_len}) + max_new_tokens ({max_new_tokens})' + (f' + max_new_tokens_reasoning ({max_new_tokens_reasoning})' if self.reasoning else ''))
+            if self.reasoning:
+                max_new_tokens_reasoning = max(model_max_len - max_prompt_len - max_new_tokens, 0)
+                self.logger.warning(f'Lowering max_new_tokens_reasoning to {max_new_tokens_reasoning}')
+            if not self.reasoning or model_max_len < max_prompt_len + max_new_tokens + max_new_tokens_reasoning:
+                max_prompt_len = model_max_len - max_new_tokens
+                self.logger.warning(f'Lowering max_prompt_len to {max_prompt_len}')
+                
         self.model.generation_config.max_new_tokens = max_new_tokens
-        return max_len
+        if self.reasoning:
+            self.model.generation_config.max_new_tokens_reasoning = max_new_tokens_reasoning
+        return max_prompt_len
 
     def __exit__(self, *args):
         self.model.generation_config.max_new_tokens = self.saved_max_new_tokens
+        self.model.generation_config.max_new_tokens_reasoning = self.saved_max_new_tokens_reasoning
 
 
 def calculate_offset_mapping_llama3_workaround(prompts, tokens, tokenizer):

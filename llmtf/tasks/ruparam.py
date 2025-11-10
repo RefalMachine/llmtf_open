@@ -38,7 +38,7 @@ def prepare_dataset(dataset_path):
 class RuParam(SimpleFewShotHFTask):
     def __init__(self, instruction, **kwargs):
         super().__init__(**kwargs)
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
         self.instruction = instruction
         self.method = 'calculate_tokens_proba'
 

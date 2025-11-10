@@ -39,6 +39,7 @@ class ReasoningModel():
         self.generation_config.reasoning_truncing_prompt = reasoning_truncing_prompt
         if not hasattr(self.generation_config, "stop_strings") or self.generation_config.stop_strings == None:
             self.generation_config.stop_strings = []
+            print("DEBUG") #DEBUG
         if end_thinking_token_id:
             self.generation_config.end_thinking_token_id=end_thinking_token_id
         else:
@@ -584,8 +585,8 @@ class ApiVLLMModel(LLM):
         logprobs = data['choices'][0]['logprobs']['content'][0]['top_logprobs']
         probs = {lp['token']: np.exp(lp['logprob']) for lp in logprobs}
 
-        tokens_of_interest_augmented = [(' ' + token, token) for token in tokens_of_interest]
-        probs = {token: max(probs.get(token, 0.0), probs.get(token_augm, 0.0)) for token_augm, token in tokens_of_interest_augmented}
+        tokens_of_interest_augmented = [(token, ['Ġ' + token, ' ' + token, token]) for token in tokens_of_interest]
+        probs = {token: max(*list(map(lambda x: probs.get(x, 0.0), tokens))) for token, tokens in tokens_of_interest_augmented}
 
         info = {
             'generated_len': 1,

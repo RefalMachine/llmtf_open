@@ -411,7 +411,7 @@ def pred2opinions_default(y_pred):
 class RuOpinionNE(SimpleFewShotHFTask):
     def __init__(self, instruction, short_instruction=None, pred2opinions=pred2opinions_default, test=False, repeate_instruction=False, restrict_generation=False, **kwargs):
         super().__init__(**kwargs)
-        self._max_new_tokens = 256
+        self._max_task_new_tokens = 256
         self.instruction = instruction
         self.short_instruction = short_instruction
         if self.short_instruction is None:

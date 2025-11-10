@@ -127,7 +127,7 @@ class PatientQueriesNerDict(PatientQueriesNerAbc, NerDictAbc):
     ):
         PatientQueriesNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 75
+        self._max_task_new_tokens = 75
 
     def task_name(self) -> str:
         return "Mykes/patient_queries_ner (dict)"
@@ -180,7 +180,7 @@ class PatientQueriesNerJson(PatientQueriesNerAbc, NerJsonAbc):
     ):
         PatientQueriesNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 100
+        self._max_task_new_tokens = 100
 
     def task_name(self) -> str:
         return 'Mykes/patient_queries_ner (json)'
@@ -234,7 +234,7 @@ class PatientQueriesNerInPlace(PatientQueriesNerAbc, NerInPlaceAbc):
     ):
         PatientQueriesNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerInPlaceAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 256
+        self._max_task_new_tokens = 256
 
     def task_name(self) -> str:
         return 'Mykes/patient_queries_ner (in place)'

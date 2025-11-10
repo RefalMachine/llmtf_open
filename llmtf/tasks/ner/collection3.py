@@ -121,7 +121,7 @@ class Collection3Dict(Collection3Abc, NerDictAbc):
     ):
         Collection3Abc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 75
+        self._max_task_new_tokens = 75
 
     def task_name(self) -> str:
         return "RCC-MSU/collection3 (dict)"
@@ -174,7 +174,7 @@ class Collection3Json(Collection3Abc, NerJsonAbc):
     ):
         Collection3Abc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 100
+        self._max_task_new_tokens = 100
 
     def task_name(self) -> str:
         return 'RCC-MSU/collection3 (json)'
@@ -225,7 +225,7 @@ class Collection3InPlace(Collection3Abc, NerInPlaceAbc):
     ):
         Collection3Abc.__init__(self, instruction=instruction, **kwargs)
         NerInPlaceAbc.__init__(self, **kwargs)
-        self._max_new_tokens = 256
+        self._max_task_new_tokens = 256
 
     def task_name(self) -> str:
         return 'RCC-MSU/collection3 (in place)'

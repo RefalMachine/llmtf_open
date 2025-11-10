@@ -72,7 +72,7 @@ class LibraTask(SimpleFewShotHFTask):
         self.dataset_slice = dataset_slice
         self.config = self.load_config(config_path)[dataset_slice]
         self.method = "generate"
-        self._max_new_tokens = int(self.config["max_new_tokens"])
+        self._max_task_new_tokens = int(self.config["max_new_tokens"])
         self.instruction = self.config["instruction"]
         self.metric_name = self.config["metric"]
         self.allowed_lengths = allowed_lengths

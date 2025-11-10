@@ -494,7 +494,7 @@ class LLMAsJudgeStyleControl(Task):
         self.custom_instruction = custom_instruction
         self.method = 'calculate_tokens_proba'
         self.previous_battles_path = previous_battles_path
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
         self.n_bootstrap = 100
         self.confidence_level = 0.95
 
@@ -764,7 +764,7 @@ class LLMAsJudgeGenStyleControl(LLMAsJudgeStyleControl):
     def __init__(self, model_outputs: Dict, references_outputs: List[Dict], previous_battles_path: str='', custom_instruction=None, **kwargs):
         super().__init__(model_outputs, references_outputs, previous_battles_path, custom_instruction, **kwargs)
         self.method = 'generate'  # Используем генеративный подход
-        self._max_new_tokens = 2048  # Увеличиваем для JSON ответа
+        self._max_task_new_tokens = 2048  # Увеличиваем для JSON ответа
     
     def create_messages(self, sample: Dict, with_answer=False):
         """Создает промпт для генеративной оценки с JSON выводом"""
