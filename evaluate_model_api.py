@@ -16,6 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--max_sample_per_dataset', type=int, default=10000000000000)
     parser.add_argument('--max_len', type=int, default=4000)
+    parser.add_argument('--max_new_tokens_reasoning', type=int, default=3000)
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--name_suffix', type=str, default=None)
     parser.add_argument('--temperature', type=float, default=0.0)
@@ -27,8 +28,9 @@ if __name__ == '__main__':
     os.environ['OPENAI_API_KEY'] = args.api_key
     evaluator = Evaluator()
     
+    print(args.max_new_tokens_reasoning)
     model = ApiVLLMModelReasoning(api_base=args.base_url)
-    model.from_pretrained(args.model_name_or_path)
+    model.from_pretrained(args.model_name_or_path, max_new_tokens_reasoning=args.max_new_tokens_reasoning)
     
     model.generation_config.temperature = args.temperature
     model.generation_config.repetition_penalty = args.repetition_penalty
