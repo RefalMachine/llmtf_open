@@ -67,7 +67,7 @@ def custom_index_walk(K):
 class LibraTask(SimpleFewShotHFTask):
     DATASET_PATH = "ai-forever/LIBRA"
 
-    def __init__(self, dataset_slice, allowed_lengths={"4k", "8k", "16k", "32k", "64k", "128k"}, config_path=str(Path(__file__).parent / 'libra_config.json'), **kwargs):
+    def __init__(self, dataset_slice, allowed_lengths={"4k", "8k", "16k", "32k"}, config_path=str(Path(__file__).parent / 'libra_config.json'), **kwargs):
         super().__init__(**kwargs)
         self.dataset_slice = dataset_slice
         self.config = self.load_config(config_path)[dataset_slice]
