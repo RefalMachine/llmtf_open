@@ -10,6 +10,7 @@ from llmtf.metrics import mean
 from pathlib import Path
 import sys
 import copy
+import nltk
 
 from . import ru_instructions_registry
 from . import en_instructions_registry
@@ -20,6 +21,8 @@ class RuIFEvalTask(SimpleFewShotHFTask):
         self.method = 'generate'
         self._max_task_new_tokens = 1024  # Allow for longer responses
         self.instruction_registry = ru_instructions_registry
+        try: nltk.data.find('tokenizers/punkt_tab')
+        except LookupError: nltk.download('punkt_tab')
 
     def task_name(self) -> str:
         return 'ifeval/ruIFEval'

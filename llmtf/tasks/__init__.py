@@ -220,12 +220,12 @@ TASK_REGISTRY = {
     'nerel-ds/NEREL-BIO-(dict)': {'class': ner.NerelBioDict, 'params': {}},
     'nerel-ds/NEREL-BIO-(json)': {'class': ner.NerelBioJson, 'params': {}},
     'nerel-ds/NEREL-BIO-(in-place)': {'class': ner.NerelBioInPlace, 'params': {}},
-    'Mykes/patient_queries_ner (dict)': {'class': ner.PatientQueriesNerDict, 'params': {}},
-    'Mykes/patient_queries_ner (json)': {'class': ner.PatientQueriesNerJson, 'params': {}},
-    'Mykes/patient_queries_ner (in-place)': {'class': ner.PatientQueriesNerInPlace, 'params': {}},
-    'RCC-MSU/collection3 (dict)': {'class': ner.Collection3Dict, 'params': {}},
-    'RCC-MSU/collection3 (json)': {'class': ner.Collection3Json, 'params': {}},
-    'RCC-MSU/collection3 (in-place)': {'class': ner.Collection3InPlace, 'params': {}},
+    'Mykes/patient_queries_ner-(dict)': {'class': ner.PatientQueriesNerDict, 'params': {}},
+    'Mykes/patient_queries_ner-(json)': {'class': ner.PatientQueriesNerJson, 'params': {}},
+    'Mykes/patient_queries_ner-(in-place)': {'class': ner.PatientQueriesNerInPlace, 'params': {}},
+    'RCC-MSU/collection3-(dict)': {'class': ner.Collection3Dict, 'params': {}},
+    'RCC-MSU/collection3-(json)': {'class': ner.Collection3Json, 'params': {}},
+    'RCC-MSU/collection3-(in-place)': {'class': ner.Collection3InPlace, 'params': {}},
     'ruifeval':  {
         'class': ifeval.RuIFEvalTask
     },
