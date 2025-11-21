@@ -16,7 +16,7 @@ class DaruFlores(SimpleFewShotHFTask):
         self.method = 'generate'
         self.dataset_name = 'flores'
         self.input_lang = input_lang
-        self._max_new_tokens = 512
+        self._max_task_new_tokens = 512
 
     def evaluate(self, sample, y_pred) -> Dict:
         output_lang = self.get_output_lang()

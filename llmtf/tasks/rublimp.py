@@ -29,7 +29,7 @@ class RuBlimpClassify(SimpleFewShotHFTask):
         self.instruction_user = instruction_user
         self.instruction_bot = instruction_bot
         self.method = "generate"
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
 
     def task_name(self):
         return 'russiannlp/rublimp (classify)'
@@ -130,7 +130,7 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         self.instruction_user = instruction_user
         self.instruction_bot = instruction_bot
         self.method = "generate"
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
 
     def task_name(self):
         return 'russiannlp/rublimp (choice)'

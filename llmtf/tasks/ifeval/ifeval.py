@@ -18,7 +18,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'generate'
-        self._max_new_tokens = 1024  # Allow for longer responses
+        self._max_task_new_tokens = 1024  # Allow for longer responses
         self.instruction_registry = ru_instructions_registry
 
     def task_name(self) -> str:

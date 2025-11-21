@@ -13,7 +13,7 @@ class DaruTreewayAbstractive(SimpleFewShotHFTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'generate'
-        self._max_new_tokens = 512
+        self._max_task_new_tokens = 512
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = ' '.join(sample['summary_sents'])
@@ -60,7 +60,7 @@ class DaruTreewayExtractive(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_logsoftmax'
-        self._max_new_tokens = 1
+        self._max_task_new_tokens = 1
 
     def task_name(self):
         return 'daru/treewayextractive'
@@ -150,7 +150,7 @@ class Gazeta(SimpleFewShotHFTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'generate'
-        self._max_new_tokens = 512
+        self._max_task_new_tokens = 512
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = sample['summary']
