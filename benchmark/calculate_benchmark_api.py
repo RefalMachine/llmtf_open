@@ -10,67 +10,7 @@ import json
 import requests
 from contextlib import closing
 import socket
-
-# Определение групп задач (без изменений)
-'''
-    'russiannlp/rublimp-(classify)': {'class': rublimp.RuBlimpClassify, 'params': {}},
-    'russiannlp/rublimp-(choice)': {'class': rublimp.RuBlimpChoice, 'params': {}},
-    'MalakhovIlya/NEREL-(dict)': {'class': ner.NestedNerDict, 'params': {}},
-    'MalakhovIlya/NEREL-(json)': {'class': ner.NestedNerJson, 'params': {}},
-    'MalakhovIlya/NEREL-(in-place)': {'class': ner.NestedNerInPlace, 'params': {}},
-    'nerel-ds/NEREL-BIO-(dict)': {'class': ner.NerelBioDict, 'params': {}},
-    'nerel-ds/NEREL-BIO-(json)': {'class': ner.NerelBioJson, 'params': {}},
-    'nerel-ds/NEREL-BIO-(in-place)': {'class': ner.NerelBioInPlace, 'params': {}},
-    'Mykes/patient_queries_ner (dict)': {'class': ner.PatientQueriesNerDict, 'params': {}},
-    'Mykes/patient_queries_ner (json)': {'class': ner.PatientQueriesNerJson, 'params': {}},
-    'Mykes/patient_queries_ner (in-place)': {'class': ner.PatientQueriesNerInPlace, 'params': {}},
-'''
-    #{'name': 'rublimp', 'params': {'dataset_names': 'russiannlp/rublimp-(classify) russiannlp/rublimp-(choice)', 'few_shot_count': 5, 'name_suffix': 'few_shot'}},
-
-task_groups_knowledge = [
-    {'name': 'nlpcoreteam_mmlu_ru_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
-    {'name': 'nlpcoreteam_mmlu_en_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
-    {'name': 'shlepa', 'params': {'dataset_names': 'shlepa/moviesmc shlepa/musicmc shlepa/lawmc shlepa/booksmc'}},
-]
-
-task_groups_skills = [
-    {'name': 'translation', 'params': {'dataset_names': 'darumeru/flores_ru_en darumeru/flores_en_ru'}},
-    {'name': 'summarization', 'params': {'dataset_names': 'daru/treewayabstractive ilyagusev/gazeta', 'max_sample_per_dataset': 1000}},
-    {'name': 'sentiment', 'params': {'dataset_names': 'ruopinionne ruopinionne_simple', 'max_sample_per_dataset': 1000}},
-    {'name': 'rag', 'params': {'dataset_names': 'rusbeirrag/rubqqa rusbeirrag/rus_tydiqa rusbeirrag/sberquadqa rusbeirrag/rus_xquadqa', 'max_sample_per_dataset': 500, 'max_len': 12000}},
-    {'name': 'rag_data_first', 'params': {'dataset_names': 'rusbeirrag/rubqqa_data_first rusbeirrag/rus_tydiqa_data_first rusbeirrag/sberquadqa_data_first rusbeirrag/rus_xquadqa_data_first', 'max_sample_per_dataset': 500, 'max_len': 12000}},
-    {'name': 'ner_json', 'params': {'dataset_names': 'MalakhovIlya/NEREL-(json) nerel-ds/NEREL-BIO-(json) Mykes/patient_queries_ner (json)', 'few_shot_count': 3, 'name_suffix': 'few_shot', 'max_len': 8000}, 'think': False},
-    {'name': 'ner_in-place', 'params': {'dataset_names': 'MalakhovIlya/NEREL-(in-place) nerel-ds/NEREL-BIO-(in-place) Mykes/patient_queries_ner (in-place)', 'few_shot_count': 3, 'name_suffix': 'few_shot', 'max_len': 8000}, 'think': False},
-]
-
-task_groups_ifeval = [
-    {'name': 'ruifeval', 'params': {'dataset_names': 'ruifeval', 'few_shot_count': 0}},
-    {'name': 'enifeval', 'params': {'dataset_names': 'enifeval', 'few_shot_count': 0}},
-]
-
-task_groups_long = [
-    {'name': 'libra_rubabilong1', 'params': {'dataset_names': 'libra/ru_babilong_qa1', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong2', 'params': {'dataset_names': 'libra/ru_babilong_qa2', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong3', 'params': {'dataset_names': 'libra/ru_babilong_qa3', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong4', 'params': {'dataset_names': 'libra/ru_babilong_qa4', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong5', 'params': {'dataset_names': 'libra/ru_babilong_qa5', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}}
-]
-
-task_groups_knowledge_few_shot = [
-    {'name': 'nlpcoreteam_mmlu_ru_few_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 5, 'name_suffix': 'few_shot'}},
-    {'name': 'nlpcoreteam_mmlu_en_few_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 5, 'name_suffix': 'few_shot'}}
-]
-task_groups_math_no_think = [
-    {'name': 'doom_math_no_think', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
-    {'name': 'doom_phys_no_think', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}},
-    {'name': 't-bank_t-math_no_think', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'no_think'}}
-]
-
-task_groups_math_think = [
-    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think', 'max_new_tokens_reasoning': 16000}, 'think': True},
-    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think', 'max_new_tokens_reasoning': 16000}, 'think': True},
-    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think', 'max_new_tokens_reasoning': 16000}, 'think': True}
-]
+from task_groups import task_groups
 
 # Функция run_eval теперь принимает base_url как явный аргумент
 def run_eval(args, group, gen_config_settings, base_url):
@@ -243,7 +183,6 @@ if __name__ == '__main__':
 
     # --- 3. Основная логика выполнения задач ---
     try:
-        task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_knowledge_few_shot + task_groups_math_no_think + task_groups_long
         gen_config_settings = read_json(args.gen_config_settings)
 
         # Создаем и заполняем очередь задач

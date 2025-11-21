@@ -156,7 +156,7 @@ NEREL_DICT_INSTRUCTION = """Извлеки из заданного ниже те
 {tags}
 
 **Требуемый формат вывода**
-Для каждого класса: "Класс: ["сущность", ..., "сущность"]". Вместо "Класс" используй соответствующие классы, представленные выше. Сущности каждого класса выведи на отдельной строке.
+Для каждого класса: "Класс: [сущность, ..., сущность]". Вместо "Класс" используй соответствующие классы, представленные выше. Сущности каждого класса выведи на отдельной строке.
 Если сущностей соответствующего класса в тексте нет, выведи на соответствующей строке "Класс: []".
 
 Набор классов в примере ниже может отличаться от классов задания.
@@ -164,12 +164,12 @@ NEREL_DICT_INSTRUCTION = """Извлеки из заданного ниже те
 Будущий ученый тайно покинул дом 15 декабря 1730 года и вскоре он догнал торговый обоз, шедший в Москву.
 ->
 DISTRICT: []
-CITY: ["Москву"]
+CITY: [Москву]
 STATE_OR_PROVINCE: []
 COUNTRY: []
 PERSON: []
-PROFESSION: ["ученый"]
-DATE: ["15 декабря 1730 года"]
+PROFESSION: [ученый]
+DATE: [15 декабря 1730 года]
 
 Теперь извлеки вложенные именованные сущности для следующего текста.
 **Текст**
@@ -184,7 +184,7 @@ class NestedNerDict(NestedNerAbc, NerDictAbc):
     ):
         NestedNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
-        self._max_task_new_tokens = 256
+        self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL (dict)"
@@ -234,7 +234,7 @@ class NestedNerJson(NestedNerAbc, NerJsonAbc):
     ):
         NestedNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_task_new_tokens = 256
+        self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL (json)"
@@ -360,9 +360,9 @@ class NestedNerInPlace(NestedNerAbc, NerInPlaceAbc):
         NestedNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerInPlaceAbc.__init__(self, **kwargs)
         if self.do_split:
-            self._max_task_new_tokens = 256
-        else:
             self._max_task_new_tokens = 512
+        else:
+            self._max_task_new_tokens = 1024
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL (in-place)"
@@ -472,7 +472,7 @@ NEREL_BIO_DICT_INSTRUCTION = """Ты — эксперт по извлечени�
    - "зубочелюстных" → ANATOMY
 
 **Требуемый формат вывода**
-Для каждого класса: "Класс: ["сущность", ..., "сущность"]". Вместо "Класс" используй соответствующие классы, представленные выше. Сущности каждого класса выведи на отдельной строке.
+Для каждого класса: "Класс: [сущность, ..., сущность]". Вместо "Класс" используй соответствующие классы, представленные выше. Сущности каждого класса выведи на отдельной строке.
 Если сущностей соответствующего класса в тексте нет, выведи на соответствующей строке "Класс: []".
 
 **Текст**
@@ -538,7 +538,7 @@ class NerelBioJson(NerelBioAbc, NerJsonAbc):
     ):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_task_new_tokens = 256
+        self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO (json)"
@@ -585,7 +585,7 @@ class NerelBioInPlace(NerelBioAbc, NerInPlaceAbc):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerInPlaceAbc.__init__(self, **kwargs)
         if self.do_split:
-            self._max_task_new_tokens = 256
+            self._max_task_new_tokens = 512
         else:
             self._max_task_new_tokens = 1024
 

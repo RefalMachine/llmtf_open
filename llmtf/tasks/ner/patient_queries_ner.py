@@ -130,7 +130,7 @@ class PatientQueriesNerDict(PatientQueriesNerAbc, NerDictAbc):
         self._max_task_new_tokens = 75
 
     def task_name(self) -> str:
-        return "Mykes/patient_queries_ner (dict)"
+        return "Mykes/patient_queries_ner-(dict)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
@@ -183,7 +183,7 @@ class PatientQueriesNerJson(PatientQueriesNerAbc, NerJsonAbc):
         self._max_task_new_tokens = 100
 
     def task_name(self) -> str:
-        return 'Mykes/patient_queries_ner (json)'
+        return 'Mykes/patient_queries_ner-(json)'
 
     def get_answer(self, sample) -> List[str]:
         tagged_tokens = []
@@ -237,7 +237,7 @@ class PatientQueriesNerInPlace(PatientQueriesNerAbc, NerInPlaceAbc):
         self._max_task_new_tokens = 256
 
     def task_name(self) -> str:
-        return 'Mykes/patient_queries_ner (in place)'
+        return 'Mykes/patient_queries_ner-(in place)'
     
     def get_answer(self, sample) -> List[str]:
         tagged_tokens = []
