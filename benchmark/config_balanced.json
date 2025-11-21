@@ -77,35 +77,131 @@
         "presence_penalty": 0.0,
         "num_return_sequences": 5
     },
-    "libra_rubabilong1": {
-        "temperature": 0.3,
-        "repetition_penalty": 1.0,
-        "presence_penalty": 0.0,
-        "num_return_sequences": 1
+    "libra_passkey": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
     },
-    "libra_rubabilong2": {
-        "temperature": 0.3,
-        "repetition_penalty": 1.0,
-        "presence_penalty": 0.0,
-        "num_return_sequences": 1
+    "libra_matreshka_yes_no": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
     },
-    "libra_rubabilong3": {
-        "temperature": 0.3,
-        "repetition_penalty": 1.0,
-        "presence_penalty": 0.0,
-        "num_return_sequences": 1
+    "libra_matreshka_names": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
     },
-    "libra_rubabilong4": {
-        "temperature": 0.3,
-        "repetition_penalty": 1.0,
-        "presence_penalty": 0.0,
-        "num_return_sequences": 1
+    "libra_passkey_with_librusec": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
     },
-    "libra_rubabilong5": {
-        "temperature": 0.3,
-        "repetition_penalty": 1.0,
-        "presence_penalty": 0.0,
-        "num_return_sequences": 1
+    "libra_librusec_history": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_gsm100": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_sci_passage_count": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_2wikimultihopqa": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_long_context_multiq": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_sci_abstract_retrieval": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_trec": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_sci_fi": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_librusec_mhqa": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_babilong_qa1": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_babilong_qa2": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_babilong_qa3": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_babilong_qa4": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_babilong_qa5": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_quality": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_tpo": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
+    },
+    "libra_ru_qasper": {
+      "temperature": 0.3,
+      "repetition_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "num_return_sequences": 1
     },
     "doom_math_no_think": {
         "temperature": 0.3,

@@ -9,6 +9,7 @@ from queue import Empty
 import json
 import nltk
 nltk.download('punkt_tab')
+from task_groups import task_groups
 
 class GPUManager:
     def __init__(self, num_gpus):
@@ -51,41 +52,6 @@ class TaskQueue:
             except Empty:
                 return None
 
-task_groups_math_think = [
-    {'name': 'doom_math', 'params': {'dataset_names': 'doom/math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
-    {'name': 'doom_phys', 'params': {'dataset_names': 'doom/phys', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True},
-    {'name': 't-bank_t-math', 'params': {'dataset_names': 't-bank/t-math', 'few_shot_count': 0, 'max_len': 32000, 'name_suffix': 'think'}, 'think': True}
-]
-
-task_groups_knowledge = [
-    {'name': 'nlpcoreteam_mmlu_ru_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
-    {'name': 'nlpcoreteam_mmlu_en_zero_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 0, 'name_suffix': 'zero_shot'}},
-    {'name': 'nlpcoreteam_mmlu_ru_few_shot', 'params': {'dataset_names': 'nlpcoreteam/rummlu', 'few_shot_count': 5, 'name_suffix': 'few_shot'}},
-    {'name': 'nlpcoreteam_mmlu_en_few_shot', 'params': {'dataset_names': 'nlpcoreteam/enmmlu', 'few_shot_count': 5, 'name_suffix': 'few_shot'}},
-    {'name': 'shlepa', 'params': {'dataset_names': 'shlepa/moviesmc shlepa/musicmc shlepa/lawmc shlepa/booksmc'}},
-]
-
-task_groups_skills = [
-    {'name': 'translation', 'params': {'dataset_names': 'darumeru/flores_ru_en darumeru/flores_en_ru'}},
-    {'name': 'summarization', 'params': {'dataset_names': 'daru/treewayabstractive ilyagusev/gazeta', 'max_sample_per_dataset': 1000}},
-    {'name': 'sentiment', 'params': {'dataset_names': 'ruopinionne ruopinionne_simple', 'max_sample_per_dataset': 1000}},
-    {'name': 'ner', 'params': {'dataset_names': 'nerel-bio nerel', 'max_sample_per_dataset': 500, 'few_shot_count': 1, 'max_len': 12000}},
-    {'name': 'rag', 'params': {'dataset_names': 'rusbeirrag/rubqqa rusbeirrag/rus_tydiqa rusbeirrag/sberquadqa rusbeirrag/rus_xquadqa', 'max_sample_per_dataset': 500, 'max_len': 12000}},
-    {'name': 'rag_data_first', 'params': {'dataset_names': 'rusbeirrag/rubqqa_data_first rusbeirrag/rus_tydiqa_data_first rusbeirrag/sberquadqa_data_first rusbeirrag/rus_xquadqa_data_first', 'max_sample_per_dataset': 500, 'max_len': 12000}},
-]
-
-task_groups_ifeval = [
-    {'name': 'ruifeval', 'params': {'dataset_names': 'ruifeval', 'few_shot_count': 0}},
-    {'name': 'enifeval', 'params': {'dataset_names': 'enifeval', 'few_shot_count': 0}},
-]
-
-task_groups_long = [
-    {'name': 'libra_rubabilong1', 'params': {'dataset_names': 'libra/rubabilong1', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong2', 'params': {'dataset_names': 'libra/rubabilong2', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong3', 'params': {'dataset_names': 'libra/rubabilong3', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong4', 'params': {'dataset_names': 'libra/rubabilong4', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}},
-    {'name': 'libra_rubabilong5', 'params': {'dataset_names': 'libra/rubabilong5', 'max_sample_per_dataset': 1000, 'few_shot_count': 0, 'max_len': 32000}}
-]
 
 def run_eval(args, group, gpu_manager, gen_config_settings):
     """Запускает один таск оценки модели через прямой вызов evaluate_model.py."""
@@ -200,7 +166,6 @@ if __name__ == '__main__':
     print(f"Planning to use {num_workers} workers with {args.tensor_parallel_size} GPU(s) each.")
 
     gpu_manager = GPUManager(args.num_gpus)
-    task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_long + task_groups_math_think
         
     # Создаем и заполняем очередь задач
     task_queue = TaskQueue(task_groups)

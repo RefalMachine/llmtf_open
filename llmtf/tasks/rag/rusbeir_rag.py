@@ -15,7 +15,7 @@ class RusbeirRag(SimpleFewShotHFTask):
         self.method = 'generate'
         self.dataset = dataset
         self.instruction = instruction
-        self._max_new_tokens = 128
+        self._max_task_new_tokens = 128
 
     def evaluate(self, sample, y_pred) -> Dict:
         rougel_metric = metric_max_over_ground_truths(lambda x, y: rougel(x, y).fmeasure, y_pred, sample['answers'])

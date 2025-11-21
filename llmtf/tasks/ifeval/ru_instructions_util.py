@@ -132,6 +132,8 @@ def count_words(text):
 
 @functools.lru_cache(maxsize=None)
 def _get_sentence_tokenizer():
+    try: nltk.data.find('tokenizers/punkt_tab')
+    except LookupError: nltk.download('punkt_tab')
     return nltk.data.load("nltk:tokenizers/punkt/russian.pickle")
 
 
