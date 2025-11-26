@@ -553,6 +553,7 @@ class NerelBioJson(NerelBioAbc, NerJsonAbc):
     def get_answer_str(self, sample) -> str:
         answer = self.get_answer(sample)
         answer_str = '```json\n' + json.dumps(answer, ensure_ascii=False, indent=4).strip() + '\n```'
+        return answer_str
 
 
 NEREL_BIO_IN_PLACE_INSTRUCTION = """Ты — эксперт по извлечению биомедицинских сущностей. В тексте ниже найди все именованные сущности следующих классов.
