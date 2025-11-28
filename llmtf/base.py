@@ -53,6 +53,14 @@ class Task(Base):
     def run_name(self):
         return self.task_name() + self.name_suffix
     
+    def get_aggregation_details(self) -> Dict:
+        """
+        Возвращает детальные результаты агрегации метрик, если они доступны.
+        По умолчанию возвращает пустой словарь.
+        Задачи могут переопределить этот метод для сохранения детальной информации.
+        """
+        return {}
+    
     @property
     def max_task_new_tokens(self):
         if self._max_task_new_tokens is None:

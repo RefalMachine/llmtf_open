@@ -1,1 +1,1 @@
-from .rusbeir_rag import RusbeirRag
+from .rusbeir_rag import RusbeirRag, RusbeirRagLLMJudge

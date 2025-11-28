@@ -143,7 +143,19 @@ class Evaluator(Base):
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
         
         task.logger.info(f'Results for {task.run_name()}:')
-        metrics_res = {metric: task.aggregation()[metric]([m[metric] for m in metrics]) for metric in metrics[0].keys()}
+        
+        # Агрегация с возможностью сохранения деталей
+        metrics_res = {}
+        aggregation_details = {}
+        for metric in metrics[0].keys():
+            agg_result = task.aggregation()[metric]([m[metric] for m in metrics])
+            
+            # Проверяем, вернула ли функция агрегации детали (tuple из 2 элементов)
+            if isinstance(agg_result, tuple) and len(agg_result) == 2:
+                metrics_res[metric] = agg_result[0]  # Агрегированное значение
+                aggregation_details[metric] = agg_result[1]  # Детали агрегации
+            else:
+                metrics_res[metric] = agg_result  # Обратная совместимость
 
         # bootstrapping
         if hasattr(task, "n_bags"):
@@ -152,6 +164,11 @@ class Evaluator(Base):
 
         with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
             logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res)})
+        
+        # Сохранение детальных результатов агрегации, если они есть
+        if aggregation_details:
+            with SimpleTaskLogger(output_dir, task.run_name() + '_aggregation_details') as logger:
+                logger.log_json({'task_name': task.run_name(), 'aggregation_details': aggregation_details})
 
         with SimpleTaskLogger(output_dir, task.run_name() + '_params') as logger:
             params = {}
