@@ -13,8 +13,9 @@ import copy
 import tqdm
 import functools
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from llmtf.base import LLM
-from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages
+from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages, json_to_jinja
 import re
 try:
     from vllm import LLM as vLLM
@@ -39,7 +40,6 @@ class ReasoningModel():
         self.generation_config.reasoning_truncing_prompt = reasoning_truncing_prompt
         if not hasattr(self.generation_config, "stop_strings") or self.generation_config.stop_strings == None:
             self.generation_config.stop_strings = []
-            print("DEBUG") #DEBUG
         if end_thinking_token_id:
             self.generation_config.end_thinking_token_id=end_thinking_token_id
         else:
@@ -52,8 +52,6 @@ class ReasoningModel():
 
     def prepare_generation_config(self, old_params=None):
         if old_params:
-            if "stop_token_ids" in old_params.keys():
-                self.generation_config.stop_token_ids = old_params["stop_token_ids"]
             if "eos_token_id" in old_params.keys():
                 self.generation_config.eos_token_id = old_params["eos_token_id"]
             self.generation_config.max_new_tokens = old_params["max_new_tokens"]
@@ -67,10 +65,8 @@ class ReasoningModel():
             old_params["max_new_tokens"] = self.generation_config.max_new_tokens
             old_params["stop_strings"] = self.generation_config.stop_strings
             
-            if "stop_token_ids" in old_params.keys():
-                self.generation_config.stop_token_ids = self.generation_config.stop_token_ids + [self.generation_config.end_thinking_token_id]
             if "eos_token_id" in old_params.keys():
-                self.generation_config.eos_token_id = self.generation_config.end_thinking_token_id
+                self.generation_config.eos_token_id = [self.generation_config.end_thinking_token_id]
             self.generation_config.max_new_tokens = self.generation_config.max_new_tokens_reasoning
             self.generation_config.stop_strings = self.generation_config.stop_strings + ["</think>"]
             return old_params
@@ -824,15 +820,37 @@ class ApiVLLMModelReasoning(ApiVLLMModel, ReasoningModel):
 
 
 class LocalHostedLLM(LLM):
+    def __init__(
+        self,
+        **kwargs
+    ):
+        super().__init__(
+            **kwargs
+        )
+
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba', 'calculate_logsoftmax']
 
-    def from_pretrained(self, model_dir):
-        self._load_model(model_dir)
-        # self._check_if_leading_space()
+    def from_pretrained(
+        self,
+        model_dir,
+        conversation_template_path="auto",
+        is_foundational=False
+    ):
+        self._load_model(
+            model_dir,
+            conversation_template_path=conversation_template_path,
+            is_foundational=is_foundational
+        )
+        self._check_if_leading_space()
         self.logger.info(f'Leading space: {self.leading_space}')
 
-    def _load_model(self, model_dir):
+    def _load_model(
+        self,
+        model_dir,
+        conversation_template_path,
+        is_foundational
+    ):
         self.model_name_or_path = model_dir
         if self._check_if_lora(model_dir):
             self._load_lora(model_dir)
@@ -857,12 +875,13 @@ class LocalHostedLLM(LLM):
         except:
             self.generation_config = GenerationConfig.from_dict({})
 
+        self._update_chat_template(is_foundational, conversation_template_path)
         self._init_default_gen_params()
         self._check_if_leading_space()
         self._override_eos_token_conv_template()
 
-        if not hasattr(self.generation_config, "stop_strings"):
-            self.generation_config.stop_strings = []
+        # if not hasattr(self.generation_config, "stop_strings"):
+        #     self.generation_config.stop_strings = []
         
         self.logger.info(f"Model id: {self.model_name_or_path}")
 
@@ -944,6 +963,22 @@ class LocalHostedLLM(LLM):
     def count_tokens_for_prompt(self, prompt):
         return len(self.tokenizer(prompt, add_special_tokens=False)['input_ids'])
 
+    def _update_chat_template(self, is_foundational, conversation_template_path):
+        if not is_foundational and conversation_template_path == "auto":
+            return
+        if conversation_template_path == "auto":
+            conversation_template_path = str(Path(__file__).parent.parent / 'conversation_configs' / 'default_foundational.json')
+        with codecs.open(conversation_template_path, "r", "utf-8") as file:
+            template = json.load(file)
+        chat_template, eos_token = json_to_jinja(template)
+
+        self.tokenizer.chat_template = chat_template
+        if eos_token:
+            eos_token = self.tokenizer.tokenize(eos_token)
+            if len(eos_token) > 1:
+                self.logger.warning("eos token from chat template consists out of several tokens. First one will be used")
+            self.tokenizer.eos_token_id = self.tokenizer.convert_tokens_to_ids(eos_token)[0]
+
     def _init_default_gen_params(self):
         self.generation_config.bos_token_id = self.tokenizer.bos_token_id
         self.generation_config.eos_token_id = self.tokenizer.eos_token_id
@@ -1015,6 +1050,8 @@ class LocalHostedLLM(LLM):
 class HFModel(LocalHostedLLM):
     def __init__(
         self,
+        conversation_template_path="auto",
+        is_foundational=False,
         load_in_8bit=False,
         torch_dtype='auto',
         device_map='auto',
@@ -1025,7 +1062,11 @@ class HFModel(LocalHostedLLM):
         not_scale_lm_head=False,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(
+            conversation_template_path=conversation_template_path,
+            is_foundational=is_foundational,
+            **kwargs
+        )
         self.load_in_8bit = load_in_8bit
         self.torch_dtype = torch_dtype
         self.attn_implementation = attn_implementation
@@ -1332,12 +1373,14 @@ class HFModelReasoning(HFModel, ReasoningModel):
         max_new_tokens_reasoning=None,
         reasoning_truncing_prompt="\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n",
         end_thinking_token_id=None,
+        **kwargs
     ):
         super().from_pretrained(model_dir)
         self.reasoning_from_pretrained(
             max_new_tokens_reasoning=max_new_tokens_reasoning,
             reasoning_truncing_prompt=reasoning_truncing_prompt,
-            end_thinking_token_id=end_thinking_token_id
+            end_thinking_token_id=end_thinking_token_id,
+            **kwargs
         )
     
     def get_end_thinking_token_id(self):
@@ -1445,6 +1488,8 @@ class HFModelReasoning(HFModel, ReasoningModel):
 class VLLMModel(LocalHostedLLM):
     def __init__(
         self,
+        conversation_template_path="auto",
+        is_foundational=False,
         use_fast_tokenizer=True,
         device_map='auto',
         max_seq_len_to_capture=4096*2,
@@ -1456,7 +1501,11 @@ class VLLMModel(LocalHostedLLM):
         tensor_parallel_size=1,
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(
+            conversation_template_path=conversation_template_path,
+            is_foundational=is_foundational,
+            **kwargs
+        )
         self.use_fast_tokenizer = use_fast_tokenizer
         self.device_map = device_map
         self.max_seq_len_to_capture = max_seq_len_to_capture
@@ -1474,8 +1523,17 @@ class VLLMModel(LocalHostedLLM):
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']
 
-    def from_pretrained(self, model_dir):
-        self._load_model(model_dir)
+    def from_pretrained(
+        self,
+        model_dir,
+        conversation_template_path="auto",
+        is_foundational=False
+    ):
+        self._load_model(
+            model_dir,
+            conversation_template_path=conversation_template_path,
+            is_foundational=is_foundational
+        )
         # self._check_if_leading_space()
         self.reset_stop_strings()
         self.logger.info(f'Leading space: {self.leading_space}')
@@ -1555,7 +1613,8 @@ class VLLMModel(LocalHostedLLM):
             max_tokens=generation_config.max_new_tokens,
             repetition_penalty=generation_config.repetition_penalty,
             stop=generation_config.stop_strings,
-            stop_token_ids=self.generation_config.stop_token_ids if hasattr(self.generation_config, "stop_token_ids") else None,
+            # stop_token_ids=self.generation_config.stop_token_ids if hasattr(self.generation_config, "stop_token_ids") else None,
+            stop_token_ids=self.generation_config.eos_token_id,
             n=generation_config.num_return_sequences,
             include_stop_str_in_output=enable_thinking or include_stop_str_in_output# ,
             # allowed_token_ids=allowed_token_ids_batch
@@ -1767,13 +1826,15 @@ class VLLMModelReasoning(VLLMModel, ReasoningModel):
         model_dir,
         max_new_tokens_reasoning=None,
         reasoning_truncing_prompt="\n…the rest of the reasoning chain is hidden due to limit on the length of the thoughts.\n",
-        end_thinking_token_id=None
+        end_thinking_token_id=None,
+        **kwargs
     ):
         super().from_pretrained(model_dir)
         self.reasoning_from_pretrained(
             max_new_tokens_reasoning=max_new_tokens_reasoning,
             reasoning_truncing_prompt=reasoning_truncing_prompt,
-            end_thinking_token_id=end_thinking_token_id
+            end_thinking_token_id=end_thinking_token_id,
+            **kwargs
         )
     
     def get_end_thinking_token_id(self):
