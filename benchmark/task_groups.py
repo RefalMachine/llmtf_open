@@ -54,4 +54,4 @@ task_groups_rag = [
     {'name': 'rag_xquadqa', 'params': {'dataset_names': 'rusbeirrag/rus_xquadqa_llmaaj rusbeirrag/rus_xquadqa_data_first_llmaaj', 'few_shot_count': 0, 'max_len': 16000, 'max_sample_per_dataset': 5000}},
 ]
 
-task_groups = task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_knowledge_few_shot + task_groups_long + task_groups_rag + task_groups_math_no_think# + task_groups_math_no_think + task_groups_math_no_think
+task_groups = task_groups_rag + task_groups_knowledge + task_groups_skills + task_groups_ifeval + task_groups_knowledge_few_shot + task_groups_long + task_groups_math_no_think# + task_groups_math_no_think + task_groups_math_no_think
