@@ -237,7 +237,7 @@ class PatientQueriesNerInPlace(PatientQueriesNerAbc, NerInPlaceAbc):
         self._max_task_new_tokens = 256
 
     def task_name(self) -> str:
-        return 'Mykes/patient_queries_ner-(in place)'
+        return 'Mykes/patient_queries_ner-(in-place)'
     
     def get_answer(self, sample) -> List[str]:
         tagged_tokens = []
