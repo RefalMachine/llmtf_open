@@ -41,6 +41,8 @@ class Base(abc.ABC):
         self.backend_logger.addHandler(ch)
 
 class Task(Base):
+    ALLOW_BOOTSTRAPPING = True
+    
     def __init__(self, name_suffix=None, **kwargs):
         super().__init__(**kwargs)
         self.method_additional_args = {}

@@ -169,6 +169,7 @@ def load_dataset_darulm(subjects):
     return datasets
 
 class MMLU(Task):
+    ALLOW_BOOTSTRAPPING = False
     NLPCORE_HF_PATH = 'NLPCoreTeam/mmlu_ru'
     DARULM_HF_PATH = 'RefalMachine/darumeru'
     DARULM_MMLU_NAME = 'mmlu_nlpcoreteam'
