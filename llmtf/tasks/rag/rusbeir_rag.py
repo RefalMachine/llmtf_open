@@ -79,6 +79,8 @@ llm_judge_instruction_default = [
 ]
 
 class RusbeirRagLLMJudge(RusbeirRag):
+    ALLOW_BOOTSTRAPPING = False
+    
     def __init__(self, model, llm_judge_instruction=llm_judge_instruction_default, **kwargs):
         super().__init__(**kwargs)
         self.model = model
