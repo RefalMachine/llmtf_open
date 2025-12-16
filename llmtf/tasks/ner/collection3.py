@@ -124,7 +124,7 @@ class Collection3Dict(Collection3Abc, NerDictAbc):
         self._max_task_new_tokens = 75
 
     def task_name(self) -> str:
-        return "RCC-MSU/collection3 (dict)"
+        return "RCC-MSU/collection3-(dict)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
@@ -177,7 +177,7 @@ class Collection3Json(Collection3Abc, NerJsonAbc):
         self._max_task_new_tokens = 100
 
     def task_name(self) -> str:
-        return 'RCC-MSU/collection3 (json)'
+        return 'RCC-MSU/collection3-(json)'
 
     def get_answer(self, sample) -> List[str]:
         tagged_tokens = []
@@ -228,7 +228,7 @@ class Collection3InPlace(Collection3Abc, NerInPlaceAbc):
         self._max_task_new_tokens = 256
 
     def task_name(self) -> str:
-        return 'RCC-MSU/collection3 (in place)'
+        return 'RCC-MSU/collection3-(in-place)'
     
     def get_answer(self, sample) -> List[str]:
         tagged_tokens = []

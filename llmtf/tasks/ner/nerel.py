@@ -187,7 +187,7 @@ class NestedNerDict(NestedNerAbc, NerDictAbc):
         self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
-        return "MalakhovIlya/NEREL (dict)"
+        return "MalakhovIlya/NEREL-(dict)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
@@ -237,7 +237,7 @@ class NestedNerJson(NestedNerAbc, NerJsonAbc):
         self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
-        return "MalakhovIlya/NEREL (json)"
+        return "MalakhovIlya/NEREL-(json)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []
@@ -365,7 +365,7 @@ class NestedNerInPlace(NestedNerAbc, NerInPlaceAbc):
             self._max_task_new_tokens = 1024
 
     def task_name(self) -> str:
-        return "MalakhovIlya/NEREL (in-place)"
+        return "MalakhovIlya/NEREL-(in-place)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []
@@ -490,7 +490,7 @@ class NerelBioDict(NerelBioAbc, NerDictAbc):
         self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
-        return "nerel-ds/NEREL-BIO (dict)"
+        return "nerel-ds/NEREL-BIO-(dict)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
@@ -541,7 +541,7 @@ class NerelBioJson(NerelBioAbc, NerJsonAbc):
         self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
-        return "nerel-ds/NEREL-BIO (json)"
+        return "nerel-ds/NEREL-BIO-(json)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []
@@ -591,7 +591,7 @@ class NerelBioInPlace(NerelBioAbc, NerInPlaceAbc):
             self._max_task_new_tokens = 1024
 
     def task_name(self) -> str:
-        return "nerel-ds/NEREL-BIO (in-place)"
+        return "nerel-ds/NEREL-BIO-(in-place)"
 
     def get_answer(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []

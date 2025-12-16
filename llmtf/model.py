@@ -1200,11 +1200,11 @@ class HFModel(LocalHostedLLM):
 
         return prompts, outputs, infos
 
-    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
-        prompts, probs, infos = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message=incomplete_last_bot_message)
+    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
+        prompts, probs, infos = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message=incomplete_last_bot_message, **kwargs)
         return prompts[0], probs[0], infos[0]
 
-    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
         prompts_batch = []
         tokens_of_interest_ids_batch = []
         for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
@@ -1649,11 +1649,11 @@ class VLLMModel(LocalHostedLLM):
 
         return prompts_vllm, outputs, infos
 
-    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
         prompts, probs, infos = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message)
         return prompts[0], probs[0], infos[0]
 
-    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
         if len(messages) > 1 and self.attn_backend == FlashAttentionBackend:
             if not self.special_attn_warning_complete:
                 self.logger.warning(

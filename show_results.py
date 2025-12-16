@@ -19,11 +19,11 @@ def extract_task_datas():
         for name in task_names:
             task_tr = TASK_REGISTRY.get(name, None)
             if task_tr is None:
-                logger.warning(f"task \"{name}\" from task_groups.py is not present in TASK_REGISTRY!")
+                logger.warning(f"task \"{name}\" from task_groups.py is not present in TASK_REGISTRY")
                 continue
 
             task_class = task_tr["class"]
-            params_tr = task_tr.get("params", {})
+            params_tr = task_tr.get("params", {}).copy()
             if "name_suffix" not in params_tr.keys(): # name_suffix in TASK_REGISTRY params has higher priority
                 params_tr["name_suffix"] = name_suffix
             task = task_class(**params_tr)
@@ -37,6 +37,22 @@ def extract_task_datas():
                 task.aggregation(),
                 task.leaderboard_aggregation
             )
+
+    for task_info in TASK_REGISTRY.values():
+        task_class = task_info["class"]
+        task_params = task_info.get("params", {})
+        task = task_class(**task_params)
+        task_name = task.run_name()
+        task_name_augmented = task_name.replace('/', '_')
+
+        if task_name_augmented not in name_to_aggrigation.keys():
+            name_to_aggrigation[task_name_augmented] = (
+                task_name,
+                task.ALLOW_BOOTSTRAPPING,
+                task.aggregation(),
+                task.leaderboard_aggregation
+            )
+    
     return name_to_aggrigation
 
 def models_iterator(log_dir):
@@ -87,7 +103,8 @@ def bootstrap(aggregation, metrics, n_bags, n_samples):
 def save_table(
     model_bench_to_score,
     output_dir,
-    filename = "results.md"
+    filename="results.md",
+    show_time=False
     ):
     models = sorted(model_bench_to_score.keys())
     all_tasks = set()
@@ -98,19 +115,37 @@ def save_table(
     tasks = sorted(all_tasks)
     
     lines = []
-    header = ["Model"] + tasks
+    header = ["Model"]
+    if show_time:
+        for task in tasks:
+            header += [task, "time"]
+        header.append("total time")
+    else:
+        header += tasks
     lines.append("| " + " | ".join(header) + " |")
     
     separator = ["---"] * (len(tasks) + 1)
     lines.append("| " + " | ".join(separator) + " |")
-    
+
     for model in models:
+        total_time = 0.0
         model_scores = model_bench_to_score[model]
         row = [model]
         
         for task in tasks:
-            metric = model_scores.get(task, "—")
-            row.append(str(metric))
+            info = model_scores.get(task, {})
+            score = info.get("score", "—")
+            row.append(score)
+            if show_time:
+                time = info.get("time", "—")
+                if time != "—":
+                    total_time += time
+                    time = f"{time:.1f}"
+                row.append(time)
+        if total_time == 0.0:
+            row.append("—")
+        else:
+            row.append(f"{total_time:.0f}")
         
         lines.append("| " + " | ".join(row) + " |")
     
@@ -127,12 +162,14 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--n_bags', type=int, default=0)
     parser.add_argument('--n_samples', type=int, default=0)
+    parser.add_argument('--show_time', action='store_true')
 
     args = parser.parse_args()
     log_dir = Path(args.log_dir)
     output_dir = Path(args.output_dir)
     n_bags = args.n_bags
     n_samples = args.n_samples
+    show_time = args.show_time
     do_bootstrap = n_bags > 0 and n_samples > 0
 
     for directory in [log_dir, output_dir]:
@@ -152,9 +189,10 @@ if __name__ == '__main__':
             if log_name in name_to_aggrigation.keys():
                 task_name, allow_bootstrap, aggregation, leaderboard_aggregation = name_to_aggrigation[log_name]
             else:
-                logger.warning(f"task \"{task_name}\" is not found in default task groups")
+                logger.warning(f"task \"{log_name}\" is not found in default task groups or TASK_REGISTRY")
                 continue
-    
+
+            model_bench_to_score[model_name][task_name] = {}
             if allow_bootstrap and do_bootstrap:
                 try:
                     log = read_jsonl(log_path)
@@ -170,15 +208,22 @@ if __name__ == '__main__':
                 except Exception as e:
                     logger.error(f"failed to bootstrap results of task \"{task_name}\":\n{e}")
                     continue
-                model_bench_to_score[model_name][task_name] = f"{mean:.3f} ± {std:.3f}"
+                model_bench_to_score[model_name][task_name]["score"] = f"{mean:.3f} ± {std:.3f}"
+
+                if show_time:
+                    with open(str(model_dir / total_path.name), 'r', encoding='utf-8') as f:
+                        log = json.load(f)
+                    time = log["time"]
             else:
                 with open(str(model_dir / total_path.name), 'r', encoding='utf-8') as f:
                     log = json.load(f)
                 leaderboard_res = log["leaderboard_result"]
-                model_bench_to_score[model_name][task_name] = f"{leaderboard_res:.3f}"
+                model_bench_to_score[model_name][task_name]["score"] = f"{leaderboard_res:.3f}"
+                time = log["time"]
+            model_bench_to_score[model_name][task_name]["time"] = time
 
             if not allow_bootstrap and do_bootstrap:
                 logger.warning(f"task \"{task_name}\" does not support bootstrapping")
 
-    save_table(model_bench_to_score, output_dir)
+    save_table(model_bench_to_score, output_dir, show_time=show_time)
         

@@ -8,6 +8,8 @@ from llmtf.metrics import mean
 
 class RuColaCustomTask(SimpleFewShotHFTask):
     RUCOLA_HF_PATH = 'RussianNLP/rucola'
+    DATASET_SLICE = "main"
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'calculate_tokens_proba'
@@ -29,7 +31,7 @@ class RuColaCustomTask(SimpleFewShotHFTask):
         return {"acc": mean, "mcc": lambda data: matthews_corrcoef([d[0] for d in data], [d[1] for d in data])}
 
     def dataset_args(self) -> Dict:
-        return {'path': self.RUCOLA_HF_PATH}
+        return {'path': self.RUCOLA_HF_PATH, 'name': self.DATASET_SLICE}
 
     def test_split_name(self) -> str:
         return 'validation'
@@ -56,6 +58,3 @@ class RuColaCustomTask(SimpleFewShotHFTask):
     
     def get_answer(self, sample):
         return ' ' + str(sample['label'])
-
-        
-

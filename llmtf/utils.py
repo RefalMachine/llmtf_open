@@ -53,7 +53,11 @@ class CustomTimer():
 
     def __enter__(self):
         self.start_time = time.time()
+        return self
 
+    def time(self):
+        return time.time() - self.start_time
+    
     def __exit__(self, *args):
         time_passed = time.time() - self.start_time
         self.logger.info(f'{self.prefix}: {time_passed:.2f}s')
