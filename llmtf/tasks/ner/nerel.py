@@ -124,7 +124,7 @@ class NestedNerAbc(ABC):
         self.do_split = do_split
 
     def dataset_args(self) -> Dict[str, str]:
-        return {"path": self.DATASET_PATH, "name": self.DATASET_SLICE}
+        return {"path": self.DATASET_PATH, "name": self.DATASET_SLICE, "trust_remote_code": True}
     
     def test_split_name(self) -> str:
         return 'test'
