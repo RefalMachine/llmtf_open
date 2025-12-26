@@ -543,7 +543,7 @@ class ApiVLLMModel(LLM):
         self.generation_config.eos_token_id = copy.deepcopy(self.eos_token_ids_base)
         self.generation_config.stop_strings = copy.deepcopy(self.stop_strings_base)
 
-    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+    def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
         messages = self._preprocess_messages(messages)
         last_role = messages[-1]['role']
 
@@ -590,7 +590,7 @@ class ApiVLLMModel(LLM):
         }
         return messages, probs, info
 
-    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True):
+    def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
         kwargs = {'incomplete_last_bot_message': incomplete_last_bot_message}
         results_ordered = [None] * len(messages)
 
@@ -1650,7 +1650,7 @@ class VLLMModel(LocalHostedLLM):
         return prompts_vllm, outputs, infos
 
     def calculate_tokens_proba(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
-        prompts, probs, infos = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message)
+        prompts, probs, infos = self.calculate_tokens_proba_batch([messages], [tokens_of_interest], incomplete_last_bot_message, **kwargs)
         return prompts[0], probs[0], infos[0]
 
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):

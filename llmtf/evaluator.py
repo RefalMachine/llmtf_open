@@ -97,6 +97,7 @@ class Evaluator(Base):
                         )
                 except Exception as e:
                     self.logger.error(f"Failed to evaluate on {dataset_name}: {e}")
+                    self.logger.error(traceback.format_exc())
 
             self.logger.info(f'Ended eval')
             self.create_report(output_dir)
