@@ -1,0 +1,64 @@
+{
+  "Knowledge": [
+    "nlpcoreteam/ruMMLU_zero_shot",
+    "nlpcoreteam/enMMLU_zero_shot",
+    "shlepa/movie_mc",
+    "shlepa/music_mc",
+    "shlepa/law_mc",
+    "shlepa/books_mc",
+    "nlpcoreteam/ruMMLU_few_shot",
+    "nlpcoreteam/enMMLU_few_shot"
+  ],
+  "Skills": [
+    "darumeru/flores_ru_en",
+    "darumeru/flores_en_ru",
+    "daru/treewayabstractive",
+    "ilyagusev/gazeta",
+    "ai-forever/kinopoisk",
+    "ruopinionne",
+    "ruopinionnesimple",
+    "MalakhovIlya/NEREL-(json)_few_shot",
+    "nerel-ds/NEREL-BIO-(json)_few_shot",
+    "Mykes/patient_queries_ner-(json)_few_shot",
+    "MalakhovIlya/NEREL-(in-place)_few_shot",
+    "nerel-ds/NEREL-BIO-(in-place)_few_shot",
+    "Mykes/patient_queries_ner-(in-place)_few_shot"
+  ],
+  "RAG": [
+    "bearberry/rubqqa",
+    "bearberry/rubqqa_data_first",
+    "bearberry/rus_tydiqa",
+    "bearberry/rus_tydiqa_data_first",
+    "bearberry/sberquadqa",
+    "bearberry/sberquadqa_data_first",
+    "bearberry/rus_xquadqa",
+    "bearberry/rus_xquadqa_data_first"
+  ],
+  "IFEval": [
+    "ifeval/ruIFEval",
+    "ifeval/enIFEval"
+  ],
+  "Long": [
+    "forever/libra/passkey",
+    "forever/libra/matreshka_yes_no",
+    "forever/libra/matreshka_names",
+    "forever/libra/passkey_with_librusec",
+    "forever/libra/librusec_history",
+    "forever/libra/ru_gsm100",
+    "forever/libra/ru_sci_passage_count",
+    "forever/libra/ru_2wikimultihopqa",
+    "forever/libra/long_context_multiq",
+    "forever/libra/ru_sci_abstract_retrieval",
+    "forever/libra/ru_trec",
+    "forever/libra/ru_sci_fi",
+    "forever/libra/librusec_mhqa",
+    "forever/libra/ru_babilong_qa1",
+    "forever/libra/ru_babilong_qa2",
+    "forever/libra/ru_babilong_qa3",
+    "forever/libra/ru_babilong_qa4",
+    "forever/libra/ru_babilong_qa5",
+    "forever/libra/ru_quality",
+    "forever/libra/ru_tpo",
+    "forever/libra/ru_qasper"
+  ]
+}

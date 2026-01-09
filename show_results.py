@@ -104,9 +104,120 @@ def save_table(
     model_bench_to_score,
     output_dir,
     filename="results.md",
-    show_time=False
+    show_time=False,
+    categories=None
     ):
     models = sorted(model_bench_to_score.keys())
+    
+    if categories is not None:
+        # Category mode
+        task_to_cat = {}
+        for cat, tasks in categories.items():
+            for t in tasks:
+                task_to_cat[t] = cat
+        
+        all_tasks = set()
+        for model_scores in model_bench_to_score.values():
+            all_tasks.update(model_scores.keys())
+            
+        other_tasks = sorted([t for t in all_tasks if t not in task_to_cat])
+        
+        cat_headers = sorted(categories.keys())
+        if other_tasks:
+            print(f"DEBUG: Tasks in Other: {other_tasks}")
+            cat_headers.append("Other")
+            
+        header = ["Model"]
+        if show_time:
+            for cat in cat_headers:
+                header += [cat, "time"]
+            header.append("total time")
+        else:
+            header += cat_headers
+            
+        lines = []
+        lines.append("| " + " | ".join(header) + " |")
+        separator = ["---"] * len(header)
+        lines.append("| " + " | ".join(separator) + " |")
+        
+        for model in models:
+            model_scores = model_bench_to_score[model]
+            row = [model]
+            total_model_time = 0.0
+            
+            for cat in cat_headers:
+                if cat == "Other":
+                    current_tasks = other_tasks
+                else:
+                    current_tasks = categories[cat]
+                
+                scores = []
+                stds = []
+                cat_time = 0.0
+                
+                for t in current_tasks:
+                    if t in model_scores:
+                        info = model_scores[t]
+                        # Parse score
+                        s_str = info.get("score", "—")
+                        if s_str != "—":
+                            # Handle "0.500 ± 0.010" or "0.500"
+                            try:
+                                parts = s_str.split(' ± ')
+                                val = float(parts[0])
+                                std = 0.0
+                                if len(parts) > 1:
+                                    std = float(parts[1])
+                                scores.append(val)
+                                stds.append(std)
+                            except ValueError:
+                                pass
+                        
+                        if show_time:
+                            t_time = info.get("time", "—")
+                            if t_time != "—":
+                                try:
+                                    cat_time += float(t_time)
+                                except ValueError:
+                                    pass
+
+                if scores:
+                    avg_score = sum(scores) / len(scores)
+                    
+                    # Calculate combined std
+                    # Var(Mean) = Sum(Var_i) / N^2
+                    # Std(Mean) = sqrt(Sum(Std_i^2)) / N
+                    sum_var = sum([s**2 for s in stds])
+                    avg_std = np.sqrt(sum_var) / len(scores)
+                    
+                    if avg_std > 0:
+                        row.append(f"{avg_score:.3f} ± {avg_std:.3f}")
+                    else:
+                        row.append(f"{avg_score:.3f}")
+                else:
+                    row.append("—")
+                
+                if show_time:
+                    total_model_time += cat_time
+                    if cat_time > 0:
+                        row.append(f"{cat_time:.1f}")
+                    else:
+                        row.append("—")
+
+            if show_time:
+                if total_model_time > 0:
+                    row.append(f"{total_model_time:.0f}")
+                else:
+                    row.append("—")
+            
+            lines.append("| " + " | ".join(row) + " |")
+            
+        content = "\n".join(lines)
+        output_path = Path(output_dir) / filename
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return
+
     all_tasks = set()
     
     for model_scores in model_bench_to_score.values():
@@ -124,7 +235,7 @@ def save_table(
         header += tasks
     lines.append("| " + " | ".join(header) + " |")
     
-    separator = ["---"] * (len(tasks) + 1)
+    separator = ["---"] * (len(header))
     lines.append("| " + " | ".join(separator) + " |")
 
     for model in models:
@@ -139,8 +250,12 @@ def save_table(
             if show_time:
                 time = info.get("time", "—")
                 if time != "—":
-                    total_time += time
-                    time = f"{time:.1f}"
+                    try:
+                        time_val = float(time)
+                        total_time += time_val
+                        time = f"{time_val:.1f}"
+                    except ValueError:
+                        pass
                 row.append(time)
         if total_time == 0.0:
             row.append("—")
@@ -161,8 +276,9 @@ if __name__ == '__main__':
     parser.add_argument('--log_dir')
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--n_bags', type=int, default=0)
-    parser.add_argument('--n_samples', type=int, default=0)
+    parser.add_argument('--n_samples', type=int, default=None)
     parser.add_argument('--show_time', action='store_true')
+    parser.add_argument('--category_path', default=None)
 
     args = parser.parse_args()
     log_dir = Path(args.log_dir)
@@ -170,7 +286,12 @@ if __name__ == '__main__':
     n_bags = args.n_bags
     n_samples = args.n_samples
     show_time = args.show_time
-    do_bootstrap = n_bags > 0 and n_samples > 0
+    do_bootstrap = n_bags > 0
+    
+    categories = None
+    if args.category_path:
+        with open(args.category_path, 'r') as f:
+            categories = json.load(f)
 
     for directory in [log_dir, output_dir]:
         if not directory.exists() or not directory.is_dir():
@@ -225,5 +346,5 @@ if __name__ == '__main__':
             if not allow_bootstrap and do_bootstrap:
                 logger.warning(f"task \"{task_name}\" does not support bootstrapping")
 
-    save_table(model_bench_to_score, output_dir, show_time=show_time)
+    save_table(model_bench_to_score, output_dir, show_time=show_time, categories=categories)
         

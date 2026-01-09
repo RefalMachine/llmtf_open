@@ -17,9 +17,7 @@ DEFAULT_KINOPOISK_INSTRUCTION = """\
 {text}
 """
 
-DEFAULT_KINOPOISK_INSTRUCTION_BOT = """\
-Ответ: {label}
-"""
+DEFAULT_KINOPOISK_INSTRUCTION_BOT = 'Ответ: '
 
 class Kinopoisk(SimpleFewShotHFTask):
     DATASET_HF_PATH = "ai-forever/kinopoisk-sentiment-classification"
@@ -59,7 +57,7 @@ class Kinopoisk(SimpleFewShotHFTask):
         ]
         instruction_bot = self.instruction_bot
         if with_answer:
-            instruction_bot = self.instruction_bot.format(label=(sample["label"] + 1))
+            instruction_bot = instruction_bot + ' {label}'.format(label=(sample["label"] + 1))
         messages.append({"role": "assistant", "content": instruction_bot})
         return messages
 

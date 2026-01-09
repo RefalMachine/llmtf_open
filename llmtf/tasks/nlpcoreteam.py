@@ -169,7 +169,7 @@ def load_dataset_darulm(subjects):
     return datasets
 
 class MMLU(Task):
-    ALLOW_BOOTSTRAPPING = False
+    ALLOW_BOOTSTRAPPING = True
     NLPCORE_HF_PATH = 'NLPCoreTeam/mmlu_ru'
     DARULM_HF_PATH = 'RefalMachine/darumeru'
     DARULM_MMLU_NAME = 'mmlu_nlpcoreteam'
@@ -196,12 +196,12 @@ class MMLU(Task):
         df = pd.DataFrame()
         df['subject'] = subjects
         df['metric'] = [metric_per_subject[s] for s in subjects]
-        self.logger.info(df.groupby('subject').mean())
+        #self.logger.info(df.groupby('subject').mean())
         df['subject'] = df['subject'].apply(lambda x: subcategories2categories[x])
         df = df.groupby('subject').mean()
-        self.logger.info(df)
+        #self.logger.info(df)
 
-        return float(df.mean())
+        return float(df.mean().iloc[0])
 
     def aggregation(self) -> Dict:
         return {"acc": self._per_category_mean}

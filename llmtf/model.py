@@ -581,7 +581,7 @@ class ApiVLLMModel(LLM):
         logprobs = data['choices'][0]['logprobs']['content'][0]['top_logprobs']
         probs = {lp['token']: np.exp(lp['logprob']) for lp in logprobs}
 
-        tokens_of_interest_augmented = [(token, ['Ġ' + token, ' ' + token, token]) for token in tokens_of_interest]
+        tokens_of_interest_augmented = [(token, [' ' + token, token]) for token in tokens_of_interest]
         probs = {token: max(*list(map(lambda x: probs.get(x, 0.0), tokens))) for token, tokens in tokens_of_interest_augmented}
 
         info = {

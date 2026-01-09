@@ -13,7 +13,8 @@ from . import (
     libra,
     math,
     rag,
-    ner
+    ner,
+    kinopoisk
 )
 from pathlib import Path
 import json
@@ -277,6 +278,9 @@ TASK_REGISTRY = {
     'rusbeirrag/rus_xquadqa_data_first': {
         'class': rag.RusbeirRag,
         'params': {'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_xquadqa', 'name_suffix': 'data_first'}
+    },
+    'sentiment_kinopoisk': {
+        'class': kinopoisk.Kinopoisk
     }
 }
 
