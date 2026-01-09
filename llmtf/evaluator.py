@@ -77,23 +77,27 @@ class Evaluator(Base):
                     self.logger.info(f"Found precomputed {task.run_name()}_total")
                     continue
 
-                # MaxLenContext changes model.generation_config.max_new_tokens param based on task.max_new_tokens
-                with MaxLenContext(task, model, max_prompt_len, generation_config) as max_prompt_len:
-                    self.evaluate_dataset(
-                        task,
-                        model,
-                        output_dir,
-                        max_prompt_len,
-                        few_shot_count,
-                        generation_config,
-                        batch_size,
-                        max_sample_per_dataset,
-                        enable_thinking,
-                        add_reasoning_truncing_prompt,
-                        add_reasoning_info,
-                        add_assistant_prompt_to_output,
-                        include_stop_str_in_output
-                    )
+                try:
+                    # MaxLenContext changes model.generation_config.max_new_tokens param based on task.max_new_tokens
+                    with MaxLenContext(task, model, max_prompt_len, generation_config) as max_prompt_len:
+                        self.evaluate_dataset(
+                            task,
+                            model,
+                            output_dir,
+                            max_prompt_len,
+                            few_shot_count,
+                            generation_config,
+                            batch_size,
+                            max_sample_per_dataset,
+                            enable_thinking,
+                            add_reasoning_truncing_prompt,
+                            add_reasoning_info,
+                            add_assistant_prompt_to_output,
+                            include_stop_str_in_output
+                        )
+                except Exception as e:
+                    self.logger.error(f"Failed to evaluate on {dataset_name}: {e}")
+                    self.logger.error(traceback.format_exc())
 
             self.logger.info(f'Ended eval')
             self.create_report(output_dir)
@@ -122,7 +126,7 @@ class Evaluator(Base):
             messages, samples = task.load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count)
 
         metrics = []
-        with SimpleTaskLogger(output_dir, task.run_name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):
+        with SimpleTaskLogger(output_dir, task.run_name()) as logger, CustomTimer(task.logger, 'Processing Dataset') as timer:
             for i in tqdm(range(0, len(messages), batch_size)):
                 messages_batch = messages[i:i+batch_size]
                 messages_batch = {k: [subdict[k] for subdict in messages_batch] for k in messages_batch[0]}
@@ -130,9 +134,10 @@ class Evaluator(Base):
                     messages_batch['generation_config'] = generation_config
                 for k, v in task.method_additional_args.items():
                     messages_batch[k] = v
-                messages_batch['enable_thinking'] = enable_thinking
-                messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
-                messages_batch['add_reasoning_info'] = add_reasoning_info
+                if task.method in ['generate', 'calculate_tokens_proba']:
+                    messages_batch['enable_thinking'] = enable_thinking
+                    messages_batch['add_reasoning_truncing_prompt'] = add_reasoning_truncing_prompt
+                    messages_batch['add_reasoning_info'] = add_reasoning_info
                 if task.method == 'generate':
                     messages_batch['include_stop_str_in_output'] = include_stop_str_in_output
                     messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
@@ -141,6 +146,7 @@ class Evaluator(Base):
                 for j in range(len(y_preds)):
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
+            processing_time = timer.time()
         
         task.logger.info(f'Results for {task.run_name()}:')
         
@@ -163,7 +169,7 @@ class Evaluator(Base):
             metrics_res.update(self._bootstrap(task, metrics))
 
         with SimpleTaskLogger(output_dir, task.run_name() + '_total') as logger:
-            logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res)})
+            logger.log_json({'task_name': task.run_name(), 'results': metrics_res, 'leaderboard_result': task.leaderboard_aggregation(metrics_res), 'time': processing_time})
         
         # Сохранение детальных результатов агрегации, если они есть
         if aggregation_details:

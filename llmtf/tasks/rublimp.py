@@ -32,7 +32,7 @@ class RuBlimpClassify(SimpleFewShotHFTask):
         self._max_task_new_tokens = 1
 
     def task_name(self):
-        return 'russiannlp/rublimp (classify)'
+        return 'russiannlp/rublimp-(classify)'
 
     def test_split_name(self) -> str:
         return 'train'
@@ -133,7 +133,7 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         self._max_task_new_tokens = 1
 
     def task_name(self):
-        return 'russiannlp/rublimp (choice)'
+        return 'russiannlp/rublimp-(choice)'
 
     def test_split_name(self) -> str:
         return 'train'
