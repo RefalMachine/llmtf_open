@@ -9,7 +9,7 @@ from queue import Empty
 import json
 import nltk
 nltk.download('punkt_tab')
-from task_groups import task_groups
+import yaml
 
 class GPUManager:
     def __init__(self, num_gpus):
@@ -140,6 +140,47 @@ def worker(worker_id, task_queue, args, gpu_manager, gen_config_settings):
 def read_json(file_name):
     with open(file_name, encoding="utf-8") as r:
         return json.load(r)
+
+def load_benchmark_config(config_path):
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    defaults = config.get('defaults', {}).get('generation', {})
+    
+    task_groups = []
+    gen_config_settings = {}
+    
+    for task in config.get('tasks', []):
+        # Reconstruct task group dict
+        group = {
+            'name': task['name'],
+            'params': {
+                'dataset_names': ' '.join(task['datasets'])
+            }
+        }
+        
+        # Copy optional params
+        for key in ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning']:
+            if key in task:
+                group['params'][key] = task[key]
+        
+        # Handle extra args (like think)
+        if 'extra_args' in task:
+            for k, v in task['extra_args'].items():
+                group[k] = v
+                
+        task_groups.append(group)
+        
+        # Reconstruct generation config
+        # Start with defaults
+        gen_conf = defaults.copy()
+        # Update with task specific
+        if 'generation' in task:
+            gen_conf.update(task['generation'])
+            
+        gen_config_settings[task['name']] = gen_conf
+        
+    return task_groups, gen_config_settings
     
 if __name__ == '__main__':
     # Используем 'spawn' для безопасности при работе с CUDA
@@ -147,7 +188,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description="Run local model evaluation and distribute tasks across GPUs.")
     parser.add_argument('--model_dir', required=True)
-    parser.add_argument('--gen_config_settings', required=True)
+    parser.add_argument('--benchmark_config', required=True)
     parser.add_argument('--conv_path', required=True)
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
@@ -168,8 +209,8 @@ if __name__ == '__main__':
     gpu_manager = GPUManager(args.num_gpus)
         
     # Создаем и заполняем очередь задач
+    task_groups, gen_config_settings = load_benchmark_config(args.benchmark_config)
     task_queue = TaskQueue(task_groups)
-    gen_config_settings = read_json(args.gen_config_settings)
     
     print(f'TOTAL WORKERS: {num_workers}')
     print(f'TOTAL TASKS: {len(task_groups)}')

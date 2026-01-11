@@ -6,19 +6,21 @@ import json
 import numpy as np
 import time as t
 import pickle
+import yaml
 from sklearn.utils import resample
 from multiprocessing import Pool, cpu_count
 from llmtf.tasks import TASK_REGISTRY
-from benchmark.task_groups import task_groups
 
 logger = logging.getLogger(__name__)
 
-def extract_task_datas():
+def extract_task_datas(benchmark_config_path):
+    with open(benchmark_config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
     name_to_aggrigation = {}
-    for tasks in task_groups:
-        params_tg = tasks["params"]
-        task_names = params_tg["dataset_names"].split() # as it called in TASK_REGISTRY
-        name_suffix = params_tg.get("name_suffix", None)
+    for tasks in config.get('tasks', []):
+        task_names = tasks['datasets'] # as it called in TASK_REGISTRY
+        name_suffix = tasks.get("name_suffix", None)
         for name in task_names:
             task_tr = TASK_REGISTRY.get(name, None)
             if task_tr is None:
@@ -372,6 +374,7 @@ if __name__ == '__main__':
     parser.add_argument('--show_time', action='store_true')
     parser.add_argument('--category_path', default=None)
     parser.add_argument('--num_proc', type=int, default=8)
+    parser.add_argument('--benchmark_config', required=True)
 
     args = parser.parse_args()
     log_dir = Path(args.log_dir)
@@ -396,7 +399,7 @@ if __name__ == '__main__':
         logger.error(f"\"{output_dir}\" exists but is not a directory")
         raise ValueError(f"\"{output_dir}\" exists but is not a directory")
     
-    name_to_aggrigation = extract_task_datas()
+    name_to_aggrigation = extract_task_datas(args.benchmark_config)
 
     pool = None
     if args.num_proc > 1:

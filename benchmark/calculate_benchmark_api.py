@@ -10,7 +10,7 @@ import json
 import requests
 from contextlib import closing
 import socket
-from task_groups import task_groups
+import yaml
 
 # Функция run_eval теперь принимает base_url как явный аргумент
 def run_eval(args, group, gen_config_settings, base_url):
@@ -65,6 +65,47 @@ def read_json(file_name):
     with open(file_name, encoding="utf-8") as r:
         return json.load(r)
 
+def load_benchmark_config(config_path):
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    defaults = config.get('defaults', {}).get('generation', {})
+    
+    task_groups = []
+    gen_config_settings = {}
+    
+    for task in config.get('tasks', []):
+        # Reconstruct task group dict
+        group = {
+            'name': task['name'],
+            'params': {
+                'dataset_names': ' '.join(task['datasets'])
+            }
+        }
+        
+        # Copy optional params
+        for key in ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning']:
+            if key in task:
+                group['params'][key] = task[key]
+        
+        # Handle extra args (like think)
+        if 'extra_args' in task:
+            for k, v in task['extra_args'].items():
+                group[k] = v
+                
+        task_groups.append(group)
+        
+        # Reconstruct generation config
+        # Start with defaults
+        gen_conf = defaults.copy()
+        # Update with task specific
+        if 'generation' in task:
+            gen_conf.update(task['generation'])
+            
+        gen_config_settings[task['name']] = gen_conf
+        
+    return task_groups, gen_config_settings
+
 # НОВАЯ ФУНКЦИЯ: Воркер, который будет выполняться в отдельном процессе
 def worker(worker_id, task_queue, args, gen_config_settings, base_url):
     """
@@ -104,7 +145,7 @@ if __name__ == '__main__':
     
     # Существующие аргументы
     parser.add_argument('--model_dir', required=True)
-    parser.add_argument('--gen_config_settings')
+    parser.add_argument('--benchmark_config', required=True)
     parser.add_argument('--api_key', default='EMPTY') # vLLM по умолчанию использует 'EMPTY'
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
@@ -183,7 +224,7 @@ if __name__ == '__main__':
 
     # --- 3. Основная логика выполнения задач ---
     try:
-        gen_config_settings = read_json(args.gen_config_settings)
+        task_groups, gen_config_settings = load_benchmark_config(args.benchmark_config)
 
         # Создаем и заполняем очередь задач
         task_queue = Queue()
