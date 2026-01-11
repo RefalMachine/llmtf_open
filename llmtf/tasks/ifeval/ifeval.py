@@ -15,6 +15,37 @@ import nltk
 from . import ru_instructions_registry
 from . import en_instructions_registry
 
+def aggregate_instruction_accuracy(results):
+    """Calculate accuracy per instruction type."""
+    instruction_stats = defaultdict(lambda: {'followed': 0, 'total': 0})
+    for result in results:
+        # Zip instruction IDs with their follow status (0/1)
+        for instr_id, is_followed in zip(result['instruction_id'], result['instruction_followed']):
+            instruction_stats[instr_id]['followed'] += is_followed
+            instruction_stats[instr_id]['total'] += 1
+    
+    return {k: v['followed']/v['total'] for k, v in instruction_stats.items()}
+
+def aggregate_category_accuracy(results):
+    """Calculate accuracy per instruction category."""
+    category_stats = defaultdict(lambda: {'followed': 0, 'total': 0})
+    for result in results:
+        for cat, count in result['category_followed'].items():
+            category_stats[cat]['followed'] += count
+        for cat, count in result['category_total'].items():
+            category_stats[cat]['total'] += count
+    
+    return {k: v['followed']/v['total'] for k, v in category_stats.items()}
+
+def aggregate_instruction_level_accuracy(results):
+    """Calculate overall instruction-level accuracy."""
+    total_correct = 0
+    total_instructions = 0
+    for result in results:
+        total_correct += sum(result['instruction_followed'])
+        total_instructions += len(result['instruction_followed'])
+    return total_correct / total_instructions if total_instructions > 0 else 0
+
 class RuIFEvalTask(SimpleFewShotHFTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -96,45 +127,15 @@ class RuIFEvalTask(SimpleFewShotHFTask):
         """Define how to aggregate metrics across samples."""
         return {
             'prompt_level_accuracy': mean,
-            'instruction_level_accuracy': self._aggregate_instruction_level_accuracy,
-            'instruction_accuracy': self._aggregate_instruction_accuracy,
-            'category_accuracy': self._aggregate_category_accuracy
+            'instruction_level_accuracy': aggregate_instruction_level_accuracy,
+            'instruction_accuracy': aggregate_instruction_accuracy,
+            'category_accuracy': aggregate_category_accuracy
         }
 
-    def leaderboard_aggregation(self, metrics: Dict) -> float:
+    @staticmethod
+    def leaderboard_aggregation(metrics: Dict) -> float:
         return metrics['prompt_level_accuracy']
     
-    def _aggregate_instruction_accuracy(self, results):
-        """Calculate accuracy per instruction type."""
-        instruction_stats = defaultdict(lambda: {'followed': 0, 'total': 0})
-        for result in results:
-            # Zip instruction IDs with their follow status (0/1)
-            for instr_id, is_followed in zip(result['instruction_id'], result['instruction_followed']):
-                instruction_stats[instr_id]['followed'] += is_followed
-                instruction_stats[instr_id]['total'] += 1
-        
-        return {k: v['followed']/v['total'] for k, v in instruction_stats.items()}
-
-    def _aggregate_category_accuracy(self, results):
-        """Calculate accuracy per instruction category."""
-        category_stats = defaultdict(lambda: {'followed': 0, 'total': 0})
-        for result in results:
-            for cat, count in result['category_followed'].items():
-                category_stats[cat]['followed'] += count
-            for cat, count in result['category_total'].items():
-                category_stats[cat]['total'] += count
-        
-        return {k: v['followed']/v['total'] for k, v in category_stats.items()}
-
-    def _aggregate_instruction_level_accuracy(self, results):
-        """Calculate overall instruction-level accuracy."""
-        total_correct = 0
-        total_instructions = 0
-        for result in results:
-            total_correct += sum(result['instruction_followed'])
-            total_instructions += len(result['instruction_followed'])
-        return total_correct / total_instructions if total_instructions > 0 else 0
-
     def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         """Load and prepare ruIFEval dataset from JSONL files."""
         data_path = Path(self.dataset_args()['path'])

@@ -8,15 +8,18 @@ from llmtf.base import Task, SimpleFewShotHFTask, LLM
 import json
 from collections import Counter
 from typing import Dict, List, Tuple
+from functools import lru_cache
 
+@lru_cache(maxsize=None)
 def tk(text):
     tokens = text.split()
     token_offsets = []
-    i = 0
+    start = 0
     for token in tokens:
-        pos = text[i:].find(token)
-        token_offsets.append((i + pos, i + pos + len(token)))
-        i += pos + len(token)
+        pos = text.find(token, start)
+        end = pos + len(token)
+        token_offsets.append((pos, end))
+        start = end
     return token_offsets
 
 
@@ -71,11 +74,9 @@ def convert_char_offsets_to_token_idxs(char_offsets, token_offsets):
         bidx, eidx = char_offset.split(":")
         bidx, eidx = int(bidx), int(eidx)
         for i, (b, e) in enumerate(token_offsets):
-            if b >= eidx or e <= bidx:
-                intoken = False
-            else:
-                intoken = True
-            if intoken:
+            if b >= eidx:
+                break
+            if e > bidx:
                 token_idxs.append(i)
     return frozenset(token_idxs)
 

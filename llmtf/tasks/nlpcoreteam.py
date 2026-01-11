@@ -7,6 +7,7 @@ from tqdm import tqdm
 import copy
 from multiprocessing import Pool
 import os
+from collections import defaultdict
 from datasets.utils.logging import disable_progress_bar
 disable_progress_bar()
 
@@ -79,6 +80,9 @@ CATEGORIES = {
     "social sciences": ["politics", "culture", "economics", "geography", "psychology"],
     "other (business, health, misc.)": ["other", "business", "health"],
 }
+
+CATEGORY_TO_MAIN_CATEGORY = {value: key for key, sublist in CATEGORIES.items() for value in sublist}
+SUBJECT_TO_CATEGORY = {key: CATEGORY_TO_MAIN_CATEGORY[value[0]] for key, value in SUBCATEGORIES.items()}
 
 # in the form to fit the prompt headline
 SUBCATEGORIES_EN2RU = {
@@ -182,26 +186,26 @@ class MMLU(Task):
     def choices(self):
         return ["A", "B", "C", "D"]
 
-    def _per_category_mean(self, results: Dict) -> Dict:
-        subjects = set([res['subject'] for res in results])
-        assert len(subjects) == 57
-        metric_per_subject = {}
-        for subject in subjects:
-            metric_per_subject[subject] = mean([res['val'] for res in results if res['subject'] == subject])
+    def _per_category_mean(self, results: Dict) -> float:
+        subject_sums = defaultdict(float)
+        subject_counts = defaultdict(int)
 
-        category_to_main_category = {value: key for key, sublist in CATEGORIES.items() for value in sublist}
-        subcategories2categories = {key: category_to_main_category[value[0]] for key, value in SUBCATEGORIES.items()}
-        subjects = sorted(list(subjects))
+        for res in results:
+            subj = res['subject']
+            subject_sums[subj] += res['val']
+            subject_counts[subj] += 1
 
-        df = pd.DataFrame()
-        df['subject'] = subjects
-        df['metric'] = [metric_per_subject[s] for s in subjects]
-        #self.logger.info(df.groupby('subject').mean())
-        df['subject'] = df['subject'].apply(lambda x: subcategories2categories[x])
-        df = df.groupby('subject').mean()
-        #self.logger.info(df)
+        category_sums = defaultdict(float)
+        category_counts = defaultdict(int)
 
-        return float(df.mean().iloc[0])
+        for subj, total_val in subject_sums.items():
+            mean_val = total_val / subject_counts[subj]
+            cat = SUBJECT_TO_CATEGORY[subj]
+            category_sums[cat] += mean_val
+            category_counts[cat] += 1
+
+        final_mean = sum(category_sums[cat] / category_counts[cat] for cat in category_sums) / len(category_sums)
+        return float(final_mean)
 
     def aggregation(self) -> Dict:
         return {"acc": self._per_category_mean}

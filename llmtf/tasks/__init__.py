@@ -300,45 +300,46 @@ llmaaj_api_base = os.environ.get('LLMAAJ_API_BASE', None)
 llmaaj_api_key = os.environ.get('LLMAAJ_API_KEY', None)
 llmaaj_model_name = os.environ.get('LLMAAJ_MODEL_NAME', None)
 
+llmaaj_model = None
 if llmaaj_api_base is not None and llmaaj_api_key is not None and llmaaj_model_name is not None:
     try:
         from llmtf.model import ApiVLLMModel
         llmaaj_model = ApiVLLMModel(api_base=llmaaj_api_base, api_key=llmaaj_api_key)
         llmaaj_model.from_pretrained(llmaaj_model_name)
-
-        TASK_REGISTRY['rusbeirrag/rubqqa_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model, 'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rubqqa'}
-        }
-        TASK_REGISTRY['rusbeirrag/rus_tydiqa_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model,'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rus_tydiqa'}
-        }
-        TASK_REGISTRY['rusbeirrag/sberquadqa_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model,'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/sberquadqa'}
-        }
-        TASK_REGISTRY['rusbeirrag/rus_xquadqa_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model,'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rus_xquadqa'}
-        }
-        TASK_REGISTRY['rusbeirrag/rubqqa_data_first_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rubqqa', 'name_suffix': 'data_first'}
-        }
-        TASK_REGISTRY['rusbeirrag/rus_tydiqa_data_first_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_tydiqa', 'name_suffix': 'data_first'}
-        }
-        TASK_REGISTRY['rusbeirrag/sberquadqa_data_first_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/sberquadqa', 'name_suffix': 'data_first'}
-        }
-        TASK_REGISTRY['rusbeirrag/rus_xquadqa_data_first_llmaaj'] = {
-            'class': rag.RusbeirRagLLMJudge,
-            'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_xquadqa', 'name_suffix': 'data_first'}
-        }
     except Exception as e:
-        print('Не удалоись инициализировать rag_llmaaj задачи из-за ошибки: {e}')
+        print(f'Не удалось инициализировать rag_llmaaj задачи из-за ошибки: {e}')
 else:
-    print('LLMAAJ информация не была добавлена - пропускаем инициализацию rag_llmaaj задач')
+    print('LLMAAJ информация не была добавлена - пропускаем инициализацию модели для rag_llmaaj задач')
+
+TASK_REGISTRY['rusbeirrag/rubqqa_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model, 'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rubqqa'}
+}
+TASK_REGISTRY['rusbeirrag/rus_tydiqa_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model,'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rus_tydiqa'}
+}
+TASK_REGISTRY['rusbeirrag/sberquadqa_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model,'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/sberquadqa'}
+}
+TASK_REGISTRY['rusbeirrag/rus_xquadqa_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model,'instruction': rusbeir_rag_task_first, 'dataset': 'bearberry/rus_xquadqa'}
+}
+TASK_REGISTRY['rusbeirrag/rubqqa_data_first_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rubqqa', 'name_suffix': 'data_first'}
+}
+TASK_REGISTRY['rusbeirrag/rus_tydiqa_data_first_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_tydiqa', 'name_suffix': 'data_first'}
+}
+TASK_REGISTRY['rusbeirrag/sberquadqa_data_first_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/sberquadqa', 'name_suffix': 'data_first'}
+}
+TASK_REGISTRY['rusbeirrag/rus_xquadqa_data_first_llmaaj'] = {
+    'class': rag.RusbeirRagLLMJudge,
+    'params': {'model': llmaaj_model,'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_xquadqa', 'name_suffix': 'data_first'}
+}

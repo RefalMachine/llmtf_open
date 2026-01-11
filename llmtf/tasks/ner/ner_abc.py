@@ -148,8 +148,8 @@ class NerJsonAbc(NerAbc):
         y_pred = self.extract_answer(gen_pred)
         y_gold = self.get_answer(sample)
 
-        pred_tags = set(map(lambda x: x[0], y_pred))
-        gold_tags = set(map(lambda x: x[0], y_gold))
+        pred_tags = set([x[0] for x in y_pred if len(x) > 0 and x[0] in self.TAGS])
+        gold_tags = set([x[0] for x in y_gold if len(x) > 0 and x[0] in self.TAGS])
         combined_tags = set(list(pred_tags) + list(gold_tags))
         
         y_pred = list_to_dict_multiset(y_pred, combined_tags)
@@ -187,8 +187,8 @@ class NerInPlaceAbc(NerAbc):
             y_pred = self.extract_answer(gen_pred)
         y_gold = self.get_answer(sample)
 
-        pred_tags = set(map(lambda x: x[0], y_pred))
-        gold_tags = set(map(lambda x: x[0], y_gold))
+        pred_tags = set([x[0] for x in y_pred if len(x) > 0 and x[0] in self.TAGS])
+        gold_tags = set([x[0] for x in y_gold if len(x) > 0 and x[0] in self.TAGS])
         combined_tags = set(list(pred_tags) + list(gold_tags))
         
         y_pred = list_to_dict_multiset(y_pred, combined_tags)

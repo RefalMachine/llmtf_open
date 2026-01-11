@@ -64,6 +64,17 @@ def custom_index_walk(K):
     
     return indices
 
+def aggregate_by_length(score_and_length_list):
+    groups = defaultdict(list)
+    for score, length in score_and_length_list:
+        groups[length].append(score)
+    return {
+        length: round(mean(scores), 3)
+        for length, scores in sorted(
+            groups.items(), key=lambda x: int(x[0].rstrip("k"))
+        )
+    }
+
 class LibraTask(SimpleFewShotHFTask):
     DATASET_PATH = "ai-forever/LIBRA"
 
@@ -174,17 +185,6 @@ class LibraTask(SimpleFewShotHFTask):
         return {"score": (best_score, length)}
 
     def aggregation(self) -> dict:
-        def aggregate_by_length(score_and_length_list):
-            groups = defaultdict(list)
-            for score, length in score_and_length_list:
-                groups[length].append(score)
-            return {
-                length: round(mean(scores), 3)
-                for length, scores in sorted(
-                    groups.items(), key=lambda x: int(x[0].rstrip("k"))
-                )
-            }
-
         return {"score": aggregate_by_length}
 
     def leaderboard_aggregation(self, metrics: dict) -> float:
