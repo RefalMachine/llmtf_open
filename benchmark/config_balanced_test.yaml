@@ -1,0 +1,423 @@
+defaults:
+  generation:
+    temperature: 0.3
+    repetition_penalty: 1.0
+    presence_penalty: 0.0
+    num_return_sequences: 1
+
+tasks:
+  - name: rag_rubqqa
+    datasets:
+      - rusbeirrag/rubqqa_llmaaj
+      - rusbeirrag/rubqqa_data_first_llmaaj
+    few_shot_count: 0
+    max_len: 16000
+    max_sample_per_dataset: 200
+
+  - name: rag_rus_tydiqa
+    datasets:
+      - rusbeirrag/rus_tydiqa_llmaaj
+      - rusbeirrag/rus_tydiqa_data_first_llmaaj
+    few_shot_count: 0
+    max_len: 16000
+    max_sample_per_dataset: 200
+
+  - name: rag_sberquadqa
+    datasets:
+      - rusbeirrag/sberquadqa_llmaaj
+      - rusbeirrag/sberquadqa_data_first_llmaaj
+    few_shot_count: 0
+    max_len: 16000
+    max_sample_per_dataset: 200
+
+  - name: rag_xquadqa
+    datasets:
+      - rusbeirrag/rus_xquadqa_llmaaj
+      - rusbeirrag/rus_xquadqa_data_first_llmaaj
+    few_shot_count: 0
+    max_len: 16000
+    max_sample_per_dataset: 200
+
+  - name: translation
+    datasets:
+      - darumeru/flores_ru_en
+      - darumeru/flores_en_ru
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+      
+  - name: summarization
+    datasets:
+      - daru/treewayabstractive
+      - ilyagusev/gazeta
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: sentiment
+    datasets:
+      - sentiment_kinopoisk
+      - ruopinionne
+      - ruopinionne_simple
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: ner_json
+    datasets:
+      - MalakhovIlya/NEREL-(json)
+      - nerel-ds/NEREL-BIO-(json)
+      - Mykes/patient_queries_ner-(json)
+    few_shot_count: 3
+    max_len: 8000
+    name_suffix: few_shot
+    extra_args:
+      think: false
+    max_sample_per_dataset: 200
+
+  - name: ner_in-place
+    datasets:
+      - MalakhovIlya/NEREL-(in-place)
+      - nerel-ds/NEREL-BIO-(in-place)
+      - Mykes/patient_queries_ner-(in-place)
+    few_shot_count: 3
+    max_len: 8000
+    name_suffix: few_shot
+    extra_args:
+      think: false
+    max_sample_per_dataset: 200
+
+  - name: nlpcoreteam_mmlu_ru_zero_shot
+    datasets:
+      - nlpcoreteam/rummlu
+    few_shot_count: 0
+    name_suffix: zero_shot
+    generation:
+      temperature: 0.0
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: nlpcoreteam_mmlu_en_zero_shot
+    datasets:
+      - nlpcoreteam/enmmlu
+    few_shot_count: 0
+    name_suffix: zero_shot
+    generation:
+      temperature: 0.0
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: shlepa
+    datasets:
+      - shlepa/moviesmc
+      - shlepa/musicmc
+      - shlepa/lawmc
+      - shlepa/booksmc
+    generation:
+      temperature: 0.0
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: ruifeval
+    datasets:
+      - ruifeval
+    few_shot_count: 0
+    generation:
+      temperature: 0.0
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+
+  - name: enifeval
+    datasets:
+      - enifeval
+    few_shot_count: 0
+    generation:
+      temperature: 0.0
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+
+  - name: nlpcoreteam_mmlu_ru_few_shot
+    datasets:
+      - nlpcoreteam/rummlu
+    few_shot_count: 5
+    name_suffix: few_shot
+    generation:
+      temperature: 0.0
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: nlpcoreteam_mmlu_en_few_shot
+    datasets:
+      - nlpcoreteam/enmmlu
+    few_shot_count: 5
+    name_suffix: few_shot
+    generation:
+      temperature: 0.0
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_passkey
+    datasets:
+      - libra/passkey
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_matreshka_yes_no
+    datasets:
+      - libra/matreshka_yes_no
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_matreshka_names
+    datasets:
+      - libra/matreshka_names
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_passkey_with_librusec
+    datasets:
+      - libra/passkey_with_librusec
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_librusec_history
+    datasets:
+      - libra/librusec_history
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_gsm100
+    datasets:
+      - libra/ru_gsm100
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_sci_passage_count
+    datasets:
+      - libra/ru_sci_passage_count
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_2wikimultihopqa
+    datasets:
+      - libra/ru_2wikimultihopqa
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_long_context_multiq
+    datasets:
+      - libra/long_context_multiq
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_sci_abstract_retrieval
+    datasets:
+      - libra/ru_sci_abstract_retrieval
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_trec
+    datasets:
+      - libra/ru_trec
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_sci_fi
+    datasets:
+      - libra/ru_sci_fi
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_librusec_mhqa
+    datasets:
+      - libra/librusec_mhqa
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_babilong_qa1
+    datasets:
+      - libra/ru_babilong_qa1
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_babilong_qa2
+    datasets:
+      - libra/ru_babilong_qa2
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_babilong_qa3
+    datasets:
+      - libra/ru_babilong_qa3
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_babilong_qa4
+    datasets:
+      - libra/ru_babilong_qa4
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_babilong_qa5
+    datasets:
+      - libra/ru_babilong_qa5
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_quality
+    datasets:
+      - libra/ru_quality
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_tpo
+    datasets:
+      - libra/ru_tpo
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1
+
+  - name: libra_ru_qasper
+    datasets:
+      - libra/ru_qasper
+    few_shot_count: 0
+    max_len: 32000
+    max_sample_per_dataset: 200
+    generation:
+      temperature: 0.3
+      repetition_penalty: 1.0
+      presence_penalty: 0.0
+      num_return_sequences: 1

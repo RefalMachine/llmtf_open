@@ -875,6 +875,7 @@ class LocalHostedLLM(LLM):
         except:
             self.generation_config = GenerationConfig.from_dict({})
 
+        self.conv_template_eos_string = None
         self._update_chat_template(is_foundational, conversation_template_path)
         self._init_default_gen_params()
         self._check_if_leading_space()
@@ -974,10 +975,11 @@ class LocalHostedLLM(LLM):
 
         self.tokenizer.chat_template = chat_template
         if eos_token:
-            eos_token = self.tokenizer.tokenize(eos_token)
-            if len(eos_token) > 1:
+            self.conv_template_eos_string = eos_token
+            eos_token_tokens = self.tokenizer.tokenize(eos_token)
+            if len(eos_token_tokens) > 1:
                 self.logger.warning("eos token from chat template consists out of several tokens. First one will be used")
-            self.tokenizer.eos_token_id = self.tokenizer.convert_tokens_to_ids(eos_token)[0]
+            self.tokenizer.eos_token_id = self.tokenizer.convert_tokens_to_ids(eos_token_tokens)[0]
 
     def _init_default_gen_params(self):
         self.generation_config.bos_token_id = self.tokenizer.bos_token_id
@@ -1000,6 +1002,9 @@ class LocalHostedLLM(LLM):
         eos_token_from_conv = self.tokenizer.eos_token
         if eos_token_from_conv:
             self._add_stop_string(eos_token_from_conv)
+
+        if self.conv_template_eos_string:
+            self._add_stop_string(self.conv_template_eos_string)
 
         if type(self.generation_config.eos_token_id) == int:
             self.generation_config.eos_token_id = [self.generation_config.eos_token_id]
@@ -1143,13 +1148,13 @@ class HFModel(LocalHostedLLM):
 
         # TODO: upgrade to 4.40+ version with propper testing
         stop_strings = generation_config.stop_strings if generation_config.stop_strings else []
-        generation_config.stop_strings = None
+        # generation_config.stop_strings = None
         with torch.no_grad():
             output_ids = self.model.generate(
                 **data,
                 generation_config=generation_config
             )
-        generation_config.stop_strings = stop_strings
+        # generation_config.stop_strings = stop_strings
 
         output_ids = output_ids.view(len(messages_batch), -1, output_ids.shape[-1])
 

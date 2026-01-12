@@ -69,7 +69,7 @@ class Collection3Abc(ABC):
         self.instruction = instruction.replace("{tags}", "\n".join(f"{tag} - {description}." for tag, description in tag_descriptions.items() if tag in self.TAGS))
 
     def dataset_args(self) -> Dict[str, str]:
-        return {"path": self.DATASET_PATH, "name": self.DATASET_SLICE}
+        return {"path": self.DATASET_PATH, "name": self.DATASET_SLICE, "trust_remote_code": True}
     
     def test_split_name(self) -> str:
         return 'test'

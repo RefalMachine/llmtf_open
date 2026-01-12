@@ -222,10 +222,13 @@ def json_to_jinja(template_config):
         if template:
             formatted_template = template.replace("{role}", role).replace("{content}", "{{ message['content'] }}")
             jinja_template.append(f"{{% if message['role'] == '{role}' %}}{formatted_template}{{% endif %}}")
+ 
     jinja_template.append("{% endfor %}")
 
     if template_config.get("suffix"):
+        jinja_template.append("{% if add_generation_prompt %}")
         jinja_template.append(template_config["suffix"])
+        jinja_template.append("{% endif %}")
 
     eos_token = template_config.get("eos_token")
     if eos_token and type(eos_token) == list:

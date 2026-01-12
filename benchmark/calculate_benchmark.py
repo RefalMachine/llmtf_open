@@ -84,6 +84,9 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
     command += ['--device_map', f'auto', '--output_dir', output_dir]
     if args.force_recalc:
         command += ['--force_recalc']
+    
+    if args.is_foundational:
+        command += ['--is_foundational']
 
     if name_suffix is not None:
         command += ['--name_suffix', name_suffix]
@@ -189,12 +192,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run local model evaluation and distribute tasks across GPUs.")
     parser.add_argument('--model_dir', required=True)
     parser.add_argument('--benchmark_config', required=True)
-    parser.add_argument('--conv_path', required=True)
+    parser.add_argument('--conv_path', default='auto')
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--tensor_parallel_size', default=1, type=int)
     parser.add_argument('--num_gpus', type=int, default=torch.cuda.device_count())
     parser.add_argument('--max_len', type=int, default=4000)
+    parser.add_argument('--is_foundational', action='store_true')
 
     args = parser.parse_args()
     print("Parsed arguments:", args)

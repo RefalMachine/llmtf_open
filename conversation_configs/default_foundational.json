@@ -1,14 +1,12 @@
 {
-    "system_prompt": "",
-    "system_message_template": "<start_of_turn>{role}\n{content}\t\n",
-    "user_message_template": "<start_of_turn>{role}\n{content}\t\n",
-    "bot_message_template": "<start_of_turn>{role}\n{content}\t\n",
-    "bot_message_template_incomplete": "<start_of_turn>{role}\n{content}",
+    "system_message_template": "{content}\n",
+    "user_message_template": "Query: {content}\n",
+    "bot_message_template": "Response: {content}\n\n",
+    "bot_message_template_incomplete": "Response: {content}",
     "user_role": "user",
     "bot_role": "assistant",
     "system_role": "system",
-    "global_prefix": "",
-    "suffix": "<start_of_turn>assistant\n\n",
+    "suffix": "Response:",
     "add_special_tokens": false,
-    "eos_token": "\t\n"
+    "eos_token": "\n\n"
 }

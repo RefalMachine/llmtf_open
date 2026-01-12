@@ -10,7 +10,7 @@ DEFAULT_KINOPOISK_INSTRUCTION = """\
 3. Позитивный
 
 Формат ответа:
-Ответ: 0
+Ответ: <цифра класса>
 
 Отзыв для классификации:
 
@@ -57,7 +57,7 @@ class Kinopoisk(SimpleFewShotHFTask):
         ]
         instruction_bot = self.instruction_bot
         if with_answer:
-            instruction_bot = instruction_bot + ' {label}'.format(label=(sample["label"] + 1))
+            instruction_bot = instruction_bot + '{label}'.format(label=(sample["label"] + 1))
         messages.append({"role": "assistant", "content": instruction_bot})
         return messages
 

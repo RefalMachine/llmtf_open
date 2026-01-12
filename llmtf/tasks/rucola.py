@@ -31,7 +31,7 @@ class RuColaCustomTask(SimpleFewShotHFTask):
         return {"acc": mean, "mcc": lambda data: matthews_corrcoef([d[0] for d in data], [d[1] for d in data])}
 
     def dataset_args(self) -> Dict:
-        return {'path': self.RUCOLA_HF_PATH, 'name': self.DATASET_SLICE}
+        return {'path': self.RUCOLA_HF_PATH, 'name': self.DATASET_SLICE, 'trust_remote_code': True}
 
     def test_split_name(self) -> str:
         return 'validation'
@@ -43,7 +43,7 @@ class RuColaCustomTask(SimpleFewShotHFTask):
         messages = []
         instruction_user = 'Твоя задача определить приемлемость текста для русского языка с точки зрения синтаксиса, морфологии и семантики. Ответом должно служить одно число: 0 или 1, где 0 - предложение не приемлемо с точки зрения русского языка, 1 - приемлемо.\nТекст: {sentence}'
         instruction_bot = 'Ответ: {label}'
-        instruction_bot_incomplete = 'Ответ:'
+        instruction_bot_incomplete = 'Ответ: '
 
         bot_content = instruction_bot.format(**sample) if with_answer else instruction_bot_incomplete
 
@@ -57,4 +57,4 @@ class RuColaCustomTask(SimpleFewShotHFTask):
         return 29
     
     def get_answer(self, sample):
-        return ' ' + str(sample['label'])
+        return str(sample['label'])

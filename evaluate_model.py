@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--presence_penalty', type=float, default=0.0)
     parser.add_argument('--num_return_sequences', type=int, default=1)
     parser.add_argument('--tensor_parallel_size', type=int, default=1)
-
+    parser.add_argument('--is_foundational', action='store_true')
     args = parser.parse_args()
     
     evaluator = Evaluator()
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     model = MODEL_CLASS(
         args.conv_path, device_map=args.device_map, tensor_parallel_size=args.tensor_parallel_size, 
         alpha_scale=args.alpha_scale, not_scale_lm_head=args.not_scale_lm_head, max_seq_len_to_capture=args.max_len)
-    model.from_pretrained(args.model_name_or_path)
+    model.from_pretrained(args.model_name_or_path, conversation_template_path=args.conv_path, is_foundational=args.is_foundational)
     
     model.generation_config.temperature = args.temperature
     model.generation_config.repetition_penalty = args.repetition_penalty
