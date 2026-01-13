@@ -1,7 +1,8 @@
 python benchmark/calculate_benchmark.py \
---model_dir /workdir/data/models/qwen3/Qwen3-4B \
---gen_config_settings benchmark/config_balanced.json \
---conv_path conversation_configs/qwen3-no-think.json \
---output_dir /workdir/projects/devel/llmtf_open/benchmark/balanced/Qwen3-4B \
+--model_dir Qwen/Qwen3-1.7B-Base \
+--benchmark_config benchmark/config_balanced_test_foundational.yaml \
+--output_dir /workdir/projects/devel/llmtf_open/benchmark/balanced_2026_foundational_test/Qwen3-1.7B-Base_local_hf \
 --tensor_parallel_size 1 \
---force_recalc
+--force_recalc \
+--is_foundational \
+--backend hf

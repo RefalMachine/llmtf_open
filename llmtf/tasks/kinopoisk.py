@@ -62,9 +62,12 @@ class Kinopoisk(SimpleFewShotHFTask):
         return messages
 
     def evaluate(self, sample, y_pred):
-        y_true = str(sample["label"] + 1)
+        y_true = self.get_answer(sample)
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": y_true == y_pred, "f1-macro": (y_true, y_pred)}
+    
+    def get_answer(self, sample):
+        return str(sample["label"] + 1)
         
     def aggregation(self):
         return {"acc": mean,"f1-macro": f1_macro_score}

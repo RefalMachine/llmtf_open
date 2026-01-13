@@ -1,5 +1,5 @@
 import argparse
-from llmtf.model import HFModel, VLLMModel
+from llmtf.model import HFModelReasoning, VLLMModelReasoning
 from llmtf.evaluator import Evaluator
 
 if __name__ == '__main__':
@@ -13,7 +13,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--max_sample_per_dataset', type=int, default=10000000000000)
     parser.add_argument('--max_len', type=int, default=4000)
+    parser.add_argument('--max_new_tokens_reasoning', type=int, default=None)
     parser.add_argument('--vllm', action='store_true')
+    parser.add_argument('--disable_thinking', action='store_true')
     parser.add_argument('--disable_sliding_window', action='store_true')
     parser.add_argument('--disable_prefix_caching', action='store_true')
     parser.add_argument('--force_recalc', action='store_true')
@@ -31,11 +33,11 @@ if __name__ == '__main__':
     
     evaluator = Evaluator()
     
-    MODEL_CLASS = VLLMModel if args.vllm else HFModel
+    MODEL_CLASS = VLLMModelReasoning if args.vllm else HFModelReasoning
     model = MODEL_CLASS(
-        args.conv_path, device_map=args.device_map, tensor_parallel_size=args.tensor_parallel_size, 
+        conversation_template_path=args.conv_path, device_map=args.device_map, tensor_parallel_size=args.tensor_parallel_size, 
         alpha_scale=args.alpha_scale, not_scale_lm_head=args.not_scale_lm_head, max_seq_len_to_capture=args.max_len)
-    model.from_pretrained(args.model_name_or_path, conversation_template_path=args.conv_path, is_foundational=args.is_foundational)
+    model.from_pretrained(args.model_name_or_path, conversation_template_path=args.conv_path, is_foundational=args.is_foundational, max_new_tokens_reasoning=args.max_new_tokens_reasoning)
     
     model.generation_config.temperature = args.temperature
     model.generation_config.repetition_penalty = args.repetition_penalty
@@ -48,4 +50,4 @@ if __name__ == '__main__':
     if args.ppl_scoring:
         evaluator.evaluate_ppl(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix)
     else:
-        evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix)
+        evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix, enable_thinking=not args.disable_thinking)

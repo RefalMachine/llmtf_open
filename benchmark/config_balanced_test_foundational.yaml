@@ -4,20 +4,21 @@ defaults:
     repetition_penalty: 1.0
     presence_penalty: 0.0
     num_return_sequences: 1
+  max_len: 8000
 
 tasks:
   - name: translation
     datasets:
       - darumeru/flores_ru_en
       - darumeru/flores_en_ru
-    max_sample_per_dataset: 200
+    max_sample_per_dataset: 20
     few_shot_count: 5
       
   - name: summarization
     datasets:
       - daru/treewayabstractive
       - ilyagusev/gazeta
-    max_sample_per_dataset: 200
+    max_sample_per_dataset: 20
     few_shot_count: 5
 
   - name: shlepa
@@ -47,7 +48,7 @@ tasks:
       - darumeru/cp_doc_ru
     max_len: 16000
     few_shot_count: 5
-    max_sample_per_dataset: 200
+    max_sample_per_dataset: 20
 
   - name: ner
     datasets:

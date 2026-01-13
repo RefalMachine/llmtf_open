@@ -11,3 +11,6 @@ benchmark/balanced_old/
 benchmark/greedy_old/
 .ipynb_checkpoints
 battles_raw
+benchmark/balanced*
+bench_logs_test/
+results.md

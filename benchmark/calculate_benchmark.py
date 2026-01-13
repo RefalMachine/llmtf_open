@@ -59,7 +59,12 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
     if gpu_ids is None:
         return False
 
-    batch_size = group['params'].get('batch_size', 10000000) # vllm
+    if args.backend == 'vllm':
+        default_bs = 10000000
+    else:
+        default_bs = 8
+
+    batch_size = group['params'].get('batch_size', default_bs)
     few_shot_count = group['params'].get('few_shot_count', 0)
     max_len = group['params'].get('max_len', args.max_len)
     name_suffix = group['params'].get('name_suffix', None)
@@ -67,15 +72,19 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
     conv_path = args.conv_path
     command = ['python', 'evaluate_model.py', '--model_name_or_path', args.model_dir, '--conv_path', conv_path, '--max_len', str(max_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
     command += ['--dataset_names'] + group['params']['dataset_names'].split()
-    command += ['--vllm', '--tensor_parallel_size', str(args.tensor_parallel_size)]
+    
+    if args.backend == 'vllm':
+        command += ['--vllm', '--tensor_parallel_size', str(args.tensor_parallel_size)]
     
     # Поддержка thinking режима (для задач с think=True используем специальные конфиги)
-    if group.get('think', False):
-        # Для thinking задач можно добавить специальные параметры если нужно
-        pass
+    if not group.get('think', False):
+        command += ['--disable_thinking']
     
     if 'max_sample_per_dataset' in group['params']:
         command += ['--max_sample_per_dataset', str(group['params']['max_sample_per_dataset'])]
+    
+    if 'max_new_tokens_reasoning' in group['params']:
+        command += ['--max_new_tokens_reasoning', str(group['params']['max_new_tokens_reasoning'])]
 
     if args.output_dir is not None:
         output_dir = args.output_dir
@@ -148,7 +157,8 @@ def load_benchmark_config(config_path):
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
-    defaults = config.get('defaults', {}).get('generation', {})
+    defaults = config.get('defaults', {})
+    gen_defaults = defaults.get('generation', {})
     
     task_groups = []
     gen_config_settings = {}
@@ -163,7 +173,12 @@ def load_benchmark_config(config_path):
         }
         
         # Copy optional params
-        for key in ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning']:
+        param_keys = ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning', 'batch_size']
+        for key in param_keys:
+            if key in defaults:
+                group['params'][key] = defaults[key]
+        
+        for key in param_keys:
             if key in task:
                 group['params'][key] = task[key]
         
@@ -176,7 +191,7 @@ def load_benchmark_config(config_path):
         
         # Reconstruct generation config
         # Start with defaults
-        gen_conf = defaults.copy()
+        gen_conf = gen_defaults.copy()
         # Update with task specific
         if 'generation' in task:
             gen_conf.update(task['generation'])
@@ -199,6 +214,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_gpus', type=int, default=torch.cuda.device_count())
     parser.add_argument('--max_len', type=int, default=4000)
     parser.add_argument('--is_foundational', action='store_true')
+    parser.add_argument('--backend', choices=['hf', 'vllm'], default='vllm')
 
     args = parser.parse_args()
     print("Parsed arguments:", args)
@@ -218,6 +234,7 @@ if __name__ == '__main__':
     
     print(f'TOTAL WORKERS: {num_workers}')
     print(f'TOTAL TASKS: {len(task_groups)}')
+    print(f'BACKEND: {args.backend}')
     
     # Создаем и запускаем процессы-воркеры
     processes = []

@@ -101,9 +101,12 @@ class RuBlimpClassify(SimpleFewShotHFTask):
         return samples
     
     def evaluate(self, sample, y_pred) -> Dict:
-        y_true = '0' if sample['correct'] else '1'
+        y_true = self.get_answer(sample)
         y_pred = y_pred.strip()[0]
         return {'acc': y_true == y_pred, 'f1_macro': (y_true, y_pred)}
+
+    def get_answer(self, sample):
+        return '0' if sample['correct'] else '1'
 
     def aggregation(self) -> Dict:
         return {"acc": mean, "f1_macro": f1_macro_score}
@@ -205,9 +208,12 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         return samples
 
     def evaluate(self, sample, y_pred) -> Dict:
-        y_true = '1' if sample['swap'] else '2'
+        y_true = self.get_answer(sample)
         y_pred = y_pred.strip()[0]
         return {'acc': y_true == y_pred, 'f1_macro': (y_true, y_pred)}
+
+    def get_answer(self, sample):
+        return '1' if sample['swap'] else '2'
 
     def aggregation(self) -> Dict:
         return {"acc": mean, "f1_macro": f1_macro_score}

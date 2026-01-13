@@ -69,7 +69,8 @@ def load_benchmark_config(config_path):
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
-    defaults = config.get('defaults', {}).get('generation', {})
+    defaults = config.get('defaults', {})
+    gen_defaults = defaults.get('generation', {})
     
     task_groups = []
     gen_config_settings = {}
@@ -84,7 +85,12 @@ def load_benchmark_config(config_path):
         }
         
         # Copy optional params
-        for key in ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning']:
+        param_keys = ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning', 'batch_size']
+        for key in param_keys:
+            if key in defaults:
+                group['params'][key] = defaults[key]
+        
+        for key in param_keys:
             if key in task:
                 group['params'][key] = task[key]
         
@@ -97,7 +103,7 @@ def load_benchmark_config(config_path):
         
         # Reconstruct generation config
         # Start with defaults
-        gen_conf = defaults.copy()
+        gen_conf = gen_defaults.copy()
         # Update with task specific
         if 'generation' in task:
             gen_conf.update(task['generation'])

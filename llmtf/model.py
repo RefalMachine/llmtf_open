@@ -835,7 +835,8 @@ class LocalHostedLLM(LLM):
         self,
         model_dir,
         conversation_template_path="auto",
-        is_foundational=False
+        is_foundational=False,
+        **kwargs
     ):
         self._load_model(
             model_dir,
@@ -1152,7 +1153,8 @@ class HFModel(LocalHostedLLM):
         with torch.no_grad():
             output_ids = self.model.generate(
                 **data,
-                generation_config=generation_config
+                generation_config=generation_config,
+                tokenizer=self.tokenizer
             )
         # generation_config.stop_strings = stop_strings
 
@@ -1380,12 +1382,11 @@ class HFModelReasoning(HFModel, ReasoningModel):
         end_thinking_token_id=None,
         **kwargs
     ):
-        super().from_pretrained(model_dir)
+        super().from_pretrained(model_dir, **kwargs)
         self.reasoning_from_pretrained(
             max_new_tokens_reasoning=max_new_tokens_reasoning,
             reasoning_truncing_prompt=reasoning_truncing_prompt,
-            end_thinking_token_id=end_thinking_token_id,
-            **kwargs
+            end_thinking_token_id=end_thinking_token_id
         )
     
     def get_end_thinking_token_id(self):
@@ -1532,7 +1533,8 @@ class VLLMModel(LocalHostedLLM):
         self,
         model_dir,
         conversation_template_path="auto",
-        is_foundational=False
+        is_foundational=False,
+        **kwargs
     ):
         self._load_model(
             model_dir,
@@ -1834,12 +1836,11 @@ class VLLMModelReasoning(VLLMModel, ReasoningModel):
         end_thinking_token_id=None,
         **kwargs
     ):
-        super().from_pretrained(model_dir)
+        super().from_pretrained(model_dir, **kwargs)
         self.reasoning_from_pretrained(
             max_new_tokens_reasoning=max_new_tokens_reasoning,
             reasoning_truncing_prompt=reasoning_truncing_prompt,
-            end_thinking_token_id=end_thinking_token_id,
-            **kwargs
+            end_thinking_token_id=end_thinking_token_id
         )
     
     def get_end_thinking_token_id(self):
