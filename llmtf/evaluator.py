@@ -90,10 +90,10 @@ class Evaluator(Base):
                             batch_size,
                             max_sample_per_dataset,
                             enable_thinking,
+                            include_stop_str_in_output,
                             add_reasoning_truncing_prompt,
                             add_reasoning_info,
                             add_assistant_prompt_to_output,
-                            include_stop_str_in_output
                         )
                 except Exception as e:
                     self.logger.error(f"Failed to evaluate on {dataset_name}: {e}")
