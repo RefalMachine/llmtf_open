@@ -36,9 +36,10 @@ class DarumeruTask(SimpleFewShotHFTask):
         inputs = sample['inputs']
         for m in messages:
             m['content'] = m['content'].format(**inputs)
+            if m['role'] == 'bot':
+                m['role'] = 'assistant'
+            assert m['role'] in ['user', 'system', 'assistant'], f"Unknown role {m['role']}"
         return messages
-
-
 
 class CopyText(DarumeruTask):
     def __init__(self, subtask, lang, **kwargs):

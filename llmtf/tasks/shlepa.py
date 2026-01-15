@@ -78,7 +78,7 @@ class ShlepaSmallMMLU(Task):
             return [], sample
 
         instruction = '''{question}\nA. {choices[0]}\nB. {choices[1]}\nC. {choices[2]}\nD. {choices[3]}\nE. {choices[4]}\nF. {choices[5]}\nG. {choices[6]}\nH. {choices[7]}\nI. {choices[8]}\nJ. {choices[9]}\nK. {choices[10]}\nL. {choices[11]}\n\nОтветь одной буквой.'''
-        messages = [{'role': 'user', 'content': instruction.format(**sample)}, {'role': 'bot', 'content': 'Ответ:'}]
+        messages = [{'role': 'user', 'content': instruction.format(**sample)}, {'role': 'assistant', 'content': 'Ответ:'}]
         return messages, sample
 
     def _get_additional_samples(self, index: int, dataset: Dataset):

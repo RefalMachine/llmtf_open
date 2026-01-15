@@ -116,8 +116,7 @@ PATIENT_QUERIES_NER_DICT_INSTRUCTION = """Извлеки из заданного
 класс: [сущность, ... сущность]
 
 **Текст**
-{text}
-"""
+{text}"""
 
 class PatientQueriesNerDict(PatientQueriesNerAbc, NerDictAbc):
     def __init__(
@@ -169,8 +168,7 @@ PATIENT_QUERIES_NER_JSON_INSTRUCTION = """Извлеки из заданного
 ```
 
 **Текст**
-{text}
-"""
+{text}"""
 
 class PatientQueriesNerJson(PatientQueriesNerAbc, NerJsonAbc):
     def __init__(
@@ -223,8 +221,7 @@ PATIENT_QUERIES_NER_IN_PLACE_INSTRUCTION = """Твоя задача точно �
 слово слово ... слово <класс>сущность</класс> слово ... слово
 
 **Текст**
-{text}
-"""
+{text}"""
 
 class PatientQueriesNerInPlace(PatientQueriesNerAbc, NerInPlaceAbc):
     def __init__(

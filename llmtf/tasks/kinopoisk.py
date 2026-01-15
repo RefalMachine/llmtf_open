@@ -1,8 +1,7 @@
 from llmtf.base import SimpleFewShotHFTask
 from llmtf.metrics import mean, f1_macro_score
 
-DEFAULT_KINOPOISK_INSTRUCTION = """\
-Твоя задача определить тональность отзыва на фильм.
+DEFAULT_KINOPOISK_INSTRUCTION = """Твоя задача определить тональность отзыва на фильм.
 
 Ответом является цифра класса:
 1. Негативный
@@ -14,8 +13,7 @@ DEFAULT_KINOPOISK_INSTRUCTION = """\
 
 Отзыв для классификации:
 
-{text}
-"""
+{text}"""
 
 DEFAULT_KINOPOISK_INSTRUCTION_BOT = 'Ответ: '
 

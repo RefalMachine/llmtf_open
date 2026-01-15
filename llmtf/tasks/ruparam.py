@@ -110,9 +110,9 @@ class RuParam(SimpleFewShotHFTask):
             sentences.reverse()
 
         inputs = {'sent_lhs': sentences[0], 'sent_rhs': sentences[1]}
-        messages = [{'role': 'user', 'content': self.instruction.format(**inputs)}]
+        messages = [{'assistant': 'user', 'content': self.instruction.format(**inputs)}]
         if with_answer:
-            messages.append({'role': 'bot', 'content': '1' if sample['order'] == 's' else '2'})
+            messages.append({'role': 'assistant', 'content': '1' if sample['order'] == 's' else '2'})
         return messages
     
     def get_answer(self, sample):

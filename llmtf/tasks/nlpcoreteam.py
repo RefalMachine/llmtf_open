@@ -304,7 +304,7 @@ class MMLU(Task):
         if add_answer:
             answer += f' {a}'
             
-        return [{'role': 'user', 'content': q_with_lettered_options}, {'role': 'bot', 'content': answer}]
+        return [{'role': 'user', 'content': q_with_lettered_options}, {'role': 'assistant', 'content': answer}]
         
     def _format_subject(self, subject: str) -> str:
         l = subject.split("_")

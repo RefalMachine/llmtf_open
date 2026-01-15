@@ -48,7 +48,7 @@ class RusbeirRag(SimpleFewShotHFTask):
 
         messages.append({'role': 'user', 'content': instruction_user})
         if with_answer:
-            messages.append({'role': 'bot', 'content': answer})
+            messages.append({'role': 'assistant', 'content': answer})
 
         return messages
 

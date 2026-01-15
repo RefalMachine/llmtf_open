@@ -145,7 +145,7 @@ class ReasoningModel():
         assistant_messages_batch = []
         for messages in messages_batch:
             for i in range(len(messages) - 1, -1, -1):
-                if messages[i]["role"] not in ["assistant", "bot"]:
+                if messages[i]["role"] not in ["assistant"]:
                     prompt_messages_batch.append(messages[:i + 1])
                     assistant_messages_batch.append(messages[i + 1:])
                     break
@@ -280,7 +280,7 @@ class ReasoningModel():
         assistant_messages_batch = []
         for messages in messages_batch:
             for i in range(len(messages) - 1, -1, -1):
-                if messages[i]["role"] not in ["assistant", "bot"]:
+                if messages[i]["role"] not in ["assistant"]:
                     prompt_messages_batch.append(messages[:i + 1])
                     assistant_messages_batch.append(messages[i + 1:])
                     break
@@ -635,8 +635,6 @@ class ApiVLLMModel(LLM):
         for m in messages:
             if m['role'] == 'user':
                 _messages.append({'role': m['role'], 'content': m['content']})
-            elif m['role'] == 'bot':
-                _messages.append({'role': 'assistant', 'content': m['content']})
             elif m['role'] == 'system':
                 _messages.append({'role': m['role'], 'content': m['content']})
             elif m['role'] == 'assistant':
@@ -942,18 +940,23 @@ class LocalHostedLLM(LLM):
         return token_variants
 
     def apply_model_prompt(self, messages, incomplete_last_bot_message=True, add_think_token=False):
-        _messages = []
+        '''_messages = []
         for m in messages:
             if m['role'] == 'bot':
                 _messages.append({'role': 'assistant', 'content': m['content']})
             else:
-                _messages.append({'role': m['role'], 'content': m['content']})
+                _messages.append({'role': m['role'], 'content': m['content']})'''
 
-        last_role = _messages[-1]['role']
+        for m in messages:
+            if m['role'] not in ['user', 'assistant', 'system']:
+                role = m['role']
+                raise Exception(f'Unknown role {role}')
+            
+        last_role = messages[-1]['role']
         add_generation_prompt = last_role == 'user'
 
         prompt = self.tokenizer.apply_chat_template(
-            _messages,
+            messages,
             tokenize=False,
             add_generation_prompt=add_generation_prompt,
             continue_final_message=incomplete_last_bot_message and last_role == 'assistant',

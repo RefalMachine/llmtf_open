@@ -110,8 +110,7 @@ COLLECTION3_DICT_INSTRUCTION = """Извлеки из заданного ниж�
 класс: [сущность, ... сущность]
 
 **Текст**
-{text}
-"""
+{text}"""
 
 class Collection3Dict(Collection3Abc, NerDictAbc):
     def __init__(
@@ -163,8 +162,7 @@ COLLECTION3_JSON_INSTRUCTION = """Извлеки из заданного ниж�
 ```
 
 **Текст**
-{text}
-"""
+{text}"""
 
 class Collection3Json(Collection3Abc, NerJsonAbc):
     def __init__(
@@ -214,8 +212,7 @@ COLLECTION3_IN_PLACE_INSTRUCTION = """Твоя задача точно повт�
 слово слово ... слово <класс>сущность</класс> слово ... слово
 
 **Текст**
-{text}
-"""
+{text}"""
 
 class Collection3InPlace(Collection3Abc, NerInPlaceAbc):
     def __init__(

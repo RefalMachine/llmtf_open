@@ -48,7 +48,7 @@ class RuColaCustomTask(SimpleFewShotHFTask):
         bot_content = instruction_bot.format(**sample) if with_answer else instruction_bot_incomplete
 
         messages.append({'role': 'user', 'content': instruction_user.format(**sample)})
-        messages.append({'role': 'bot', 'content': bot_content})
+        messages.append({'role': 'assistant', 'content': bot_content})
 
         return messages
 

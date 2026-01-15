@@ -74,7 +74,7 @@ class HabrQASbS(SimpleFewShotHFTask):
         bot_content = instruction_bot.replace('{outputs}', sample['outputs']) if with_answer else instruction_bot_incomplete
 
         messages.append({'role': 'user', 'content': user_content})
-        messages.append({'role': 'bot', 'content': bot_content})
+        messages.append({'role': 'assistant', 'content': bot_content})
 
         return messages
     

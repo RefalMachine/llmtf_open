@@ -46,7 +46,7 @@ class DaruTreewayAbstractive(SimpleFewShotHFTask):
         bot_content = instruction_bot.replace('{summary}', summary) if with_answer else instruction_bot_incomplete
 
         messages.append({'role': 'user', 'content': instruction_user.replace('{text}', text)})
-        messages.append({'role': 'bot', 'content': bot_content})
+        messages.append({'role': 'assistant', 'content': bot_content})
 
         return messages
 
@@ -142,7 +142,7 @@ class DaruTreewayExtractive(Task):
     def create_messages(self, sample: Dict):
         user_content = 'Твоя задача определить наиболее важные предложения.\nТекст: ' + ' '.join(sample['src_sents'])
         bot_content = 'Наиболее важные предложения статьи: ' + sample['sentence']
-        messages = [{'role': 'user', 'content': user_content}, {'role': 'bot', 'content': bot_content}]
+        messages = [{'role': 'user', 'content': user_content}, {'role': 'assistant', 'content': bot_content}]
         return messages
     
     
@@ -183,7 +183,7 @@ class Gazeta(SimpleFewShotHFTask):
         bot_content = instruction_bot.replace('{summary}', summary) if with_answer else instruction_bot_incomplete
 
         messages.append({'role': 'user', 'content': instruction_user.replace('{text}', text)})
-        messages.append({'role': 'bot', 'content': bot_content})
+        messages.append({'role': 'assistant', 'content': bot_content})
 
         return messages
 

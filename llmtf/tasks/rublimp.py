@@ -58,7 +58,7 @@ class RuBlimpClassify(SimpleFewShotHFTask):
         bot_content = instruction_bot if with_answer else instruction_bot_incomplete
 
         messages.append({'role': 'user', 'content': instruction_user})
-        messages.append({'role': 'bot', 'content': bot_content})
+        messages.append({'role': 'assistant', 'content': bot_content})
         return messages
 
     def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
@@ -168,7 +168,7 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         bot_content = instruction_bot if with_answer else instruction_bot_incomplete
 
         messages.append({'role': 'user', 'content': instruction_user})
-        messages.append({'role': 'bot', 'content': bot_content})
+        messages.append({'role': 'assistant', 'content': bot_content})
         return messages
     
     def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:

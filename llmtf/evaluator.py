@@ -224,10 +224,10 @@ class Evaluator(Base):
         for m, s in zip(*[messages, samples]):
             shift = len(model.apply_model_prompt(m['messages']))
             shifts.append(shift)
-            if m['messages'][-1]['role'] == 'bot':
+            if m['messages'][-1]['role'] == 'assistant':
                 m['messages'][-1]['content'] += task.get_answer(s['sample'])
             else:
-                m['messages'].append({'role': 'bot', 'content': task.get_answer(s['sample'])})
+                m['messages'].append({'role': 'assistant', 'content': task.get_answer(s['sample'])})
 
         metrics = []
         with SimpleTaskLogger(output_dir, task.run_name()) as logger, CustomTimer(task.logger, 'Processing Dataset'):

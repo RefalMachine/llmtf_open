@@ -608,7 +608,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
         if with_answer:
             prefix += data
 
-        return {'role': 'bot', 'content': prefix}
+        return {'role': 'assistant', 'content': prefix}
     
     def get_answer(self, sample):
         return self._format_answer(sample, with_answer=True)['content']
@@ -807,4 +807,4 @@ class RuOpinionNESimple(RuOpinionNE):
         if with_answer:
             prefix += data
 
-        return {'role': 'bot', 'content': prefix}
+        return {'role': 'assistant', 'content': prefix}
