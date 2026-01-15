@@ -51,7 +51,7 @@ class HabrQASbS(SimpleFewShotHFTask):
         dataset = dataset.add_column('outputs', outputs)
         return dataset
 
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = self._convert_dataset(load_dataset(**self.dataset_args()))
 
@@ -61,7 +61,7 @@ class HabrQASbS(SimpleFewShotHFTask):
         test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
         prompt_dataset = prompt_dataset.select(range(self.prompt_dataset_start_idx(), min(self.prompt_dataset_start_idx() + few_shot_count, len(prompt_dataset))))
         for sample in tqdm(test_dataset):
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': sample})
+            samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample})
         return samples
     
     def create_messages(self, sample, with_answer):

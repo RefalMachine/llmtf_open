@@ -216,7 +216,7 @@ class MMLU(Task):
         res = y_true == y_pred
         return {'acc': {'val' : res, 'subject': sample['subject']}}
 
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         messages = []
         samples = []
         subjects = list(SUBCATEGORIES.keys())
@@ -229,7 +229,7 @@ class MMLU(Task):
             dataset_test = dataset['test']
             dataset_dev = dataset['dev']
 
-            subject_samples = self._load_dataset(subject, dataset_test, dataset_dev, model, max_len, max_samples_per_subject, few_shot_count)
+            subject_samples = self._load_dataset(subject, dataset_test, dataset_dev, model, max_prompt_len, max_samples_per_subject, few_shot_count)
 
             subject_messages = [{'messages': s['messages']} for s in subject_samples]
             subject_samples = [{'sample': s['sample']} for s in subject_samples]
@@ -243,15 +243,15 @@ class MMLU(Task):
         return messages, samples
 
 
-    def _load_dataset(self, subject: str, dataset_test: Dataset, dataset_dev: Dataset, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int):
+    def _load_dataset(self, subject: str, dataset_test: Dataset, dataset_dev: Dataset, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int):
         assert model.support_method(self.method)
         samples = []
         dataset_test = dataset_test.select(range(min(max_sample_per_dataset, len(dataset_test))))
         for sample in dataset_test:
-            samples.append(self._prepare_messages(subject, sample, model, max_len, few_shot_count, dataset_dev))
+            samples.append(self._prepare_messages(subject, sample, model, max_prompt_len, few_shot_count, dataset_dev))
         return samples
 
-    def _prepare_messages(self, subject: str, sample: Dict, model: LLM, max_len: int, few_shot_count: int, few_shot_samples: Dataset) -> List:
+    def _prepare_messages(self, subject: str, sample: Dict, model: LLM, max_prompt_len: int, few_shot_count: int, few_shot_samples: Dataset) -> List:
         k = min(few_shot_count, len(few_shot_samples))
         try:
             int2str = few_shot_samples.features['answer'].int2str
@@ -260,8 +260,8 @@ class MMLU(Task):
         
         zero_shot_messages_with_headline = self._create_messages(subject, sample, int2str, add_headline=True, add_answer=False)
         zero_shot_messages_with_headline_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages_with_headline))
-        if zero_shot_messages_with_headline_len >= max_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_with_headline_len} greater then {max_len}. Will be truncated.')
+        if zero_shot_messages_with_headline_len >= max_prompt_len:
+            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_with_headline_len} greater then {max_prompt_len}. Will be truncated.')
 
         zero_shot_messages_without_headline = copy.deepcopy(self._create_messages(subject, sample, int2str, add_headline=False, add_answer=False))
         message_groups = [self._create_messages(subject, few_shot_samples[i], int2str, add_headline=(i == 0), add_answer=True) for i in range(k)]
@@ -270,7 +270,7 @@ class MMLU(Task):
             for group in message_groups[:k-i]:
                 messages += group
             few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages + zero_shot_messages_without_headline))
-            if few_shot_messages_len < max_len:
+            if few_shot_messages_len < max_prompt_len:
                 messages += zero_shot_messages_without_headline
                 break
         else:

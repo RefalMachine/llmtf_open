@@ -99,16 +99,16 @@ class DaruTreewayExtractive(Task):
     def prompt_split_name(self) -> str:
         return 'prompt'
 
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, **kwargs) -> Tuple[List[Dict], List[Dict]]:
         assert model.support_method(self.method)
 
-        samples = self._load_dataset(model, max_len, max_sample_per_dataset)
+        samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset)
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
 
         return messages, samples
 
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
@@ -116,14 +116,14 @@ class DaruTreewayExtractive(Task):
         hardcoded_max_dataset_len = min(500, len(test_dataset))
         test_dataset = test_dataset.select(range(min(max_sample_per_dataset, hardcoded_max_dataset_len)))
         for i, sample in tqdm(enumerate(test_dataset)):
-            messages_group, samples_group = self._prepare_messages(sample, model, max_len)
+            messages_group, samples_group = self._prepare_messages(sample, model, max_prompt_len)
             for j in range(len(messages_group)):
                 samples_group[j]['group_id'] = i
                 samples_group[j]['label'] = j in sample['extractive_summary']
                 samples.append({'messages': messages_group[j], 'sample': samples_group[j]})
         return samples
         
-    def _prepare_messages(self, sample: Dict, model: LLM, max_len: int) -> List:
+    def _prepare_messages(self, sample: Dict, model: LLM, max_prompt_len: int) -> List:
         messages_group = []
         samples_group = []
         for sentence in sample['src_sents']:
@@ -131,8 +131,8 @@ class DaruTreewayExtractive(Task):
             s['sentence'] = sentence
             zero_shot_messages = self.create_messages(s)
             zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-            if zero_shot_messages_len >= max_len:
-                self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+            if zero_shot_messages_len >= max_prompt_len:
+                self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
 
             messages_group.append(zero_shot_messages)
             samples_group.append(s)

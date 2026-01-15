@@ -107,14 +107,14 @@ class LibraTask(SimpleFewShotHFTask):
     def prompt_split_name(self):
         return "test"
 
-    def load_dataset(self, model, max_len, max_sample_per_dataset, few_shot_count):
+    def load_dataset(self, model, max_prompt_len, max_sample_per_dataset, few_shot_count):
         assert few_shot_count == 0
         messages, samples = super().load_dataset(
-            model, max_len, max_sample_per_dataset, few_shot_count
+            model, max_prompt_len, max_sample_per_dataset, few_shot_count
         )
         return messages, samples
 
-    def _load_dataset(self, model, max_len, max_sample_per_dataset, few_shot_count):
+    def _load_dataset(self, model, max_prompt_len, max_sample_per_dataset, few_shot_count):
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
         prompt_dataset = dataset[self.prompt_split_name()]
@@ -150,7 +150,7 @@ class LibraTask(SimpleFewShotHFTask):
                 continue
 
             prepared = self._prepare_messages(
-                sample, model, max_len, few_shot_count, prompt_dataset
+                sample, model, max_prompt_len, few_shot_count, prompt_dataset
             )
             samples.append({"messages": prepared, "sample": sample})
 

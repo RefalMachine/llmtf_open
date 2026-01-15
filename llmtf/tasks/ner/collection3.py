@@ -77,7 +77,7 @@ class Collection3Abc(ABC):
     def prompt_split_name(self) -> str:
         return 'validation'
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()].filter(check_sample).map(process_sample)
@@ -89,7 +89,7 @@ class Collection3Abc(ABC):
         test_dataset = test_dataset.select(test_dataset_sample_ids)
         prompt_dataset = prompt_dataset.select(prompt_dataset_sample_ids)
         for sample in tqdm(test_dataset):
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': sample})
+            samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample})
         return samples
 
 
@@ -126,7 +126,7 @@ class Collection3Dict(Collection3Abc, NerDictAbc):
     def task_name(self) -> str:
         return "RCC-MSU/collection3-(dict)"
 
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
         for token, tag in zip(sample["tokens"], sample["tags"]):
             tag_b = tag % 2 == 1 if tag != 0 else True
@@ -143,7 +143,7 @@ class Collection3Dict(Collection3Abc, NerDictAbc):
         return tagged_tokens
     
     def get_answer_str(self, sample) -> str:
-        answer = self.get_answer(sample)
+        answer = self.get_gold_entities(sample)
         answer_str = ""
         for tag, tokens in answer.items():
             answer_str += f"{tag}: [" + ', '.join(tokens) + "]\n"
@@ -179,7 +179,7 @@ class Collection3Json(Collection3Abc, NerJsonAbc):
     def task_name(self) -> str:
         return 'RCC-MSU/collection3-(json)'
 
-    def get_answer(self, sample) -> List[str]:
+    def get_gold_entities(self, sample) -> List[str]:
         tagged_tokens = []
         last_tag_idx = {}
         i = 0
@@ -198,7 +198,7 @@ class Collection3Json(Collection3Abc, NerJsonAbc):
         return tagged_tokens
     
     def get_answer_str(self, sample) -> str:
-        answer = self.get_answer(sample)
+        answer = self.get_gold_entities(sample)
         answer_str = '```json\n' + json.dumps(answer, ensure_ascii=False, indent=4).strip() + '\n```'
         return answer_str
 
@@ -230,7 +230,7 @@ class Collection3InPlace(Collection3Abc, NerInPlaceAbc):
     def task_name(self) -> str:
         return 'RCC-MSU/collection3-(in-place)'
     
-    def get_answer(self, sample) -> List[str]:
+    def get_gold_entities(self, sample) -> List[str]:
         tagged_tokens = []
         last_tag_idx = {}
         i = 0

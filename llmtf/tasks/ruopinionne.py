@@ -502,10 +502,10 @@ class RuOpinionNE(SimpleFewShotHFTask):
             )
         return opinions_validates
             
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         assert model.support_method(self.method)
 
-        samples = self._load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
+        samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count)
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
         if self.restrict_generation:
@@ -516,7 +516,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
 
         return messages, samples
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args(test=False))
         test_dataset = dataset[self.test_split_name()]
@@ -531,19 +531,19 @@ class RuOpinionNE(SimpleFewShotHFTask):
                 
         for sample in tqdm(test_dataset):
             s = copy.deepcopy(sample)
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': s})
+            samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': s})
             if self.restrict_generation:
                 samples[-1]['sample']['allowed_token_ids'] = self._infer_allowed_tokens(s, model)
 
         return samples
 
-    def _prepare_messages(self, sample: Dict, model: LLM, max_len: int, few_shot_count: int, prompt_dataset: Dataset) -> List:
+    def _prepare_messages(self, sample: Dict, model: LLM, max_prompt_len: int, few_shot_count: int, prompt_dataset: Dataset) -> List:
         k = min(few_shot_count, len(prompt_dataset))
 
         zero_shot_messages = self.create_messages(copy.deepcopy(sample), with_answer=False, full_instruct=k==0 or self.repeate_instruction)
         zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-        if zero_shot_messages_len >= max_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+        if zero_shot_messages_len >= max_prompt_len:
+            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
 
         message_groups = [self.create_messages(copy.deepcopy(prompt_dataset[i]), with_answer=True, full_instruct=(i==0)) for i in range(k)]
         
@@ -552,7 +552,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
             for group in message_groups[:k-i]:
                 messages += group
             few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages + zero_shot_messages))
-            if few_shot_messages_len < max_len:
+            if few_shot_messages_len < max_prompt_len:
                 return messages + zero_shot_messages
         else:
             return zero_shot_messages

@@ -94,6 +94,9 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
     if args.force_recalc:
         command += ['--force_recalc']
     
+    if args.ppl:
+        command += ['--ppl_scoring']
+    
     if args.is_foundational:
         command += ['--is_foundational']
 
@@ -215,6 +218,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_len', type=int, default=4000)
     parser.add_argument('--is_foundational', action='store_true')
     parser.add_argument('--backend', choices=['hf', 'vllm'], default='vllm')
+    parser.add_argument('--ppl', action='store_true')
 
     args = parser.parse_args()
     print("Parsed arguments:", args)

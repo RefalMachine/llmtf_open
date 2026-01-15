@@ -79,7 +79,7 @@ class RuParam(SimpleFewShotHFTask):
 
         return {"acc": {'val': y_true == y_pred, 'id': sample['id']}}
 
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = prepare_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
@@ -96,11 +96,11 @@ class RuParam(SimpleFewShotHFTask):
         for sample in tqdm(test_dataset):
             sample_lhs = copy.deepcopy(sample)
             sample_lhs['order'] = 's'
-            samples.append({'messages': self._prepare_messages(sample_lhs, model, max_len, few_shot_count, prompt_dataset), 'sample': sample_lhs})
+            samples.append({'messages': self._prepare_messages(sample_lhs, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample_lhs})
 
             sample_rhs = copy.deepcopy(sample)
             sample_rhs['order'] = 'r'
-            samples.append({'messages': self._prepare_messages(sample_rhs, model, max_len, few_shot_count, prompt_dataset), 'sample': sample_rhs})
+            samples.append({'messages': self._prepare_messages(sample_rhs, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample_rhs})
 
         return samples
 

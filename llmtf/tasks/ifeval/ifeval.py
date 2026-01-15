@@ -136,7 +136,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
     def leaderboard_aggregation(metrics: Dict) -> float:
         return metrics['prompt_level_accuracy']
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         """Load and prepare ruIFEval dataset from JSONL files."""
         data_path = Path(self.dataset_args()['path'])
         

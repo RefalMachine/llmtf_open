@@ -51,12 +51,15 @@ class NerAbc(SimpleFewShotHFTask):
         self.method = "generate"
 
     @abstractmethod
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         pass
     
     @abstractmethod
     def get_answer_str(self, sample) -> str:
         pass
+
+    def get_answer(self, sample) -> str:
+        return self.get_answer_str(sample)
     
     def create_messages(self, sample, with_answer: bool) -> List[Dict[str, str]]:
         instruction = self.instruction.format(text=sample["query"])
@@ -99,7 +102,7 @@ class NerDictAbc(NerAbc):
 
     def evaluate(self, sample, gen_pred: str) -> Dict:
         y_pred_raw = self.extract_answer(gen_pred)
-        y_gold_raw = self.get_answer(sample)
+        y_gold_raw = self.get_gold_entities(sample)
 
         pred_tags = y_pred_raw.keys()
         gold_tags = y_gold_raw.keys()
@@ -146,7 +149,7 @@ class NerJsonAbc(NerAbc):
 
     def evaluate(self, sample, gen_pred) -> Dict:
         y_pred = self.extract_answer(gen_pred)
-        y_gold = self.get_answer(sample)
+        y_gold = self.get_gold_entities(sample)
 
         pred_tags = set([x[0] for x in y_pred if len(x) > 0 and x[0] in self.TAGS])
         gold_tags = set([x[0] for x in y_gold if len(x) > 0 and x[0] in self.TAGS])
@@ -185,7 +188,7 @@ class NerInPlaceAbc(NerAbc):
             y_pred = []
         else:
             y_pred = self.extract_answer(gen_pred)
-        y_gold = self.get_answer(sample)
+        y_gold = self.get_gold_entities(sample)
 
         pred_tags = set([x[0] for x in y_pred if len(x) > 0 and x[0] in self.TAGS])
         gold_tags = set([x[0] for x in y_gold if len(x) > 0 and x[0] in self.TAGS])

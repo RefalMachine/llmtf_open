@@ -39,10 +39,10 @@ class ShlepaSmallMMLU(Task):
     def test_split_name(self) -> str:
         return 'train'
 
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         assert model.support_method(self.method)
 
-        samples = self._load_dataset(model, max_len, max_sample_per_dataset)
+        samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset)
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
         for m in messages:
@@ -50,25 +50,25 @@ class ShlepaSmallMMLU(Task):
 
         return messages, samples
 
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int) -> List:
         samples = []
         dataset = load_dataset(self.dataset_name)
         test_dataset = dataset[self.test_split_name()]
         test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
         for i, sample in tqdm(enumerate(test_dataset)):
             additional_samples = self._get_additional_samples(i, test_dataset)
-            messages, sample = self._prepare_messages(sample, model, max_len, additional_samples)
+            messages, sample = self._prepare_messages(sample, model, max_prompt_len, additional_samples)
             if len(messages) > 0:
                 samples.append({'messages': messages, 'sample': sample})
         return samples
         
-    def _prepare_messages(self, sample: Dict, model: LLM, max_len: int, additional_samples: List[Dict]) -> List:
+    def _prepare_messages(self, sample: Dict, model: LLM, max_prompt_len: int, additional_samples: List[Dict]) -> List:
         zero_shot_messages, sample = self.create_messages(copy.deepcopy(sample), additional_samples)
         if len(zero_shot_messages) == 0:
             return [], sample
         zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-        if zero_shot_messages_len >= max_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+        if zero_shot_messages_len >= max_prompt_len:
+            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
 
         return zero_shot_messages, sample
 

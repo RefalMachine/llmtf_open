@@ -61,19 +61,19 @@ class RuBlimpClassify(SimpleFewShotHFTask):
         messages.append({'role': 'bot', 'content': bot_content})
         return messages
 
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         assert model.support_method(self.method)
 
         samples = []
         dataset_args_generator = self.dataset_args()
         for _ in self.dataset_slices:
-            samples += self._load_dataset(model, max_len, max_sample_per_dataset, few_shot_count, next(dataset_args_generator))
+            samples += self._load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count, next(dataset_args_generator))
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
 
         return messages, samples
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
         samples = []
         dataset = load_dataset(**dataset_args)
         test_dataset = dataset[self.test_split_name()]
@@ -92,12 +92,12 @@ class RuBlimpClassify(SimpleFewShotHFTask):
             return example
         prompt_dataset = prompt_dataset.map(add_correct, with_indices=True)
         for sample in tqdm(test_dataset):
-            corrcet_sample = sample.copy()
+            correct_sample = sample.copy()
             incorrect_sample = sample.copy()
-            corrcet_sample['correct'] = True
+            correct_sample['correct'] = True
             incorrect_sample['correct'] = False
-            samples.append({'messages': self._prepare_messages(corrcet_sample, model, max_len, few_shot_count, prompt_dataset), 'sample': corrcet_sample})
-            samples.append({'messages': self._prepare_messages(incorrect_sample, model, max_len, few_shot_count, prompt_dataset), 'sample': incorrect_sample})
+            samples.append({'messages': self._prepare_messages(correct_sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': correct_sample})
+            samples.append({'messages': self._prepare_messages(incorrect_sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': incorrect_sample})
         return samples
     
     def evaluate(self, sample, y_pred) -> Dict:
@@ -171,19 +171,19 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         messages.append({'role': 'bot', 'content': bot_content})
         return messages
     
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         assert model.support_method(self.method)
 
         samples = []
         dataset_args_generator = self.dataset_args()
         for _ in self.dataset_slices:
-            samples += self._load_dataset(model, max_len, max_sample_per_dataset, few_shot_count, next(dataset_args_generator))
+            samples += self._load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count, next(dataset_args_generator))
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
 
         return messages, samples
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
         samples = []
         dataset = load_dataset(**dataset_args)
         test_dataset = dataset[self.test_split_name()]
@@ -204,7 +204,7 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         for i, sample in enumerate(tqdm(test_dataset)):
             sample = sample.copy()
             sample['swap'] = bool(i % 2)
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': sample})
+            samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample})
         return samples
 
     def evaluate(self, sample, y_pred) -> Dict:

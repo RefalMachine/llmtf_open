@@ -132,7 +132,7 @@ class NestedNerAbc(ABC):
     def prompt_split_name(self) -> str:
         return 'train'
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = process_dataset(process_sample_nerel, dataset[self.test_split_name()], self.do_split)
@@ -144,7 +144,7 @@ class NestedNerAbc(ABC):
         test_dataset = test_dataset.select(test_dataset_sample_ids)
         prompt_dataset = prompt_dataset.select(prompt_dataset_sample_ids)
         for sample in tqdm(test_dataset):
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': sample})
+            samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample})
         return samples
 
 
@@ -238,7 +238,7 @@ class NestedNerDict(NestedNerAbc, NerDictAbc):
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL-(dict)"
 
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
         for entity in sample["entities"]:
             if entity["tag"] in self.TAGS:
@@ -246,7 +246,7 @@ class NestedNerDict(NestedNerAbc, NerDictAbc):
         return tagged_tokens
     
     def get_answer_str(self, sample) -> str:
-        answer = self.get_answer(sample)
+        answer = self.get_gold_entities(sample)
         answer_str = ""
         for tag, tokens in answer.items():
             answer_str += f"{tag}: [" + ', '.join(tokens) + "]\n"
@@ -331,7 +331,7 @@ class NestedNerJson(NestedNerAbc, NerJsonAbc):
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL-(json)"
 
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []
         for entity in sample["entities"]:
             if entity["tag"] in self.TAGS:
@@ -339,7 +339,7 @@ class NestedNerJson(NestedNerAbc, NerJsonAbc):
         return tagged_tokens
     
     def get_answer_str(self, sample) -> str:
-        answer = self.get_answer(sample)
+        answer = self.get_gold_entities(sample)
         answer_str = '```json\n' + json.dumps(answer, ensure_ascii=False, indent=4).strip() + '\n```'
         return answer_str
 
@@ -508,7 +508,7 @@ class NestedNerInPlace(NestedNerAbc, NerInPlaceAbc):
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL-(in-place)"
 
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []
         for entity in sample["entities"]:
             if entity["tag"] in self.TAGS:
@@ -582,7 +582,7 @@ class NerelBioAbc(ABC):
     def prompt_split_name(self) -> str:
         return 'validation'
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = process_dataset(process_sample_nerel_bio, dataset[self.test_split_name()], self.do_split)
@@ -594,7 +594,7 @@ class NerelBioAbc(ABC):
         test_dataset = test_dataset.select(test_dataset_sample_ids)
         prompt_dataset = prompt_dataset.select(prompt_dataset_sample_ids)
         for sample in tqdm(test_dataset):
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, prompt_dataset), 'sample': sample})
+            samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample})
         return samples
 
 
@@ -633,7 +633,7 @@ class NerelBioDict(NerelBioAbc, NerDictAbc):
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO-(dict)"
 
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = {tag: [] for tag in self.TAGS}
         for entity in sample["entities"]:
             if entity["tag"] in self.TAGS:
@@ -641,7 +641,7 @@ class NerelBioDict(NerelBioAbc, NerDictAbc):
         return tagged_tokens
     
     def get_answer_str(self, sample) -> str:
-        answer = self.get_answer(sample)
+        answer = self.get_gold_entities(sample)
         answer_str = ""
         for tag, tokens in answer.items():
             answer_str += f"{tag}: [" + ', '.join(tokens) + "]\n"
@@ -684,7 +684,7 @@ class NerelBioJson(NerelBioAbc, NerJsonAbc):
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO-(json)"
 
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []
         for entity in sample["entities"]:
             if entity["tag"] in self.TAGS:
@@ -692,7 +692,7 @@ class NerelBioJson(NerelBioAbc, NerJsonAbc):
         return tagged_tokens
     
     def get_answer_str(self, sample) -> str:
-        answer = self.get_answer(sample)
+        answer = self.get_gold_entities(sample)
         answer_str = '```json\n' + json.dumps(answer, ensure_ascii=False, indent=4).strip() + '\n```'
         return answer_str
 
@@ -734,7 +734,7 @@ class NerelBioInPlace(NerelBioAbc, NerInPlaceAbc):
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO-(in-place)"
 
-    def get_answer(self, sample) -> Dict[str, List[str]]:
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
         tagged_tokens = []
         for entity in sample["entities"]:
             if entity["tag"] in self.TAGS:

@@ -105,10 +105,10 @@ class CopyText(DarumeruTask):
             "lcs": lcs_metric,
         }
 
-    def load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, **kwargs) -> Tuple[List[Dict], List[Dict]]:
         self.model_tokenizer = model.tokenizer
         self.model_leading_space = model.leading_space
-        return super().load_dataset(model, max_len, max_sample_per_dataset, few_shot_count)
+        return super().load_dataset(model, max_prompt_len=max_prompt_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count, **kwargs)
     
     def get_answer(self, sample):
         return ' ' + sample['inputs']['text']

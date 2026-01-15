@@ -123,7 +123,7 @@ class Evaluator(Base):
     ):
         model.add_stop_strings(task.additional_stop_strings)
         with CustomTimer(task.logger, 'Loading Dataset'):
-            messages, samples = task.load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count)
+            messages, samples = task.load_dataset(model=model, max_prompt_len=max_prompt_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count)
 
         metrics = []
         with SimpleTaskLogger(output_dir, task.run_name()) as logger, CustomTimer(task.logger, 'Processing Dataset') as timer:
@@ -219,7 +219,7 @@ class Evaluator(Base):
         assert 'get_answer' in dir(task)
         assert model.support_method('calculate_logsoftmax')
 
-        messages, samples = task.load_dataset(model, max_prompt_len=max_prompt_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count)
+        messages, samples = task.load_dataset(model=model, max_prompt_len=max_prompt_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count)
         shifts = []
         for m, s in zip(*[messages, samples]):
             shift = len(model.apply_model_prompt(m['messages']))

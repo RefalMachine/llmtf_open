@@ -70,13 +70,13 @@ class MathDataset(SimpleFewShotHFTask):
     def prompt_split_name(self) -> str:
         return 'train'
     
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
         test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
         for sample in tqdm(test_dataset):
-            samples.append({'messages': self._prepare_messages(sample, model, max_len, few_shot_count, []), 'sample': sample})
+            samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, []), 'sample': sample})
         return samples
 
     def create_messages(self, sample, with_answer):
