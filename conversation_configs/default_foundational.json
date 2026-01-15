@@ -1,6 +1,6 @@
 {
     "system_message_template": "{content}\n",
-    "user_message_template": "Query: {content}\n",
+    "user_message_template": "Query: {content}\n\n",
     "bot_message_template": "Response: {content}\n\n",
     "bot_message_template_incomplete": "Response: {content}",
     "user_role": "user",
