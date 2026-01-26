@@ -13,3 +13,7 @@ tiktoken
 vllm == 0.4.3
 rouge-score
 pymorphy2
+fasttext-langdetect
+immutabledict
+langdetect
+math_verify

@@ -1263,6 +1263,14 @@ class HFModel(LocalHostedLLM):
 
         return prompts_batch, probs_batch, infos
 
+    def calculate_logsoftmax(self, messages, incomplete_last_bot_message=True, log_only_last=True):
+        prompts, messages, infos = self.calculate_logsoftmax_batch(
+            [messages],
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            log_only_last=log_only_last
+        )
+        return prompts[0], messages[0], infos[0]
+
     def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True, log_only_last=True):
         # TODO: transformers 4.38.2 will be ok for llama3
         prompts = []
@@ -1727,6 +1735,14 @@ class VLLMModel(LocalHostedLLM):
 
         return prompts_vllm, probs_batch, infos
 
+    def calculate_logsoftmax(self, messages, incomplete_last_bot_message=True, log_only_last=True):
+        prompts, messages, infos = self.calculate_logsoftmax_batch(
+            [messages],
+            incomplete_last_bot_message=incomplete_last_bot_message,
+            log_only_last=log_only_last
+        )
+        return prompts[0], messages[0], infos[0]
+
     def calculate_logsoftmax_batch(self, messages, incomplete_last_bot_message=True, log_only_last=True):
         # BUGGED https://github.com/vllm-project/vllm/pull/5355
         prompts_tokens_batch = []
@@ -1754,7 +1770,8 @@ class VLLMModel(LocalHostedLLM):
 
         tokens_with_logsoftmax = []
         infos = []
-        vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+        # vllm_responses = self.model.generate(prompt_token_ids=prompts_tokens_batch, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
+        vllm_responses = self.model.generate(prompts=prompts, sampling_params=sampling_params, use_tqdm=False, lora_request=self._get_lora_request())
         for i, response in enumerate(vllm_responses):
             infos.append(
                 {
