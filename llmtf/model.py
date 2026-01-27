@@ -120,7 +120,7 @@ class ReasoningModel():
         incomplete_last_bot_message=True,
         return_tokens=False,
         include_stop_str_in_output=False,
-        add_assistant_prompt_to_output=True,
+        add_assistant_prompt_to_output=False,
         skip_special_tokens=True,
         enable_thinking=True,
         add_reasoning_truncing_prompt=False,
