@@ -7,6 +7,7 @@
 - **Быстрая оценка моделей** с поддержкой VLLM для ускорения инференса
 - **Гибкая архитектура задач** на основе message-формата
 - **Поддержка различных методов оценки**: генерация текста, расчет вероятностей токенов, перплексия
+- **Оценка разных классов моделей**: базовых, инструктивных, рассуждающих
 - **Богатый набор задач**: от классификации до RAG и длинных контекстов
 - **Автоматизированный бенчмарк** с параллельным выполнением на нескольких GPU
 - **LLM-as-a-Judge** оценка с ELO рейтингами
@@ -38,22 +39,6 @@ python benchmark/calculate_benchmark_api.py \
   --num_gpus 4
 ```
 
-## Архитектура
-
-### Основные компоненты
-
-- **`llmtf/`** — ядро фреймворка
-  - `base.py` — базовые классы Task и LLM
-  - `model.py` — реализации HFModel и VLLMModel
-  - `evaluator.py` — основной класс для оценки
-  - `tasks/` — коллекция задач для оценки
-
-- **`benchmark/`** — автоматизированный бенчмарк
-  - `calculate_benchmark_api.py` — параллельное выполнение задач через API
-  - `llmaaj/` — LLM-as-a-Judge оценка
-
-- **`conversation_configs/`** — конфигурации чат-шаблонов для различных моделей
-
 ## Поддерживаемые задачи
 
 ### Знания и рассуждения
@@ -73,6 +58,21 @@ python benchmark/calculate_benchmark_api.py \
 - **Libra** — работа с длинными контекстами (до 32K токенов)
 - **Математика** — решение задач по математике и физике
 
+## Архитектура
+
+### Основные компоненты
+
+- **`llmtf/`** — ядро фреймворка
+  - `base.py` — базовые классы Task и LLM
+  - `model.py` — реализации HFModel и VLLMModel
+  - `evaluator.py` — основной класс для оценки
+  - `tasks/` — коллекция задач для оценки
+
+- **`benchmark/`** — автоматизированный бенчмарк
+  - `calculate_benchmark_api.py` — параллельное выполнение задач через API
+  - `llmaaj/` — LLM-as-a-Judge оценка
+
+- **`conversation_configs/`** — конфигурации чат-шаблонов для различных моделей
 
 ## Добавление новых задач
 
@@ -80,8 +80,13 @@ python benchmark/calculate_benchmark_api.py \
 
 ```python
 from llmtf.base import SimpleFewShotHFTask
+from llmtf.metrics import mean
 
 class MyTask(SimpleFewShotHFTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._max_task_new_tokens = 512
+
     def dataset_args(self):
         return {"path": "my_dataset", "name": "default"}
     
@@ -93,6 +98,9 @@ class MyTask(SimpleFewShotHFTask):
     
     def evaluate(self, sample, prediction):
         return {"accuracy": int(sample["answer"] == prediction)}
+
+    def aggregation(self):
+        return {"accuracy": mean}
 ```
 
 ## LLM-as-a-Judge
@@ -123,11 +131,26 @@ python benchmark/llmaaj/show_benchmark.py \
   --judge_model_name deepseek
 ```
 
+## Параметры генерации
+
+Класс модели имеет поле `generation_config`, которое используется по умолчанию при генерации.
+Локальные модели инициализируют это поле своим `generation_config` из `HF`. `api vllm` модели используют стандартный конфиг. Вы также можете задать произвольный конфиг.
+
+В случае использования рассуждающих моделей - а именно классов `HFModelReasoning`, `VLLMModelReasoning`, `ApiVLLMModelReasoning` - помимо параметра `max_new_tokens` вы можете задать `max_new_tokens_reasoning`, ограничивающий бюджет на рассуждения (не идет в счет `max_new_tokens`).
+
+Каждая задача предоставляет бюджет токенов - `task.max_task_new_tokens` - который имеет более высокий приоритет, чем
+`max_new_tokens` в `model.generation_config`. Попмимо этого могут быть указаны дополнительные стоп-строки - `task.additional_stop_strings` - и параметры метода задачи - `task.method_additional_args`.
+
+Помимо этого, метод `evaluate` класса `Evaluator`  имеет параметр `max_prompt_len` - бюджет на токены промпта. Если общий бюджет токенов  - `model.model_max_len` - окажется меньше чем `max_new_tokens` + `max_prompt_len` (+ `max_new_tokens_reasoning` в случае рассуждающей модели), то сначала будет укорачиваться бюджет на рассуждения, а потом на промпт.
+
+Также вы можете передать произвольный конфиг в качестве параметра методу `evaluate` класса `Evaluator`, однако это может вызвать проблемы с некоторыми задачами, так как этот параметр имеет наивысший приоритет.
+
 ## Особенности использования
 
 - **VLLM**: Рекомендуется для ускорения, но требует `CUDA_VISIBLE_DEVICES`
 - **Длинные контексты**: Параметр `max_len` может автоматически корректироваться
 - **Квантизация**: Экспериментальная поддержка, возможны проблемы, лучше не использовать
+- **Перплексия** расчитывается без экспоненцирования
 
 ## Примеры
 

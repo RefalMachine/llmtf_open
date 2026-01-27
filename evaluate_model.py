@@ -5,7 +5,7 @@ from llmtf.evaluator import Evaluator
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name_or_path')
-    parser.add_argument('--conv_path')
+    parser.add_argument('--conv_path', default='auto')
     parser.add_argument('--output_dir')
     parser.add_argument('--dataset_names', nargs='+', default='all')
     parser.add_argument('--device_map', type=str, default='auto')

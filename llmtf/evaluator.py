@@ -142,7 +142,11 @@ class Evaluator(Base):
                     messages_batch['include_stop_str_in_output'] = include_stop_str_in_output
                     messages_batch['add_assistant_prompt_to_output'] = add_assistant_prompt_to_output
 
-                prompts, y_preds, infos = getattr(model, task.method + '_batch')(**messages_batch)
+                if task.method == 'generate':
+                    prompts, y_preds, infos = model.generate_batch(**messages_batch)
+                elif task.method == 'calculate_tokens_proba':
+                    prompts, y_preds, infos = model.calculate_tokens_proba_batch(**messages_batch)
+
                 for j in range(len(y_preds)):
                     metrics.append(task.evaluate(samples[i+j]['sample'], y_preds[j]))
                     logger.log_sample(samples[i+j]['sample'], y_preds[j], prompts[j], metrics[-1], infos[j])
@@ -242,7 +246,7 @@ class Evaluator(Base):
                 if 'return_tokens' in messages_batch:
                     del messages_batch['return_tokens']
 
-                prompts, y_preds, infos = getattr(model, 'calculate_logsoftmax_batch')(**messages_batch)
+                prompts, y_preds, infos = model.calculate_logsoftmax_batch(**messages_batch)
 
                 for j in range(len(y_preds)):
                     tokens = [t for t in y_preds[j][-1]['tokens'] if t[2][0] >= shifts[i+j]]
