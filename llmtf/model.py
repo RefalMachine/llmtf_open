@@ -358,7 +358,7 @@ class ApiVLLMModel(LLM):
         self.logger.info('ATTENTION! Hosting vLLM server must have vllm 0.6.3+')
         self.api_base = api_base
         self.num_procs = os.getenv('OPENAI_MAX_CONCURRENCY', 20)
-        self.api_key = api_key if api_base else os.getenv('OPENAI_API_KEY', '123')
+        self.api_key = api_key if api_key else os.getenv('OPENAI_API_KEY', '123')
         self.model_name = None
         self.max_model_len = None
         self.generation_config = None

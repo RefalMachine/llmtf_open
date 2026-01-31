@@ -17,11 +17,11 @@ def run_eval(args, group, gen_config_settings, base_url):
     """Запускает один таск оценки модели через API."""
     batch_size = group['params'].get('batch_size', 10000000)
     few_shot_count = group['params'].get('few_shot_count', 0)
-    max_len = group['params'].get('max_len', args.max_len)
+    max_prompt_len = group['params'].get('max_prompt_len', args.max_prompt_len)
     name_suffix = group['params'].get('name_suffix', None)
 
     # Используем переданный base_url вместо args.base_url
-    command = ['python', 'evaluate_model_api.py', '--base_url', base_url.replace('/v1', ''), '--model_name_or_path', args.model_dir, '--api_key', args.api_key, '--max_len', str(max_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
+    command = ['python', 'evaluate_model_api.py', '--base_url', base_url.replace('/v1', ''), '--model_name_or_path', args.model_dir, '--api_key', args.api_key, '--max_prompt_len', str(max_prompt_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
     command += ['--dataset_names'] + group['params']['dataset_names'].split()
     if not group.get('think', False):
         command += ['--disable_thinking']
@@ -61,9 +61,9 @@ def run_eval(args, group, gen_config_settings, base_url):
 
     return True
 
-def read_json(file_name):
-    with open(file_name, encoding="utf-8") as r:
-        return json.load(r)
+# def read_json(file_name):
+#     with open(file_name, encoding="utf-8") as r:
+#         return json.load(r)
 
 def load_benchmark_config(config_path):
     with open(config_path, 'r') as f:
@@ -85,15 +85,15 @@ def load_benchmark_config(config_path):
         }
         
         # Copy optional params
-        param_keys = ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning', 'batch_size']
+        param_keys = ['few_shot_count', 'max_prompt_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning', 'batch_size']
         for key in param_keys:
             if key in defaults:
                 group['params'][key] = defaults[key]
         
         for key in param_keys:
-            if key in task:
+            if key in task: task[key]
                 group['params'][key] = task[key]
-        
+
         # Handle extra args (like think)
         if 'extra_args' in task:
             for k, v in task['extra_args'].items():
@@ -109,7 +109,7 @@ def load_benchmark_config(config_path):
             gen_conf.update(task['generation'])
             
         gen_config_settings[task['name']] = gen_conf
-        
+
     return task_groups, gen_config_settings
 
 # НОВАЯ ФУНКЦИЯ: Воркер, который будет выполняться в отдельном процессе
@@ -156,7 +156,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--add_reasoning_tasks', action='store_true')
-    parser.add_argument('--max_len', type=int, default=4000)
+    parser.add_argument('--max_prompt_len', type=int, default=4000)
 
     # Старый аргумент base_url больше не нужен
     # parser.add_argument('--base_url')

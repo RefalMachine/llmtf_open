@@ -66,11 +66,11 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
 
     batch_size = group['params'].get('batch_size', default_bs)
     few_shot_count = group['params'].get('few_shot_count', 0)
-    max_len = group['params'].get('max_len', args.max_len)
+    max_prompt_len = group['params'].get('max_prompt_len', args.max_prompt_len)
     name_suffix = group['params'].get('name_suffix', None)
 
     conv_path = args.conv_path
-    command = ['python', 'evaluate_model.py', '--model_name_or_path', args.model_dir, '--conv_path', conv_path, '--max_len', str(max_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
+    command = ['python', 'evaluate_model.py', '--model_name_or_path', args.model_dir, '--conv_path', conv_path, '--max_prompt_len', str(max_prompt_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
     command += ['--dataset_names'] + group['params']['dataset_names'].split()
     
     if args.backend == 'vllm':
@@ -176,7 +176,7 @@ def load_benchmark_config(config_path):
         }
         
         # Copy optional params
-        param_keys = ['few_shot_count', 'max_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning', 'batch_size']
+        param_keys = ['few_shot_count', 'max_prompt_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning', 'batch_size']
         for key in param_keys:
             if key in defaults:
                 group['params'][key] = defaults[key]
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--tensor_parallel_size', default=1, type=int)
     parser.add_argument('--num_gpus', type=int, default=torch.cuda.device_count())
-    parser.add_argument('--max_len', type=int, default=4000)
+    parser.add_argument('--max_prompt_len', type=int, default=4000)
     parser.add_argument('--is_foundational', action='store_true')
     parser.add_argument('--backend', choices=['hf', 'vllm'], default='vllm')
     parser.add_argument('--ppl', action='store_true')

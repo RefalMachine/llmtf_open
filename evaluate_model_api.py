@@ -1,5 +1,5 @@
 import argparse
-from llmtf.model import ApiVLLMModelReasoning 
+from llmtf.model import ApiVLLMModel, ApiVLLMModelReasoning
 from llmtf.evaluator import Evaluator
 import os
 import torch
@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--few_shot_count', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--max_sample_per_dataset', type=int, default=10000000000000)
-    parser.add_argument('--max_len', type=int, default=4000)
+    parser.add_argument('--max_prompt_len', type=int, default=4000)
     parser.add_argument('--max_new_tokens_reasoning', type=int, default=3000)
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--name_suffix', type=str, default=None)
@@ -23,14 +23,22 @@ if __name__ == '__main__':
     parser.add_argument('--repetition_penalty', type=float, default=1.0)
     parser.add_argument('--presence_penalty', type=float, default=0.0)
     parser.add_argument('--num_return_sequences', type=int, default=1)
+    parser.add_argument('--end_thinking_token_id', type=int, default=None)
 
     args = parser.parse_args()
     os.environ['OPENAI_API_KEY'] = args.api_key
     evaluator = Evaluator()
     
-    print(args.max_new_tokens_reasoning)
-    model = ApiVLLMModelReasoning(api_base=args.base_url)
-    model.from_pretrained(args.model_name_or_path, max_new_tokens_reasoning=args.max_new_tokens_reasoning)
+    if args.disable_thinking:
+        model = ApiVLLMModel(api_base=args.base_url)
+        model.from_pretrained(args.model_name_or_path)
+    else:
+        model = ApiVLLMModelReasoning(api_base=args.base_url)
+        model.from_pretrained(
+            args.model_name_or_path,
+            max_new_tokens_reasoning=args.max_new_tokens_reasoning,
+            end_thinking_token_id=args.end_thinking_token_id
+        )
     
     model.generation_config.temperature = args.temperature
     model.generation_config.repetition_penalty = args.repetition_penalty
@@ -40,4 +48,4 @@ if __name__ == '__main__':
     if args.temperature == 0.0:
         model.generation_config.do_sample = False
     
-    evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix, enable_thinking=not args.disable_thinking)
+    evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_prompt_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix, enable_thinking=not args.disable_thinking)
