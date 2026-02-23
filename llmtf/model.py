@@ -363,7 +363,7 @@ class ApiVLLMModel(LLM):
         self.max_model_len = None
         self.generation_config = None
         self._tokenize_warning_shown = False
-        self.max_len_warning_shown = False
+        self._max_len_warning_shown = False
 
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']

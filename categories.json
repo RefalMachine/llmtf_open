@@ -22,7 +22,10 @@
     "Mykes/patient_queries_ner-(json)_few_shot",
     "MalakhovIlya/NEREL-(in-place)_few_shot",
     "nerel-ds/NEREL-BIO-(in-place)_few_shot",
-    "Mykes/patient_queries_ner-(in-place)_few_shot"
+    "Mykes/patient_queries_ner-(in-place)_few_shot",
+    "russiannlp/rucola_custom",
+    "RCC-MSU/collection3-(in-place)_few_shot", 
+    "RCC-MSU/collection3-(json)_few_shot"
   ],
   "RAG": [
     "bearberry/rubqqa",

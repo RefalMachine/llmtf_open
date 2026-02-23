@@ -91,7 +91,7 @@ def load_benchmark_config(config_path):
                 group['params'][key] = defaults[key]
         
         for key in param_keys:
-            if key in task: task[key]
+            if key in task:
                 group['params'][key] = task[key]
 
         # Handle extra args (like think)
