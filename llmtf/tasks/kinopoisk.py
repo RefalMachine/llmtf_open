@@ -68,7 +68,7 @@ class Kinopoisk(SimpleFewShotHFTask):
         return str(sample["label"] + 1)
         
     def aggregation(self):
-        return {"acc": mean,"f1-macro": f1_macro_score}
+        return {"acc": mean, "f1-macro": f1_macro_score}
 
     def leaderboard_aggregation(self, metrics):
         return metrics["f1-macro"]
