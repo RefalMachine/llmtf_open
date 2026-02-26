@@ -11,10 +11,10 @@ def list_to_dict_multiset(l, tags):
     d = {tag: [] for tag in tags}
     tags = set(tags)
     for item in l:
-        if len(item) != 2:
+        if not isinstance(item, list) or len(item) != 2:
             continue
         tag, entity = item
-        if tag in tags:
+        if isinstance(tag, str) and tag in tags:
             d[tag].append(entity)
     for tag in tags:
         d[tag] = Multiset(list(filter(lambda x: isinstance(x, str), d[tag])))
