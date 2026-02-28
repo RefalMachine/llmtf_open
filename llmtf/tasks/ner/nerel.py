@@ -232,7 +232,7 @@ class NestedNerDict(NestedNerAbc, NerDictAbc):
     ):
         NestedNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
-        self._max_task_new_tokens = 512
+        self._max_task_new_tokens = 2048
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL-(dict)"
@@ -325,7 +325,7 @@ class NestedNerJson(NestedNerAbc, NerJsonAbc):
     ):
         NestedNerAbc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_task_new_tokens = 512
+        self._max_task_new_tokens = 2048
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL-(json)"
@@ -501,7 +501,7 @@ class NestedNerInPlace(NestedNerAbc, NerInPlaceAbc):
         if self.do_split:
             self._max_task_new_tokens = 512
         else:
-            self._max_task_new_tokens = 1024
+            self._max_task_new_tokens = 2500
 
     def task_name(self) -> str:
         return "MalakhovIlya/NEREL-(in-place)"
@@ -626,7 +626,7 @@ class NerelBioDict(NerelBioAbc, NerDictAbc):
     ):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerDictAbc.__init__(self, **kwargs)
-        self._max_task_new_tokens = 512
+        self._max_task_new_tokens = 1500
 
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO-(dict)"
@@ -677,7 +677,7 @@ class NerelBioJson(NerelBioAbc, NerJsonAbc):
     ):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerJsonAbc.__init__(self, **kwargs)
-        self._max_task_new_tokens = 512
+        self._max_task_new_tokens = 1500
 
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO-(json)"
@@ -725,9 +725,9 @@ class NerelBioInPlace(NerelBioAbc, NerInPlaceAbc):
         NerelBioAbc.__init__(self, instruction=instruction, **kwargs)
         NerInPlaceAbc.__init__(self, **kwargs)
         if self.do_split:
-            self._max_task_new_tokens = 512
+            self._max_task_new_tokens = 2048
         else:
-            self._max_task_new_tokens = 1024
+            self._max_task_new_tokens = 512
 
     def task_name(self) -> str:
         return "nerel-ds/NEREL-BIO-(in-place)"
