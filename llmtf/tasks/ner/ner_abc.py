@@ -11,13 +11,13 @@ def list_to_dict_multiset(l, tags):
     d = {tag: [] for tag in tags}
     tags = set(tags)
     for item in l:
-        if len(item) != 2:
+        if not isinstance(item, list) or len(item) != 2:
             continue
         tag, entity = item
-        if tag in tags:
+        if isinstance(tag, str) and tag in tags:
             d[tag].append(entity)
     for tag in tags:
-        d[tag] = Multiset(d[tag])
+        d[tag] = Multiset(list(filter(lambda x: isinstance(x, str), d[tag])))
     return d
 
 def f1_macro(tp_fn_fp, tags):
@@ -141,8 +141,10 @@ class NerJsonAbc(NerAbc):
     def extract_answer(self, gen_pred: str):
         try:
             gen_pred = gen_pred.replace('```json', '').strip()
+            gen_pred = gen_pred.replace('json\n', '').strip()
             gen_pred = gen_pred.replace('```', '').strip()
             predict = json.loads(gen_pred)
+            # assert isinstance(predict[0], list)
         except:
             predict = []
         return predict
