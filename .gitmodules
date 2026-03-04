@@ -1,0 +1,6 @@
+[submodule "external_benchmarks/ruwikibench"]
+	path = external_benchmarks/ruwikibench
+	url = https://github.com/Nejimaki-Tori/WikiBench
+[submodule "external_benchmarks/rubooksum"]
+	path = external_benchmarks/rubooksum
+	url = https://github.com/Nejimaki-Tori/RuBookSum
