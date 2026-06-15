@@ -4,7 +4,7 @@ import re
 from tqdm import tqdm
 from datasets import load_dataset
 import json
-from .ner_abc import NerDictAbc, NerJsonAbc, NerInPlaceAbc
+from .ner_abc import NerDictAbc, NerJsonAbc, NerInPlaceAbc, get_gold_entities_bio_dict, get_gold_entities_bio_list, get_answer_str_bio_in_place, join_tokens
 from llmtf.base import LLM
 
 def check_sample(sample):
@@ -28,19 +28,6 @@ def process_tags(merged_ner: str) -> List[str]:
         
         prev_base = tag_base
     return tags
-
-NO_SPACE_AFTER = set(list(".,!?:;»)") + ["..."])
-NO_SPACE_BEFORE = set("(«")
-
-def join_tokens(tokens):
-    text = ""
-    prev_token = ""
-    for token in tokens:
-        if token not in NO_SPACE_AFTER and prev_token not in NO_SPACE_BEFORE:
-            text += " "
-        text += token
-        prev_token = token
-    return text[1:]
 
 def process_sample(sample):
     tags = process_tags(sample["merged_ner"])
@@ -132,27 +119,7 @@ class PatientQueriesNerDict(PatientQueriesNerAbc, NerDictAbc):
         return "Mykes/patient_queries_ner-(dict)"
 
     def get_gold_entities(self, sample) -> Dict[str, List[str]]:
-        tagged_tokens = {tag: [] for tag in self.TAGS}
-        for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
-
-            if tag_base not in self.TAGS:
-                continue
-            if tag_mod == 'I-':
-                tagged_tokens[tag_base][-1] += " " + token
-            else:
-                tagged_tokens[tag_base].append(token)
-        if 'O' in tagged_tokens.keys():
-            del tagged_tokens['O']
-        return tagged_tokens
-    
-    def get_answer_str(self, sample) -> str:
-        answer = self.get_gold_entities(sample)
-        answer_str = ""
-        for tag, tokens in answer.items():
-            answer_str += f"{tag}: [" + ', '.join(tokens) + "]\n"
-        return answer_str
+        return get_gold_entities_bio_dict(self, sample)
 
 
 PATIENT_QUERIES_NER_JSON_INSTRUCTION = """Ты — эксперт по извлечению именованных сущностей из русскоязычных текстов. Твоя задача — извлечь ВСЕ именованные сущности из текста, строго следуя указанным классам и формату вывода.
@@ -209,30 +176,7 @@ class PatientQueriesNerJson(PatientQueriesNerAbc, NerJsonAbc):
         return 'Mykes/patient_queries_ner-(json)'
 
     def get_gold_entities(self, sample) -> List[str]:
-        tagged_tokens = []
-        last_tag_idx = {}
-        i = 0
-        for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
-
-            if tag_base not in self.TAGS:
-                continue
-            if tag_mod == 'B-':
-                tagged_tokens.append([tag_base, token])
-                last_tag_idx[tag_base] = i
-                i += 1
-            elif tag_mod == 'I-':
-                tagged_tokens[last_tag_idx[tag_base]][1] += " " + token
-            else:
-                tagged_tokens.append([tag_base, token])
-                i += 1
-        return tagged_tokens
-    
-    def get_answer_str(self, sample) -> str:
-        answer = self.get_gold_entities(sample)
-        answer_str = '```json\n' + json.dumps(answer, ensure_ascii=False, indent=4).strip() + '\n```'
-        return answer_str
+        return get_gold_entities_bio_list(self, sample)
 
 
 PATIENT_QUERIES_NER_IN_PLACE_INSTRUCTION = """Ты — эксперт по обнаружению именованных сущностей в русскоязычных текстах, специализирующийся на медицинских и повседневных описаниях состояния здоровья. Твоя задача — **дословно воспроизвести исходный текст**, пометив **только те фрагменты, которые однозначно соответствуют одному из заданных классов сущностей**, в точном соответствии с правилами. Не изменяй, не склоняй и не переформулируй слова — сохраняй оригинальное написание, пунктуацию и порядок слов.
@@ -298,54 +242,7 @@ class PatientQueriesNerInPlace(PatientQueriesNerAbc, NerInPlaceAbc):
         return 'Mykes/patient_queries_ner-(in-place)'
     
     def get_gold_entities(self, sample) -> List[str]:
-        tagged_tokens = []
-        last_tag_idx = {}
-        i = 0
-        for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
-
-            if tag_base not in self.TAGS:
-                continue
-            if tag_mod == 'B-':
-                tagged_tokens.append([tag_base, token])
-                last_tag_idx[tag_base] = i
-                i += 1
-            elif tag_mod == 'I-':
-                tagged_tokens[last_tag_idx[tag_base]][1] += " " + token
-            else:
-                tagged_tokens.append([tag_base, token])
-                i += 1
-        return tagged_tokens
-
-    def get_answer_str(self, sample) -> str:
-        new_tokens = []
-        entity_tokens = []
-        prev_tag_base = ""
-        for token, tag in zip(sample["tokens"], sample["tags"]):
-            mod_idx = tag.find('-') + 1
-            tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+        return get_gold_entities_bio_list(self, sample)
     
-            if not tag_mod == "I-" and entity_tokens:
-                new_tokens.append(f"<{prev_tag_base}>{' '.join(entity_tokens)}</{prev_tag_base}>")
-                entity_tokens = []
-            if tag_base not in self.TAGS:
-                new_tokens.append(token)
-            elif tag_mod == "B-":
-                entity_tokens = [token]
-            elif tag_mod == "I-":
-                entity_tokens.append(token)
-            else:
-                new_tokens.append(f"<{tag_base}>{token}</{tag_base}>]")
-            prev_tag_base = tag_base
-        if len(entity_tokens) > 0:
-            new_tokens.append(f"<{tag_base}>{' '.join(entity_tokens)}</{tag_base}>")
-        return join_tokens(new_tokens)
-
-    def check_text(self, sample, gen_pred: str):
-        text_pred = re.sub(r"<\w+>|</\w+>", "", gen_pred)
-        tokens_pred = re.findall(r"\d+.\d+|[\w]+|\.{3}|[.,!?:;()\[\]«»]", text_pred)
-        for token_gold, token_pred in zip(sample["tokens"], tokens_pred):
-            if token_gold != token_pred:
-                return False
-        return True
+    def get_answer_str(self, sample) -> str:
+        return get_answer_str_bio_in_place(self, sample)
