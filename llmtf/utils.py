@@ -25,7 +25,8 @@ def set_out_handler_to_main_logger(output_dir):
     logger.addHandler(fh)
 
 def remove_image(sample, messages):
-    safe_sample = {"text": sample["text"]}
+    safe_sample = sample.copy()
+    safe_sample.pop('image', None)
     
     if not messages:
         return messages

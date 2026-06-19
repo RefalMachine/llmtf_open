@@ -6,6 +6,21 @@ import io
 from llmtf.base import SimpleFewShotHFTask
 from llmtf.metrics import mean, rougel
 
+CYRILLIC_TO_LATIN = {
+    'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M',
+    'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T',
+    'У': 'Y', 'Х': 'X'
+}
+
+def cyrillic_to_latin(text):
+    result = []
+    for char in text:
+        if char in CYRILLIC_TO_LATIN:
+            result.append(CYRILLIC_TO_LATIN[char])
+        else:
+            result.append(char)
+    return ''.join(result)
+
 def pil_to_base64(image: Image.Image) -> str:
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG", quality=85)
@@ -64,7 +79,7 @@ class CarPlateOcr(RussianOcrSmall):
     
     def evaluate(self, sample, gen_pred):
         # Exact match
-        return {"acc": sample["text"].strip() == gen_pred.strip()}
+        return {"acc": sample["text"].strip() == cyrillic_to_latin(gen_pred.strip().upper())}
 
     def aggregation(self):
         return {"acc": mean}

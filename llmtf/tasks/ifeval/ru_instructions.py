@@ -24,7 +24,10 @@ from typing import Dict, Optional, Sequence, Union
 from absl import logging
 
 from ftlangdetect import detect
-from pymorphy2 import MorphAnalyzer
+try:
+    from pymorphy3 import MorphAnalyzer
+except:
+    from pymorphy2 import MorphAnalyzer
 
 from . import ru_instructions_util
 
