@@ -24,6 +24,24 @@ def set_out_handler_to_main_logger(output_dir):
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 
+def remove_image(sample, messages):
+    safe_sample = sample.copy()
+    safe_sample.pop('image', None)
+    
+    if not messages:
+        return messages
+    
+    safe_messages = []
+    for msg in messages:
+        safe_msg = msg.copy()
+        if isinstance(safe_msg.get('content'), list):
+            safe_msg['content'] = [
+                item for item in safe_msg['content'] 
+                if item.get('type') != 'image_url'
+            ]
+        safe_messages.append(safe_msg)
+    return safe_sample, safe_messages
+
 class SimpleTaskLogger():
     def __init__(self, output_dir, task_name, append=False):
         self.output_dir = output_dir
@@ -40,6 +58,7 @@ class SimpleTaskLogger():
         self.file.close()
 
     def log_sample(self, sample, pred, prompt, metric, info):
+        sample, prompt = remove_image(sample, prompt)
         self.log_json({'metric': metric, 'predict': pred, 'sample': sample, 'prompt': prompt, 'info': info})
     
     def log_json(self, json_data, indent=4):

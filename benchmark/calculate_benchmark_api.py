@@ -11,6 +11,8 @@ import requests
 from contextlib import closing
 import socket
 import yaml
+import tempfile
+from pathlib import Path
 
 # Функция run_eval теперь принимает base_url как явный аргумент
 def run_eval(args, group, gen_config_settings, base_url):
@@ -138,7 +140,37 @@ def is_port_in_use(port):
     """Проверяет, занят ли порт."""
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         return s.connect_ex(('localhost', port)) == 0
-        
+
+# a copy from llmtf/utils.py
+def json_to_jinja(template_config):
+    roles_mapping = {
+        template_config.get("system_role", "system"): template_config.get("system_message_template", ""),
+        template_config.get("user_role", "user"): template_config.get("user_message_template", ""),
+        template_config.get("bot_role", "assistant"): template_config.get("bot_message_template", "")
+    }
+
+    jinja_template = []
+    if template_config.get("global_prefix"):
+        jinja_template.append(template_config["global_prefix"])
+    jinja_template.append("{% for message in messages %}")
+
+    for role, template in roles_mapping.items():
+        if template:
+            formatted_template = template.replace("{role}", role).replace("{content}", "{{ message['content'] }}")
+            jinja_template.append(f"{{% if message['role'] == '{role}' %}}{formatted_template}{{% endif %}}")
+ 
+    jinja_template.append("{% endfor %}")
+
+    if template_config.get("suffix"):
+        jinja_template.append("{% if add_generation_prompt %}")
+        jinja_template.append(template_config["suffix"])
+        jinja_template.append("{% endif %}")
+
+    eos_token = template_config.get("eos_token")
+    if eos_token and type(eos_token) == list:
+        eos_token = eos_token[0]
+    return ("\n".join(jinja_template), eos_token)
+
 if __name__ == '__main__':
     # Используем 'spawn' для безопасности при работе с CUDA
     mp.set_start_method('spawn', force=True)
@@ -157,6 +189,8 @@ if __name__ == '__main__':
     parser.add_argument('--force_recalc', action='store_true')
     parser.add_argument('--add_reasoning_tasks', action='store_true')
     parser.add_argument('--max_prompt_len', type=int, default=4000)
+    parser.add_argument('--conv_path', default='auto')
+    parser.add_argument('--is_foundational', action='store_true')
 
     # Старый аргумент base_url больше не нужен
     # parser.add_argument('--base_url')
@@ -200,6 +234,16 @@ if __name__ == '__main__':
             '--disable-log-stats'
         ]
         command += '--gpu-memory-utilization 0.95 --max_seq_len 32000 --max_model_len 32000 --max_logprobs 50'.split()
+        if args.is_foundational:
+            if args.conv_path == "auto":
+                args.conv_path = str(Path(__file__).parent.parent / 'conversation_configs' / 'default_foundational.json')
+            with open(args.conv_path, "r", encoding="utf-8") as file:
+                template = json.load(file)
+            chat_template, _ = json_to_jinja(template)
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.j2', delete=False) as f:
+                f.write(chat_template)
+                template_path = f.name
+            command += ['--chat-template', template_path]
         print(f"Starting vLLM server instance {i+1}/{num_instances} on port {port} with GPUs: {gpus_for_instance}...")
         
         # Запускаем сервер в фоновом режиме

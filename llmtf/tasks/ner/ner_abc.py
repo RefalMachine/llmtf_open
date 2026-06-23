@@ -88,6 +88,17 @@ class NerDictAbc(NerAbc):
         **kwargs
     ):
         super().__init__(**kwargs)
+
+    @abstractmethod
+    def get_gold_entities(self, sample) -> Dict[str, List[str]]:
+        pass
+    
+    def get_answer_str(self, sample) -> str:
+        answer = self.get_gold_entities(sample)
+        answer_str = ""
+        for tag, tokens in answer.items():
+            answer_str += f"{tag}: [" + ', '.join(tokens) + "]\n"
+        return answer_str
     
     def extract_answer(self, gen_pred: str):
         tag_lines = gen_pred.split('\n')
@@ -138,6 +149,16 @@ class NerJsonAbc(NerAbc):
     ):
         super().__init__(**kwargs)
 
+    @abstractmethod
+    def get_gold_entities(self, sample) -> List[str]:
+        pass
+    
+    def get_answer_str(self, sample) -> str:
+        answer = self.get_gold_entities(sample)
+        
+        answer_str = '```json\n' + json.dumps(answer, ensure_ascii=False, indent=4).strip() + '\n```'
+        return answer_str
+    
     def extract_answer(self, gen_pred: str):
         try:
             gen_pred = gen_pred.replace('```json', '').strip()
@@ -177,9 +198,13 @@ class NerInPlaceAbc(NerAbc):
     ):
         super().__init__(**kwargs)
 
-    @abstractmethod
-    def check_text(self, gen_pred) -> bool:
-        pass
+    def check_text(self, sample, gen_pred: str):
+        text_pred = re.sub(r"<\w+>|</\w+>", "", gen_pred)
+        tokens_pred = re.findall(r"\d+.\d+|[\w]+|\.{3}|[.,!?:;()\[\]«»]", text_pred)
+        for token_gold, token_pred in zip(sample["tokens"], tokens_pred):
+            if token_gold != token_pred:
+                return False
+        return True
 
     def extract_answer(self, gen_pred: str):
         matches = re.findall(r'<(\w+)>(.*?)</\1>', gen_pred)
@@ -207,3 +232,78 @@ class NerInPlaceAbc(NerAbc):
         false_negatives = {k: v for k, v in false_negatives.items() if v != 0}
         false_positives = {k: v for k, v in false_positives.items() if v != 0}
         return {"f1-macro": (true_positives, false_negatives, false_positives)}
+
+
+def get_gold_entities_bio_dict(self, sample) -> Dict[str, List[str]]:
+    tagged_tokens = {tag: [] for tag in self.TAGS}
+    for token, tag in zip(sample["tokens"], sample["tags"]):
+        mod_idx = tag.find('-') + 1
+        tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+
+        if tag_base not in self.TAGS:
+            continue
+        if tag_mod == 'I-':
+            tagged_tokens[tag_base][-1] += " " + token
+        else:
+            tagged_tokens[tag_base].append(token)
+    if 'O' in tagged_tokens.keys():
+        del tagged_tokens['O']
+    return tagged_tokens
+    
+def get_gold_entities_bio_list(self, sample) -> List[str]:
+    tagged_tokens = []
+    last_tag_idx = {}
+    i = 0
+    for token, tag in zip(sample["tokens"], sample["tags"]):
+        mod_idx = tag.find('-') + 1
+        tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+
+        if tag_base not in self.TAGS:
+            continue
+        if tag_mod == 'B-':
+            tagged_tokens.append([tag_base, token])
+            last_tag_idx[tag_base] = i
+            i += 1
+        elif tag_mod == 'I-':
+            tagged_tokens[last_tag_idx[tag_base]][1] += " " + token
+        else:
+            tagged_tokens.append([tag_base, token])
+            i += 1
+    return tagged_tokens    
+
+NO_SPACE_AFTER = set(list(".,!?:;»)") + ["..."])
+NO_SPACE_BEFORE = set("(«")
+
+def join_tokens(tokens):
+    text = ""
+    prev_token = ""
+    for token in tokens:
+        if token not in NO_SPACE_AFTER and prev_token not in NO_SPACE_BEFORE:
+            text += " "
+        text += token
+        prev_token = token
+    return text[1:]
+
+def get_answer_str_bio_in_place(self, sample) -> str:
+    new_tokens = []
+    entity_tokens = []
+    prev_tag_base = ""
+    for token, tag in zip(sample["tokens"], sample["tags"]):
+        mod_idx = tag.find('-') + 1
+        tag_mod, tag_base = tag[:mod_idx], tag[mod_idx:]
+
+        if not tag_mod == "I-" and entity_tokens:
+            new_tokens.append(f"<{prev_tag_base}>{' '.join(entity_tokens)}</{prev_tag_base}>")
+            entity_tokens = []
+        if tag_base not in self.TAGS:
+            new_tokens.append(token)
+        elif tag_mod == "B-":
+            entity_tokens = [token]
+        elif tag_mod == "I-":
+            entity_tokens.append(token)
+        else:
+            new_tokens.append(f"<{tag_base}>{token}</{tag_base}>]")
+        prev_tag_base = tag_base
+    if len(entity_tokens) > 0:
+        new_tokens.append(f"<{tag_base}>{' '.join(entity_tokens)}</{tag_base}>")
+    return join_tokens(new_tokens)
