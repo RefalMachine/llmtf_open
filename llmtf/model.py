@@ -17,14 +17,21 @@ from pathlib import Path
 from llmtf.base import LLM
 from llmtf.utils import calculate_offset_mapping_llama3_workaround, add_tokens_with_logsoftmax_messages, json_to_jinja
 import re
+VLLM_IMPORT_ERROR = None
 try:
     from vllm import LLM as vLLM
     from vllm import SamplingParams
     from vllm.lora.request import LoRARequest
-    from vllm.attention.backends.flash_attn import FlashAttentionBackend
-except:
-    pass
+except Exception as exc:
+    VLLM_IMPORT_ERROR = exc
+    vLLM = None
+    SamplingParams = None
+    LoRARequest = None
 
+try:
+    from vllm.attention.backends.flash_attn import FlashAttentionBackend
+except Exception:
+    FlashAttentionBackend = None
 
 class ReasoningModel():
     def reasoning_from_pretrained(
@@ -1100,6 +1107,16 @@ class HFModel(LocalHostedLLM):
             'max_model_len': self.get_max_model_len()
         }
 
+    def _resolve_model_class(self, config):
+        architectures = getattr(config, "architectures", None) or []
+        if "Qwen3_5ForConditionalGeneration" in architectures:
+            from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5ForConditionalGeneration
+            self.logger.warning("Using Qwen3_5ForConditionalGeneration based on config.architectures")
+            return Qwen3_5ForConditionalGeneration
+
+        self.logger.warning("Using AutoModelForCausalLM")
+        return AutoModelForCausalLM
+
     def generate(
         self,
         messages,
@@ -1321,14 +1338,16 @@ class HFModel(LocalHostedLLM):
     def _load_plain_model(self, model_dir):
         base_model_config = AutoConfig.from_pretrained(model_dir, trust_remote_code=self.trust_remote_code)
         torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_dir,
-            torch_dtype=torch_dtype,
-            load_in_8bit=self.load_in_8bit,
-            device_map=self.device_map,
-            attn_implementation=self.attn_implementation,
-            trust_remote_code=self.trust_remote_code
-        )
+        model_class = self._resolve_model_class(base_model_config)
+        model_kwargs = {
+            'torch_dtype': torch_dtype,
+            'device_map': self.device_map,
+            'attn_implementation': self.attn_implementation,
+            'trust_remote_code': self.trust_remote_code,
+        }
+        if self.load_in_8bit:
+            model_kwargs['load_in_8bit'] = self.load_in_8bit
+        self.model = model_class.from_pretrained(model_dir, **model_kwargs)
         self.model.eval()
 
     def _load_lora(self, model_dir):
@@ -1345,14 +1364,16 @@ class HFModel(LocalHostedLLM):
         base_model_config = AutoConfig.from_pretrained(config.base_model_name_or_path, trust_remote_code=self.trust_remote_code)
         torch_dtype = base_model_config.torch_dtype if self.torch_dtype == 'auto' else self.torch_dtype
 
-        self.model = AutoModelForCausalLM.from_pretrained(
-            config.base_model_name_or_path,
-            load_in_8bit=self.load_in_8bit,
-            torch_dtype=torch_dtype,
-            device_map=self.device_map,
-            attn_implementation=self.attn_implementation,
-            trust_remote_code=self.trust_remote_code
-        )
+        model_class = self._resolve_model_class(base_model_config)
+        model_kwargs = {
+            'torch_dtype': torch_dtype,
+            'device_map': self.device_map,
+            'attn_implementation': self.attn_implementation,
+            'trust_remote_code': self.trust_remote_code,
+        }
+        if self.load_in_8bit:
+            model_kwargs['load_in_8bit'] = self.load_in_8bit
+        self.model = model_class.from_pretrained(config.base_model_name_or_path, **model_kwargs)
         self.model = PeftModel.from_pretrained(
             self.model,
             model_dir,
@@ -1378,7 +1399,27 @@ class HFModel(LocalHostedLLM):
         self.generation_config.stop_strings.append(stop_string)
 
     def get_max_model_len(self):
-        return self.model.config.max_position_embeddings
+        config = self.model.config
+        max_position_embeddings = getattr(config, 'max_position_embeddings', None)
+        if max_position_embeddings is not None:
+            return max_position_embeddings
+
+        model_type = getattr(config, 'model_type', None)
+        architectures = getattr(config, 'architectures', None) or []
+        is_qwen35 = model_type == 'qwen3_5' or any('Qwen3_5' in arch for arch in architectures)
+        if is_qwen35:
+            text_config = getattr(config, 'text_config', None)
+            if isinstance(text_config, dict):
+                max_position_embeddings = text_config.get('max_position_embeddings')
+            elif text_config is not None:
+                max_position_embeddings = getattr(text_config, 'max_position_embeddings', None)
+
+            if max_position_embeddings is not None:
+                return max_position_embeddings
+
+        raise AttributeError(
+            f"{config.__class__.__name__} does not define max_position_embeddings"
+        )
 
 
 class HFModelReasoning(HFModel, ReasoningModel):
@@ -1516,6 +1557,7 @@ class VLLMModel(LocalHostedLLM):
         trust_remote_code=False,
         calculate_tokens_proba_logprobs_count=50,
         tensor_parallel_size=1,
+        limit_mm_per_prompt=None,
         **kwargs
     ):
         super().__init__(
@@ -1532,10 +1574,18 @@ class VLLMModel(LocalHostedLLM):
         self.trust_remote_code = trust_remote_code
         self.calculate_tokens_proba_logprobs_count = calculate_tokens_proba_logprobs_count
         self.tensor_parallel_size = tensor_parallel_size
+        self.limit_mm_per_prompt = {"image": 0, "video": 0} if limit_mm_per_prompt is None else limit_mm_per_prompt
 
         assert 'CUDA_VISIBLE_DEVICES' in os.environ
         self.logger.info('CUDA_VISIBLE_DEVICES=' + os.environ['CUDA_VISIBLE_DEVICES'])
         self.logger.info('device_map=' + self.device_map)
+
+    def _ensure_vllm_available(self):
+        if vLLM is None:
+            raise ImportError(
+                "Failed to import vLLM. Install a compatible vllm package and its "
+                "dependencies in the active environment before using VLLMModel."
+            ) from VLLM_IMPORT_ERROR
 
     def support_method(self, method):
         return method in ['generate', 'calculate_tokens_proba']
@@ -1562,8 +1612,15 @@ class VLLMModel(LocalHostedLLM):
         # tokenizer.padding_side = self.tokenizer.padding_side ?????
         tokenizer.truncation_side = self.tokenizer.truncation_side
 
-        self.attn_backend = self.model.llm_engine.model_executor.driver_worker.model_runner.attn_backend
+        self.attn_backend = self._get_attn_backend()
         self.special_attn_warning_complete = False
+
+    def _get_attn_backend(self):
+        try:
+            return self.model.llm_engine.model_executor.driver_worker.model_runner.attn_backend
+        except AttributeError:
+            self.logger.warning("Could not read vLLM attention backend from this vLLM version")
+            return None
 
     def generate(
         self,
@@ -1643,7 +1700,7 @@ class VLLMModel(LocalHostedLLM):
         infos = []
 
         vllm_responses = self.model.generate(
-            prompt_token_ids=prompts_tokens_batch,
+            prompts=[{"prompt_token_ids": prompt_tokens} for prompt_tokens in prompts_tokens_batch],
             sampling_params=sampling_params,
             use_tqdm=False,
             lora_request=self._get_lora_request(),
@@ -1672,7 +1729,7 @@ class VLLMModel(LocalHostedLLM):
         return prompts[0], probs[0], infos[0]
 
     def calculate_tokens_proba_batch(self, messages, tokens_of_interest, incomplete_last_bot_message=True, **kwargs):
-        if len(messages) > 1 and self.attn_backend == FlashAttentionBackend:
+        if FlashAttentionBackend is not None and len(messages) > 1 and self.attn_backend == FlashAttentionBackend:
             if not self.special_attn_warning_complete:
                 self.logger.warning(
                     'Flash Attention 2 most probably can work incorrectly with logproba and batch size > 1 '
@@ -1700,7 +1757,7 @@ class VLLMModel(LocalHostedLLM):
         infos = []
 
         vllm_responses = self.model.generate(
-            prompt_token_ids=prompts_tokens_batch,
+            prompts=[{"prompt_token_ids": prompt_tokens} for prompt_tokens in prompts_tokens_batch],
             sampling_params=sampling_params,
             use_tqdm=False,
             lora_request=self._get_lora_request()
@@ -1808,26 +1865,31 @@ class VLLMModel(LocalHostedLLM):
             'enable_prefix_caching': self.enable_prefix_caching,
             'trust_remote_code': self.trust_remote_code,
             'calculate_tokens_proba_logprobs_count': self.calculate_tokens_proba_logprobs_count,
+            'limit_mm_per_prompt': self.limit_mm_per_prompt,
             'vllm': True
         }
 
     def _load_plain_model(self, model_dir):
+        self._ensure_vllm_available()
         self.model = vLLM(
-            model=model_dir, device=self.device_map,  # max_model_len=self.max_model_len,
-            max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
+            model=model_dir,  # max_model_len=self.max_model_len,
+            max_model_len=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             trust_remote_code=self.trust_remote_code, tensor_parallel_size=self.tensor_parallel_size,
+            limit_mm_per_prompt=self.limit_mm_per_prompt,
             # rope_scaling='{"type": "extended", "factor": 8.0}'
         )
 
     def _load_lora(self, model_dir):
         # TODO: не работает с modules_to_save, и вообще пока не тестил
+        self._ensure_vllm_available()
         config = PeftConfig.from_pretrained(model_dir)
         self.model = vLLM(
-            model=config.base_model_name_or_path, device=self.device_map,
-            max_model_len=self.max_seq_len_to_capture, max_seq_len_to_capture=self.max_seq_len_to_capture,
+            model=config.base_model_name_or_path,
+            max_model_len=self.max_seq_len_to_capture,
             gpu_memory_utilization=self.gpu_memory_utilization, max_logprobs=1000000,
             enable_lora=True, trust_remote_code=self.trust_remote_code, tensor_parallel_size=self.tensor_parallel_size,
+            limit_mm_per_prompt=self.limit_mm_per_prompt,
             max_lora_rank=self._get_max_lora_rank(config)
         )
 

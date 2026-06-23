@@ -109,6 +109,9 @@ def run_eval(args, group, gpu_manager, gen_config_settings):
 
     env = os.environ.copy()
     env['CUDA_VISIBLE_DEVICES'] = ','.join([str(g) for g in gpu_ids])
+    if args.backend == 'vllm':
+        env.setdefault('VLLM_USE_V1', '0')
+        
     torchrun_env_names = {'TORCHELASTIC_USE_AGENT_STORE', 'OMP_NUM_THREADS', 'GROUP_RANK', 'ROLE_RANK', 'ROLE_NAME', 'LOCAL_WORLD_SIZE', 'GROUP_WORLD_SIZE', 'ROLE_WORLD_SIZE', 'MASTER_ADDR', 'MASTER_PORT', 'WORLD_SIZE', 'LOCAL_RANK', 'RANK'}
     for var_name in torchrun_env_names:
         if var_name in env:

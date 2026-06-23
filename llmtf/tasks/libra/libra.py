@@ -1,9 +1,6 @@
 import json
 import re
-try:
-    import pymorphy3 as pymorphy2
-except:
-    import pymorphy2
+import pymorphy2
 import os
 from datasets import load_dataset
 from collections import defaultdict, Counter

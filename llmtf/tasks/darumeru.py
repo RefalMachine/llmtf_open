@@ -73,6 +73,7 @@ class CopyText(DarumeruTask):
 
         if len(y_pred_tokens) == 0 or len(y_pred.strip()) == 0:
             return {
+                "tokens_per_word": 0.0,
                 "symbol_per_token": 0.0,
                 "len": 0.0,
                 "lcs": 0.0,
@@ -94,8 +95,8 @@ class CopyText(DarumeruTask):
         str_b = y_pred.strip()
         s = SequenceMatcher(None, str_a, str_b, autojunk=False)
         lcs_metric = len(''.join([str_a[block.a:(block.a + block.size)] for block in s.get_matching_blocks()]))
-        if len(str_b) > 0:
-            lcs_metric /= len(str_b)
+        if len(str_a) > 0:
+            lcs_metric /= len(str_a)
         lcs_metric = float(lcs_metric >= 0.99)
         spt = len(y_pred) / (1 + len(y_pred_tokens))
         tpw = len(y_pred_tokens) / len(y_pred.split())

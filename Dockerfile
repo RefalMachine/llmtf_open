@@ -1,45 +1,36 @@
-FROM nvcr.io/nvidia/pytorch:23.02-py3
+FROM nvcr.io/nvidia/pytorch:26.02-py3
 
-RUN pip install jupyterlab   
-RUN pip install packaging
-RUN pip install ninja
-RUN pip install datasets==2.18.0
+ENV PIP_CONSTRAINT=
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y git
-RUN apt-get install nano
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    wget \
+    build-essential \
+    ninja-build \
+    python3-dev \
+    nano && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN pip install numpy
-RUN pip install pandas
-RUN pip install tqdm
-RUN pip install evaluate
-RUN pip install deepspeed
-RUN pip install tensorboard
-RUN pip install scikit-learn
-RUN pip install sentencepiece
-RUN pip install torch==2.3.0
-RUN pip install transformers==4.38.2
-RUN pip install peft==0.11.0
-RUN pip install accelerate==0.30.0
-RUN pip install bitsandbytes==0.43.1
-RUN pip install wandb
-RUN pip install fire
-RUN pip install flake8==7.0.0
-RUN pip install mmh3==4.1.0
-RUN pip install xformers==0.0.26.post1
-RUN pip install flash-attn==2.5.9.post1 --no-build-isolation
-RUN pip install tiktoken
-RUN pip install --no-deps vllm==0.4.3
-RUN pip install vllm_flash_attn=2.5.9
+RUN python -m pip install --upgrade pip setuptools packaging ninja
 
-RUN pip uninstall --yes transformer_engine
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
 
-RUN pip install nltk
-RUN pip install inflect
-RUN pip install pydantic==2.7.4
-RUN pip install filelock==3.14.0
-RUN pip install rouge-score
-RUN pip install pymorphy2
+RUN python - <<'PY'
+import torch
+import flash_attn
+import transformers
+import vllm
+from vllm import LLM, SamplingParams
+
+print("torch:", torch.__version__)
+print("cuda:", torch.version.cuda)
+print("flash_attn:", flash_attn.__version__)
+print("transformers:", transformers.__version__)
+print("vllm:", vllm.__version__)
+print("imports OK")
+PY
 
 WORKDIR /workdir
+CMD ["/bin/bash"]

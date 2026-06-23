@@ -3,6 +3,7 @@ from llmtf.model import ApiVLLMModel, ApiVLLMModelReasoning
 from llmtf.evaluator import Evaluator
 import os
 import torch
+import sys
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -49,3 +50,7 @@ if __name__ == '__main__':
         model.generation_config.do_sample = False
     
     evaluator.evaluate(model, args.output_dir, args.dataset_names, args.max_prompt_len, args.few_shot_count, batch_size=args.batch_size, max_sample_per_dataset=args.max_sample_per_dataset, force_recalc=args.force_recalc, name_suffix=args.name_suffix, enable_thinking=not args.disable_thinking)
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
