@@ -8,9 +8,8 @@ from datasets import load_dataset, Dataset
 from tqdm import tqdm
 from llmtf.metrics import mean
 
-
-os.environ['VLLM_ATTENTION_BACKEND'] = 'XFORMERS'
-os.environ['VLLM_USE_V1'] = '0'
+#os.environ['VLLM_ATTENTION_BACKEND'] = 'XFORMERS'
+#os.environ['VLLM_USE_V1'] = '0'
 
 class Base(abc.ABC):
     def __init__(self, **kwargs):

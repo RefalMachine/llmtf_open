@@ -158,7 +158,7 @@ def json_to_jinja(template_config):
         if template:
             formatted_template = template.replace("{role}", role).replace("{content}", "{{ message['content'] }}")
             jinja_template.append(f"{{% if message['role'] == '{role}' %}}{formatted_template}{{% endif %}}")
- 
+
     jinja_template.append("{% endfor %}")
 
     if template_config.get("suffix"):
@@ -170,7 +170,7 @@ def json_to_jinja(template_config):
     if eos_token and type(eos_token) == list:
         eos_token = eos_token[0]
     return ("\n".join(jinja_template), eos_token)
-
+        
 if __name__ == '__main__':
     # Используем 'spawn' для безопасности при работе с CUDA
     mp.set_start_method('spawn', force=True)

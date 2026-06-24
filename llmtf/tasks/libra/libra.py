@@ -1,9 +1,6 @@
 import json
 import re
-try:
-    import pymorphy3 as pymorphy2
-except:
-    import pymorphy2
+import pymorphy3
 import os
 from datasets import load_dataset
 from collections import defaultdict, Counter
@@ -13,7 +10,7 @@ from llmtf.base import SimpleFewShotHFTask
 from llmtf.metrics import mean
 
 def normalize_answer(sentence):
-    normalizer = pymorphy2.MorphAnalyzer()
+    normalizer = pymorphy3.MorphAnalyzer()
     new_sentence = []
     for word in sentence.split():
         token = re.sub(r"[^a-zа-яй0-9_]+", "", word.lower())

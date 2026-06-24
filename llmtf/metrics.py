@@ -1,9 +1,6 @@
 import sklearn
 from rouge_score import rouge_scorer
-try:
-    import pymorphy3 as pymorphy2
-except:
-    import pymorphy2
+import pymorphy3
 import string
 import re
 import numpy as np
@@ -36,7 +33,7 @@ def mcc(items):
 class CustomTokenizer():
     def __init__(self):
         self.punkt_regex = re.compile('[%s]' % re.escape(string.punctuation))
-        self.morph = pymorphy2.MorphAnalyzer()
+        self.morph = pymorphy3.MorphAnalyzer()
 
     def tokenize(self, text):
         #print([t for t in ''.join(text.split())])
@@ -125,4 +122,3 @@ def llm_judge_accuracy(model, gold, generated, instruction=llm_judge_instruction
         return 0
     else:
         raise Exception(f"LLM metric generated unexpected text. Expected `Yes` or `No`, generated: {response}")
-    

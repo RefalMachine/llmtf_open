@@ -1,4 +1,9 @@
+import os
 import argparse
+
+
+os.environ.setdefault('VLLM_USE_V1', '0')
+
 from llmtf.model import HFModelReasoning, VLLMModelReasoning
 from llmtf.evaluator import Evaluator
 
