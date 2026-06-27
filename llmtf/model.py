@@ -358,6 +358,18 @@ class ReasoningModel():
         return reasoning_prompt_batch, final_output_batch, infos_batch
 
 
+def proccess_messages_for_tokens_of_intetrest(messages, tokens_of_interest):
+    stripped_message = messages[-1]["content"].rstrip()
+    add_space = any([token[0].isnumeric() for token in tokens_of_interest])
+    ends_in_space = stripped_message != messages[-1]["content"]
+    if add_space:
+        if not ends_in_space:
+            messages[-1]["content"] += " "
+    else:
+        if ends_in_space:
+            messages[-1]["content"] = stripped_message
+
+
 class ApiVLLMModel(LLM):
     def __init__(self, api_base, api_key='', **kwargs):
         super().__init__(**kwargs)
@@ -554,6 +566,8 @@ class ApiVLLMModel(LLM):
         messages = self._preprocess_messages(messages)
         last_role = messages[-1]['role']
 
+        proccess_messages_for_tokens_of_intetrest(messages, tokens_of_interest)
+
         r = requests.post(
             f'{self.api_base}/v1/chat/completions',
             json={
@@ -587,9 +601,7 @@ class ApiVLLMModel(LLM):
         data = r.json()
         logprobs = data['choices'][0]['logprobs']['content'][0]['top_logprobs']
         probs = {lp['token']: np.exp(lp['logprob']) for lp in logprobs}
-
-        tokens_of_interest_augmented = [(token, [' ' + token, token]) for token in tokens_of_interest]
-        probs = {token: max(*list(map(lambda x: probs.get(x, 0.0), tokens))) for token, tokens in tokens_of_interest_augmented}
+        probs = {token: probs.get(token, 0.0) for token in tokens_of_interest}
 
         info = {
             'generated_len': 1,
@@ -924,28 +936,6 @@ class LocalHostedLLM(LLM):
                 self.space_token = token_str[0]
                 self.leading_space = True
 
-    def _augment_tokens_of_interest(self, tokens_of_interest):
-        token_variants = []
-        for token_str in tokens_of_interest:
-            variants = []
-
-            tokens = self.tokenizer(token_str, add_special_tokens=False)['input_ids']
-            if len(tokens) == 1:
-                variants.append(tokens[0])
-
-            if token_str[0] != ' ':
-                augmented_token = ' ' + token_str
-            else:
-                augmented_token = token_str[1:]
-            augmented_token = self.tokenizer(augmented_token, add_special_tokens=False)['input_ids']
-
-            variants.append(augmented_token[0])
-
-            variants = list(set(variants))
-            token_variants.append(variants)
-
-        return token_variants
-
     def apply_model_prompt(self, messages, incomplete_last_bot_message=True, add_think_token=False):
         '''_messages = []
         for m in messages:
@@ -1235,10 +1225,11 @@ class HFModel(LocalHostedLLM):
         prompts_batch = []
         tokens_of_interest_ids_batch = []
         for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
+            proccess_messages_for_tokens_of_intetrest(_messages, _tokens_of_interest)
             prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
             prompts_batch.append(prompt)
-            token_variants = self._augment_tokens_of_interest(_tokens_of_interest)
-            tokens_of_interest_ids_batch.append(token_variants)
+            tokens_of_interest_ids = [self.tokenizer(token, add_special_tokens=False)['input_ids'] for token in _tokens_of_interest]
+            tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
 
         data = self.tokenizer(
             prompts_batch, return_tensors="pt", truncation=True, padding=True,
@@ -1741,9 +1732,11 @@ class VLLMModel(LocalHostedLLM):
         prompts_tokens_batch = []
         tokens_of_interest_ids_batch = []
         for _messages, _tokens_of_interest in zip(messages, tokens_of_interest):
+            proccess_messages_for_tokens_of_intetrest(_messages, _tokens_of_interest)
             prompt = self.apply_model_prompt(_messages, incomplete_last_bot_message=incomplete_last_bot_message)
             prompts_tokens_batch.append(self.tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=self.generation_config.max_length)['input_ids'])
-            tokens_of_interest_ids_batch.append(self._augment_tokens_of_interest(_tokens_of_interest))
+            tokens_of_interest_ids = [self.tokenizer(token, add_special_tokens=False)['input_ids'] for token in _tokens_of_interest]
+            tokens_of_interest_ids_batch.append(tokens_of_interest_ids)
 
         sampling_params = SamplingParams(
             temperature=0,
