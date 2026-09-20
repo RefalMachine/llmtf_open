@@ -7,6 +7,11 @@
 
 ## API и vLLM deployment
 
+- Оптимизировать layout публикуемых HF/vLLM images. Текущий multi-stage build
+  копирует `/opt/venv` одним слоем размером около 10.1 GB без сжатия; образ
+  корректен, но первая публикация и восстановление upload после обрыва сети
+  неудобны. Разбить dependency groups на переиспользуемые layers либо выбрать
+  другой reproducible layout без повторной сборки compiled kernels.
 - Добавить model-level `vllm_server_args` в benchmark YAML и безопасное
   преобразование mapping в аргументы запуска vLLM. Не определять reasoning и
   tool parsers автоматически: их значения зависят от модели. Запрещать

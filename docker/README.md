@@ -4,6 +4,32 @@ The images are deliberately separate. `api` has no model runtime, `hf` adds a
 CUDA 12.9 / PyTorch 2.11 stack, and `vllm` is built on the resulting HF image.
 None of them use NGC.
 
+## Published v0.3.0 images
+
+The validated release environments are published for `linux/amd64` in
+[`refalmachine/llmtf`](https://hub.docker.com/r/refalmachine/llmtf):
+
+| Profile | Tag | Registry manifest digest |
+|---|---|---|
+| API | `v0.3.0-api` | `sha256:54b079a214f42c42c17465b1f035189a67df48e6943d258674f25357e0b28a52` |
+| HF CUDA 12.9 | `v0.3.0-hf-cu129` | `sha256:c0a958e8206db8e5b2052a68077680fc20b6cf6d5e49b7805361340a564515cf` |
+| vLLM CUDA 12.9 | `v0.3.0-vllm-cu129` | `sha256:635b41ee8df3ebb1f0df21f8f937f0d52a2b6f4a481317c8a5ab729ef5fbb287` |
+
+```bash
+docker pull refalmachine/llmtf:v0.3.0-api
+docker pull refalmachine/llmtf:v0.3.0-hf-cu129
+docker pull refalmachine/llmtf:v0.3.0-vllm-cu129
+```
+
+These are dependency/runtime images, not self-contained copies of the LLMTF
+source tree. Mount a compatible checkout at `/workdir`. The exact v0.3.0 code
+snapshot is commit
+[`2136f9a`](https://github.com/RefalMachine/llmtf_open/commit/2136f9abe07fab018c45e7f884327a5993a18808).
+
+The published image IDs exactly matched cache-only rebuilds from the v0.3.0
+Dockerfiles and profile requirements before upload. No mutable `latest` tag is
+published because the API, HF and vLLM profiles have different capabilities.
+
 ## Build
 
 Run all commands from the repository root:
@@ -61,7 +87,7 @@ image:
 docker run --rm -it \
   -v "$PWD:/workdir" \
   -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
-  llmtf:api
+  refalmachine/llmtf:v0.3.0-api
 ```
 
 ```bash
@@ -70,7 +96,7 @@ docker run --rm -it \
   --ipc=host \
   -v "$PWD:/workdir" \
   -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
-  llmtf:hf-cu129
+  refalmachine/llmtf:v0.3.0-hf-cu129
 ```
 
 ```bash
@@ -79,7 +105,7 @@ docker run --rm -it \
   --ipc=host \
   -v "$PWD:/workdir" \
   -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
-  llmtf:vllm-cu129
+  refalmachine/llmtf:v0.3.0-vllm-cu129
 ```
 
 Pass API keys with `--env`/`--env-file` or an orchestrator secret at runtime.

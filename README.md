@@ -35,6 +35,18 @@ calling пока не входят в transport-контракт.
 - `hf` — CUDA 12.9, torch 2.11, Transformers и kernels для Qwen3.5;
 - `vllm` — расширяет HF-образ vLLM 0.21.
 
+Проверенные `v0.3.0` runtime-образы для `linux/amd64` опубликованы в
+[`refalmachine/llmtf`](https://hub.docker.com/r/refalmachine/llmtf):
+
+```bash
+docker pull refalmachine/llmtf:v0.3.0-api
+docker pull refalmachine/llmtf:v0.3.0-hf-cu129
+docker pull refalmachine/llmtf:v0.3.0-vllm-cu129
+```
+
+Образы содержат зависимости и CUDA runtime, но не копию исходников LLMTF.
+Запускайте их из checkout репозитория, смонтированного в `/workdir`.
+
 ```bash
 docker build -f docker/Dockerfile.api -t llmtf:api .
 docker build -f docker/Dockerfile.hf -t llmtf:hf-cu129 .
@@ -48,7 +60,7 @@ docker build \
 docker run --rm -it --gpus all --ipc=host \
   -v "$PWD:/workdir" -w /workdir \
   -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
-  llmtf:vllm-cu129
+  refalmachine/llmtf:v0.3.0-vllm-cu129
 ```
 
 Сборка, proxy и GPU architecture options описаны в
