@@ -1,4 +1,4 @@
-from llmtf.base import Task, LLM
+from llmtf.base import Task, BaseLLM
 from llmtf.metrics import mean
 from typing import Dict, List, Tuple
 from datasets import DatasetDict, load_dataset, Dataset
@@ -216,7 +216,7 @@ class MMLU(Task):
         res = y_true == y_pred
         return {'acc': {'val' : res, 'subject': sample['subject']}}
 
-    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         messages = []
         samples = []
         subjects = list(SUBCATEGORIES.keys())
@@ -243,15 +243,15 @@ class MMLU(Task):
         return messages, samples
 
 
-    def _load_dataset(self, subject: str, dataset_test: Dataset, dataset_dev: Dataset, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int):
-        assert model.support_method(self.method)
+    def _load_dataset(self, subject: str, dataset_test: Dataset, dataset_dev: Dataset, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int):
+        self.require_model_method(model)
         samples = []
         dataset_test = dataset_test.select(range(min(max_sample_per_dataset, len(dataset_test))))
         for sample in dataset_test:
             samples.append(self._prepare_messages(subject, sample, model, max_prompt_len, few_shot_count, dataset_dev))
         return samples
 
-    def _prepare_messages(self, subject: str, sample: Dict, model: LLM, max_prompt_len: int, few_shot_count: int, few_shot_samples: Dataset) -> List:
+    def _prepare_messages(self, subject: str, sample: Dict, model: BaseLLM, max_prompt_len: int, few_shot_count: int, few_shot_samples: Dataset) -> List:
         k = min(few_shot_count, len(few_shot_samples))
         try:
             int2str = few_shot_samples.features['answer'].int2str
@@ -259,8 +259,8 @@ class MMLU(Task):
             int2str = lambda x: ['A', 'B', 'C', 'D'][x]
         
         zero_shot_messages_with_headline = self._create_messages(subject, sample, int2str, add_headline=True, add_answer=False)
-        zero_shot_messages_with_headline_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages_with_headline))
-        if zero_shot_messages_with_headline_len >= max_prompt_len:
+        zero_shot_messages_with_headline_len = model.count_tokens_for_messages(zero_shot_messages_with_headline)
+        if zero_shot_messages_with_headline_len is not None and zero_shot_messages_with_headline_len >= max_prompt_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_with_headline_len} greater then {max_prompt_len}. Will be truncated.')
 
         zero_shot_messages_without_headline = copy.deepcopy(self._create_messages(subject, sample, int2str, add_headline=False, add_answer=False))
@@ -269,8 +269,8 @@ class MMLU(Task):
             messages = []
             for group in message_groups[:k-i]:
                 messages += group
-            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages + zero_shot_messages_without_headline))
-            if few_shot_messages_len < max_prompt_len:
+            few_shot_messages_len = model.count_tokens_for_messages(messages + zero_shot_messages_without_headline)
+            if few_shot_messages_len is None or few_shot_messages_len < max_prompt_len:
                 messages += zero_shot_messages_without_headline
                 break
         else:

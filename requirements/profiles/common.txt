@@ -1,0 +1,21 @@
+# Runtime dependencies shared by API, Hugging Face and vLLM profiles.
+# Model runtimes (torch, transformers and vllm) intentionally live elsewhere.
+datasets>=2.18.0,<4
+# vLLM 0.21 requires opencv-python-headless>=4.13, whose Python 3.9+ wheels
+# require NumPy 2. Keep every profile on the same tested major version.
+numpy>=2,<2.3
+pandas
+Pillow
+tqdm
+PyYAML
+requests
+scikit-learn
+scipy
+rouge-score
+pymorphy3
+immutabledict
+langdetect
+fasttext-langdetect
+nltk
+math-verify
+latex2sympy2-extended

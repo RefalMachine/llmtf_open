@@ -10,44 +10,30 @@ import json
 import requests
 from contextlib import closing
 import socket
-import yaml
 import tempfile
 from pathlib import Path
+from benchmark.config import build_evaluate_command, load_benchmark_config
+from llmtf.config import DEFAULT_VLLM_GPU_MEMORY_UTILIZATION
 
 # Функция run_eval теперь принимает base_url как явный аргумент
-def run_eval(args, group, gen_config_settings, base_url):
+def run_eval(args, config, task, base_url):
     """Запускает один таск оценки модели через API."""
-    batch_size = group['params'].get('batch_size', 10000000)
-    few_shot_count = group['params'].get('few_shot_count', 0)
-    max_prompt_len = group['params'].get('max_prompt_len', args.max_prompt_len)
-    name_suffix = group['params'].get('name_suffix', None)
-
-    # Используем переданный base_url вместо args.base_url
-    command = ['python', 'evaluate_model_api.py', '--base_url', base_url.replace('/v1', ''), '--model_name_or_path', args.model_dir, '--api_key', args.api_key, '--max_prompt_len', str(max_prompt_len), '--few_shot_count', str(few_shot_count), '--batch_size', str(batch_size)]
-    command += ['--dataset_names'] + group['params']['dataset_names'].split()
-    if not group.get('think', False):
-        command += ['--disable_thinking']
-    if 'max_sample_per_dataset' in group['params']:
-        command += ['--max_sample_per_dataset', group['params']['max_sample_per_dataset']]
-    if 'max_new_tokens_reasoning' in group['params']:
-        command += ['--max_new_tokens_reasoning', group['params']['max_new_tokens_reasoning']]
-
     if args.output_dir is not None:
         output_dir = args.output_dir
     else:
         output_dir = os.path.join(args.model_dir, 'llmtf_eval')
-    command += ['--output_dir', output_dir]
-    if args.force_recalc:
-        command += ['--force_recalc']
-
-    if name_suffix is not None:
-        command += ['--name_suffix', name_suffix]
-
-    group_custom_gen_config = gen_config_settings.get(group['name'], {})
-    for param in group_custom_gen_config:
-        command += [f'--{param}', str(group_custom_gen_config[param])]
+    if 'batch_size' not in task.evaluation:
+        task = type(task)(task.name, task.datasets, task.enable_thinking,
+                          {**task.evaluation, 'batch_size': 10000000}, task.generation)
+    command = build_evaluate_command(
+        config, task, model_name=args.model_dir, output_dir=output_dir,
+        api=True, base_url=base_url, force_recalc=args.force_recalc,
+        is_foundational=args.is_foundational, api_profile='vllm',
+    )
 
     env = os.environ.copy()
+    if args.api_key:
+        env['OPENAI_API_KEY'] = args.api_key
     torchrun_env_names = {'TORCHELASTIC_USE_AGENT_STORE', 'OMP_NUM_THREADS', 'GROUP_RANK', 'ROLE_RANK', 'ROLE_NAME', 'LOCAL_WORLD_SIZE', 'GROUP_WORLD_SIZE', 'ROLE_WORLD_SIZE', 'MASTER_ADDR', 'MASTER_PORT', 'WORLD_SIZE', 'LOCAL_RANK', 'RANK'}
     for var_name in torchrun_env_names:
         if var_name in env:
@@ -58,7 +44,7 @@ def run_eval(args, group, gen_config_settings, base_url):
     try:
         subprocess.run(command, env=env, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"[{base_url}] Error executing task '{group['name']}': {e}", flush=True)
+        print(f"[{base_url}] Error executing task '{task.name}': {e}", flush=True)
         return False
 
     return True
@@ -67,55 +53,8 @@ def run_eval(args, group, gen_config_settings, base_url):
 #     with open(file_name, encoding="utf-8") as r:
 #         return json.load(r)
 
-def load_benchmark_config(config_path):
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    
-    defaults = config.get('defaults', {})
-    gen_defaults = defaults.get('generation', {})
-    
-    task_groups = []
-    gen_config_settings = {}
-    
-    for task in config.get('tasks', []):
-        # Reconstruct task group dict
-        group = {
-            'name': task['name'],
-            'params': {
-                'dataset_names': ' '.join(task['datasets'])
-            }
-        }
-        
-        # Copy optional params
-        param_keys = ['few_shot_count', 'max_prompt_len', 'name_suffix', 'max_sample_per_dataset', 'max_new_tokens_reasoning', 'batch_size']
-        for key in param_keys:
-            if key in defaults:
-                group['params'][key] = defaults[key]
-        
-        for key in param_keys:
-            if key in task:
-                group['params'][key] = task[key]
-
-        # Handle extra args (like think)
-        if 'extra_args' in task:
-            for k, v in task['extra_args'].items():
-                group[k] = v
-                
-        task_groups.append(group)
-        
-        # Reconstruct generation config
-        # Start with defaults
-        gen_conf = gen_defaults.copy()
-        # Update with task specific
-        if 'generation' in task:
-            gen_conf.update(task['generation'])
-            
-        gen_config_settings[task['name']] = gen_conf
-
-    return task_groups, gen_config_settings
-
 # НОВАЯ ФУНКЦИЯ: Воркер, который будет выполняться в отдельном процессе
-def worker(worker_id, task_queue, args, gen_config_settings, base_url):
+def worker(worker_id, task_queue, args, config, base_url):
     """
     Функция-воркер. Получает задачи из очереди и выполняет их,
     используя закрепленный за ним base_url.
@@ -125,16 +64,16 @@ def worker(worker_id, task_queue, args, gen_config_settings, base_url):
         try:
             # Неблокирующее получение задачи из очереди
             task_group = task_queue.get_nowait()
-            print(f"[Worker-{worker_id}] Took task: {task_group['name']}", flush=True)
-            run_eval(args, task_group, gen_config_settings, base_url)
+            print(f"[Worker-{worker_id}] Took task: {task_group.name}", flush=True)
+            if not run_eval(args, config, task_group, base_url):
+                raise RuntimeError(f"Task {task_group.name} failed")
         except Empty:
             # Если очередь пуста, воркер завершает работу
             print(f"[Worker-{worker_id}] No more tasks. Exiting.", flush=True)
             break
         except Exception as e:
             print(f"[Worker-{worker_id}] An unexpected error occurred: {e}", flush=True)
-            # Можно добавить логику повтора или просто пропустить задачу
-            continue
+            raise
 
 def is_port_in_use(port):
     """Проверяет, занят ли порт."""
@@ -180,15 +119,19 @@ if __name__ == '__main__':
     parser.add_argument('--num_gpus', type=int, default=torch.cuda.device_count())
     parser.add_argument('--tensor_parallel_size', type=int, default=1, help="Tensor parallel size for each vLLM instance.")
     parser.add_argument('--base_port', type=int, default=8000, help="Base port for the first vLLM server.")
+    parser.add_argument(
+        '--gpu_memory_utilization', type=float,
+        default=DEFAULT_VLLM_GPU_MEMORY_UTILIZATION,
+        help='Per-instance vLLM GPU memory fraction (default: 0.92).',
+    )
     
     # Существующие аргументы
     parser.add_argument('--model_dir', required=True)
     parser.add_argument('--benchmark_config', required=True)
-    parser.add_argument('--api_key', default='EMPTY') # vLLM по умолчанию использует 'EMPTY'
+    parser.add_argument('--api_key', default=None,
+                        help='Compatibility option; prefer OPENAI_API_KEY')
     parser.add_argument('--output_dir', default=None)
     parser.add_argument('--force_recalc', action='store_true')
-    parser.add_argument('--add_reasoning_tasks', action='store_true')
-    parser.add_argument('--max_prompt_len', type=int, default=4000)
     parser.add_argument('--conv_path', default='auto')
     parser.add_argument('--is_foundational', action='store_true')
 
@@ -196,11 +139,15 @@ if __name__ == '__main__':
     # parser.add_argument('--base_url')
 
     args = parser.parse_args()
-    print("Parsed arguments:", args)
+    print("Arguments parsed (API credentials redacted)")
     
     # Проверка корректности аргументов
     if args.num_gpus % args.tensor_parallel_size != 0:
         raise ValueError("`num_gpus` must be divisible by `tensor_parallel_size`")
+    if args.num_gpus <= 0:
+        raise ValueError("No CUDA devices detected; pass --num_gpus explicitly on a GPU host")
+    if not 0.0 < args.gpu_memory_utilization <= 1.0:
+        raise ValueError('gpu_memory_utilization must be in the interval (0, 1]')
 
     num_instances = args.num_gpus // args.tensor_parallel_size
     print(f"Planning to start {num_instances} vLLM instances.")
@@ -209,6 +156,9 @@ if __name__ == '__main__':
     servers = []
     server_urls = []
     server_ports = []
+    template_paths = []
+    config = load_benchmark_config(args.benchmark_config)
+    foundational = args.is_foundational or config.model.is_foundational
     
     for i in range(num_instances):
         port = args.base_port + i
@@ -220,7 +170,6 @@ if __name__ == '__main__':
         
         server_env = os.environ.copy()
         server_env["CUDA_VISIBLE_DEVICES"] = gpus_for_instance
-        server_env['VLLM_USE_V1'] = '0'
         #server_env['VLLM_LOGGING_LEVEL'] = 'ERROR'
         
         command = [
@@ -233,8 +182,14 @@ if __name__ == '__main__':
             '--disable-uvicorn-access-log',
             '--disable-log-stats'
         ]
-        command += '--gpu-memory-utilization 0.95 --max_seq_len 32000 --max_model_len 32000 --max_logprobs 50'.split()
-        if args.is_foundational:
+        command += [
+            '--gpu-memory-utilization', str(args.gpu_memory_utilization),
+            '--max-model-len', '32000',
+            '--max-logprobs', '50',
+        ]
+        if config.model.model_context_len is not None:
+            command[command.index('--max-model-len') + 1] = str(config.model.model_context_len)
+        if foundational:
             if args.conv_path == "auto":
                 args.conv_path = str(Path(__file__).parent.parent / 'conversation_configs' / 'default_foundational.json')
             with open(args.conv_path, "r", encoding="utf-8") as file:
@@ -243,6 +198,7 @@ if __name__ == '__main__':
             with tempfile.NamedTemporaryFile(mode='w', suffix='.j2', delete=False) as f:
                 f.write(chat_template)
                 template_path = f.name
+            template_paths.append(template_path)
             command += ['--chat-template', template_path]
         print(f"Starting vLLM server instance {i+1}/{num_instances} on port {port} with GPUs: {gpus_for_instance}...")
         
@@ -274,23 +230,23 @@ if __name__ == '__main__':
 
     # --- 3. Основная логика выполнения задач ---
     try:
-        task_groups, gen_config_settings = load_benchmark_config(args.benchmark_config)
-
         # Создаем и заполняем очередь задач
         task_queue = Queue()
-        for task in task_groups:
+        for task in config.tasks:
             task_queue.put(task)
 
         # Создаем и запускаем процессы-воркеры
         processes = []
         for i in range(num_instances):
-            p = mp.Process(target=worker, args=(i, task_queue, args, gen_config_settings, server_urls[i]))
+            p = mp.Process(target=worker, args=(i, task_queue, args, config, server_urls[i]))
             processes.append(p)
             p.start()
 
         # Ожидаем завершения всех воркеров
         for p in processes:
             p.join()
+        if any(p.exitcode != 0 for p in processes):
+            raise RuntimeError('One or more benchmark workers failed')
 
         print("\nAll evaluation tasks completed.")
 
@@ -306,4 +262,9 @@ if __name__ == '__main__':
             if server_process.poll() is None: # Если процесс все еще жив
                 print(f"Forcefully killing server on port {server_ports[i]}...")
                 server_process.kill()
+        for template_path in template_paths:
+            try:
+                os.unlink(template_path)
+            except FileNotFoundError:
+                pass
         print("All servers have been shut down.")

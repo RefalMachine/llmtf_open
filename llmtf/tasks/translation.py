@@ -1,4 +1,4 @@
-from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
 from sklearn.metrics import matthews_corrcoef
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -59,9 +59,6 @@ class DaruFlores(SimpleFewShotHFTask):
             
         for m in messages:
             m['content'] = m['content'].format(**inputs)
-            if m['role'] == 'bot':
-                m['role'] = 'assistant'
-            assert m['role'] in ['user', 'system', 'assistant'], f"Unknown role {m['role']}"
             
         return messages
 

@@ -1,0 +1,9 @@
+-r api.txt
+
+transformers==5.9.0
+accelerate
+peft
+safetensors
+sentencepiece
+tiktoken
+hf-xet

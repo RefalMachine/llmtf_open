@@ -1,0 +1,94 @@
+# syntax=docker/dockerfile:1.7
+
+ARG CUDA_VERSION=12.9.2
+
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS hf-builder
+
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu129
+ARG TORCH_VERSION=2.11.0+cu129
+ARG MAX_JOBS=4
+# flash-attn 2.7.4 has its own architecture selector. 80 also covers later
+# SM8x GPUs; 90, 100 and 120 cover Hopper and the current Blackwell families.
+ARG FLASH_ATTN_CUDA_ARCHS="80;90;100;120"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/venv \
+    MAX_JOBS=${MAX_JOBS} \
+    NVCC_THREADS=2 \
+    FLASH_ATTN_CUDA_ARCHS=${FLASH_ATTN_CUDA_ARCHS} \
+    PIP_CONSTRAINT=/tmp/requirements/constraints-cu129.txt
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        ninja-build \
+        python3 \
+        python3-dev \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv "${VIRTUAL_ENV}"
+
+COPY requirements/profiles/common.txt \
+     requirements/profiles/api.txt \
+     requirements/profiles/hf.txt \
+     requirements/profiles/constraints-cu129.txt \
+     /tmp/requirements/
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --upgrade pip setuptools wheel packaging ninja psutil \
+    && python -m pip install \
+        --index-url "${TORCH_INDEX_URL}" \
+        "torch==${TORCH_VERSION}" \
+    && python -m pip install -r /tmp/requirements/hf.txt
+
+# Qwen3.5 uses all three paths: FA2 for full attention, FLA for Gated
+# DeltaNet linear attention, and causal-conv1d for the convolutional state.
+# Build them only after the exact torch wheel is installed.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --no-build-isolation \
+        "flash-attn==2.7.4.post1" \
+        "flash-linear-attention==0.4.0" \
+        "causal-conv1d==1.6.2.post1" \
+    && python -m pip check \
+    && python -c "import causal_conv1d, fla, flash_attn, torch, transformers; assert torch.version.cuda.startswith('12.9')"
+
+
+# Keep the CUDA development toolkit in the runtime profile.  Triton/FLA and
+# vLLM's FlashInfer integration JIT-compile kernels for the active GPU; the
+# CUDA runtime image alone does not provide nvcc.
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS hf
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        libgomp1 \
+        python3 \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=hf-builder /opt/venv /opt/venv
+
+RUN python -m pip check \
+    && python -c "import causal_conv1d, fla, flash_attn, numpy, torch, transformers; assert int(numpy.__version__.split('.')[0]) == 2; assert torch.version.cuda.startswith('12.9')"
+
+LABEL org.opencontainers.image.title="llmtf Hugging Face CUDA environment" \
+      org.opencontainers.image.description="LLMTF HF backend with CUDA 12.9 and Qwen3.5 kernels" \
+      org.opencontainers.image.profile="hf"
+
+WORKDIR /workdir
+CMD ["/bin/bash"]

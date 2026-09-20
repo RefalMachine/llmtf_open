@@ -5,7 +5,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from datasets import load_dataset
 
-from llmtf.model import ApiVLLMModel
+from llmtf.backends import APIBackend
+from llmtf.llm import LLM
 from llmtf.tasks.ner.collection3 import Collection3Json, check_sample, process_sample
 
 from prompt_optimizer.optimizable_task import SimpleOptimizableTask
@@ -32,13 +33,13 @@ runner_model_names = [
 ]
 
 # Mutator model is used to come up with improvements to a prompt.
-mutator_model = ApiVLLMModel(api_base=API_BASE)
+mutator_model = LLM(backend=APIBackend(api_base=API_BASE))
 mutator_model.from_pretrained(mutator_model_name)
 
 # Runner models are used to evaluate suggested prompts on the benchmark.
 runner_models = []
 for runner_model_name in runner_model_names:
-    model = ApiVLLMModel(api_base=API_BASE)
+    model = LLM(backend=APIBackend(api_base=API_BASE))
     model.from_pretrained(runner_model_name)
     runner_models.append(model)
 

@@ -2,7 +2,7 @@ from llmtf.base import SimpleFewShotHFTask
 import copy
 from tqdm import tqdm
 from datasets import load_dataset, Dataset, DatasetDict
-from llmtf.base import SimpleFewShotHFTask, LLM
+from llmtf.base import SimpleFewShotHFTask, BaseLLM
 import pandas as pd
 from typing import Dict, List
 
@@ -79,7 +79,7 @@ class RuParam(SimpleFewShotHFTask):
 
         return {"acc": {'val': y_true == y_pred, 'id': sample['id']}}
 
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = prepare_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]

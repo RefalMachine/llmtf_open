@@ -4,7 +4,7 @@ from tqdm import tqdm
 from datasets import load_dataset
 import json
 from .ner_abc import NerDictAbc, NerJsonAbc, NerInPlaceAbc, get_gold_entities_bio_dict, get_gold_entities_bio_list, get_answer_str_bio_in_place
-from llmtf.base import LLM
+from llmtf.base import BaseLLM
 
 def process_sample(sample):
     sample["query"] = sample.pop("text")
@@ -37,7 +37,7 @@ class PiiAbc(ABC):
     def prompt_split_name(self) -> str:
         return 'test'
 
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()].map(process_sample, remove_columns=["text", "ner_tags"])

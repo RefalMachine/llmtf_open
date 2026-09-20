@@ -1,8 +1,0 @@
-{
-    "task_name": "russiannlp/rucola_custom",
-    "results": {
-        "acc": 0.735,
-        "mcc": 0.21467076918233885
-    },
-    "leaderboard_result": 0.4748353845911694
-}

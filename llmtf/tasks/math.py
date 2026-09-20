@@ -1,6 +1,6 @@
 from math_verify import LatexExtractionConfig, parse, verify
 from latex2sympy2_extended import NormalizationConfig
-from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
 from tqdm import tqdm
 from typing import Dict, List, Tuple
 from datasets import load_dataset, Dataset
@@ -70,7 +70,7 @@ class MathDataset(SimpleFewShotHFTask):
     def prompt_split_name(self) -> str:
         return 'train'
     
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]

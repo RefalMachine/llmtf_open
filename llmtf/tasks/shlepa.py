@@ -2,7 +2,7 @@ from llmtf.base import Task
 
 import string
 import random
-from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
 from llmtf.metrics import mean
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -39,8 +39,8 @@ class ShlepaSmallMMLU(Task):
     def test_split_name(self) -> str:
         return 'train'
 
-    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
-        assert model.support_method(self.method)
+    def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+        self.require_model_method(model)
 
         samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset)
         messages = [{'messages': s['messages']} for s in samples]
@@ -50,7 +50,7 @@ class ShlepaSmallMMLU(Task):
 
         return messages, samples
 
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int) -> List:
         samples = []
         dataset = load_dataset(self.dataset_name)
         test_dataset = dataset[self.test_split_name()]
@@ -62,12 +62,12 @@ class ShlepaSmallMMLU(Task):
                 samples.append({'messages': messages, 'sample': sample})
         return samples
         
-    def _prepare_messages(self, sample: Dict, model: LLM, max_prompt_len: int, additional_samples: List[Dict]) -> List:
+    def _prepare_messages(self, sample: Dict, model: BaseLLM, max_prompt_len: int, additional_samples: List[Dict]) -> List:
         zero_shot_messages, sample = self.create_messages(copy.deepcopy(sample), additional_samples)
         if len(zero_shot_messages) == 0:
             return [], sample
-        zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-        if zero_shot_messages_len >= max_prompt_len:
+        zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
+        if zero_shot_messages_len is not None and zero_shot_messages_len >= max_prompt_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
 
         return zero_shot_messages, sample

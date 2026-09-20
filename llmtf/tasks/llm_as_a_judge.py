@@ -1,4 +1,4 @@
-from llmtf.base import Task, LLM
+from llmtf.base import Task, BaseLLM
 from typing import List, Dict, Tuple
 import codecs
 import json
@@ -571,7 +571,7 @@ class LLMAsJudgeStyleControl(Task):
 
     def load_dataset(
         self,
-        model: LLM,
+        model: BaseLLM,
         max_len: int,
         max_sample_per_dataset: int,
         few_shot_count: int
@@ -684,10 +684,10 @@ class LLMAsJudgeStyleControl(Task):
         swap(sample_reverse, 'output_m', 'output_M')
         return sample_reverse
 
-    def _prepare_messages(self, sample: Dict, model: LLM, max_len: int):
+    def _prepare_messages(self, sample: Dict, model: BaseLLM, max_len: int):
         zero_shot_messages = self.create_messages(copy.deepcopy(sample), with_answer=False)
-        zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-        if zero_shot_messages_len >= max_len:
+        zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
+        if zero_shot_messages_len is not None and zero_shot_messages_len >= max_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
         return zero_shot_messages
 
@@ -757,7 +757,7 @@ Which response is better? Respond with **only a single character** and no other 
 
 class LLMAsJudgeGenStyleControl(LLMAsJudgeStyleControl):
     """
-    Генеративная версия LLM as a Judge с детальной оценкой по трем критериям:
+    Генеративная версия BaseLLM as a Judge с детальной оценкой по трем критериям:
     content, language, style с условной логикой оценки.
     """
     

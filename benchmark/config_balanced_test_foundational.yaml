@@ -1,10 +1,14 @@
+model:
+  model_kind: plain
+  enable_thinking: false
+  is_foundational: true
+
 defaults:
   generation:
     temperature: 0.0
     repetition_penalty: 1.0
     presence_penalty: 0.0
     num_return_sequences: 1
-  max_len: 8000
 
 tasks:
   - name: translation
@@ -46,7 +50,6 @@ tasks:
       - darumeru/cp_para_ru
       - darumeru/cp_para_en
       - darumeru/cp_doc_ru
-    max_len: 16000
     few_shot_count: 5
     max_sample_per_dataset: 20
 

@@ -1,2 +1,0 @@
-mean	russiannlp/rucola_custom
-0.483	0.483

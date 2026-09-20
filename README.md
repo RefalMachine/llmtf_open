@@ -1,310 +1,300 @@
 # LLMTF Open
 
-**LLMTF Open** — фреймворк для оценки больших языковых моделей, с фокусом на русскоязычные задачи и запуск как локальных Hugging Face/vLLM моделей, так и моделей через OpenAI-compatible API.
+LLMTF Open — фреймворк для оценки языковых моделей на русскоязычных и
+мультиязычных задачах. Он поддерживает локальные Hugging Face и vLLM модели,
+а также OpenAI-compatible API.
+
+Текущая версия — `v0.3.0`. Изменения и инструкция по миграции находятся в
+[`docs/releases/v0.3.0.md`](docs/releases/v0.3.0.md).
+
+Текущая архитектура проверена на `Qwen/Qwen3.5-2B` и
+`Qwen/Qwen3.5-2B-Base` через HF, local vLLM и vLLM-compatible API. Известные
+ограничения находятся в [`BACKLOG.md`](BACKLOG.md).
 
 ## Возможности
 
-- Оценка инструктивных, базовых и reasoning-моделей.
-- Запуск через `transformers`, локальный `vllm` или vLLM OpenAI API server.
-- Автоматизированный benchmark с распределением задач по нескольким GPU.
-- Message-based формат задач: `system`/`user`/`assistant`.
-- Методы оценки: генерация, вероятности токенов, PPL для локальных моделей.
-- Набор русскоязычных задач: классификация, MMLU, перевод, суммаризация, NER, RAG, IFEval, Libra, DaruMeru.
-- LLM-as-a-Judge benchmark с сохранением результатов и сравнением моделей.
+- генерация и next-token probability через HF, локальный vLLM и API;
+- HF-only PPL как средний log probability токенов ответа;
+- plain, hybrid и обязательный two-pass reasoning режимы;
+- точное локальное продолжение assistant-prefill без скрытого trimming;
+- YAML benchmark runner с распределением локальных задач или API servers по GPU;
+- fingerprinted results cache и fail-closed обработка частичных ошибок;
+- foundational/base модели с отдельным conversation config;
+- LLM-as-a-Judge pipeline.
+
+PPL не поддерживается vLLM/API. Native provider reasoning fields и function
+calling пока не входят в transport-контракт.
 
 ## Установка
 
-### Вариант 1: Docker
+### Docker — рекомендуемый путь
 
-Рекомендуемый вариант для GPU-запуска и vLLM. 
+Профили разделены по назначению:
+
+- `api` — CPU-only клиент без torch, CUDA и vLLM;
+- `hf` — CUDA 12.9, torch 2.11, Transformers и kernels для Qwen3.5;
+- `vllm` — расширяет HF-образ vLLM 0.21.
 
 ```bash
-docker build -t llmtf-open:ngc-vllm .
+docker build -f docker/Dockerfile.api -t llmtf:api .
+docker build -f docker/Dockerfile.hf -t llmtf:hf-cu129 .
+docker build \
+  -f docker/Dockerfile.vllm \
+  --build-arg HF_BASE_IMAGE=llmtf:hf-cu129 \
+  -t llmtf:vllm-cu129 .
 ```
-Запуск контейнера из корня репозитория:
+
 ```bash
-docker run --gpus all --rm -it \
-  -v "$PWD":/workdir \
-  -w /workdir \
-  llmtf-open:ngc-vllm
+docker run --rm -it --gpus all --ipc=host \
+  -v "$PWD:/workdir" -w /workdir \
+  -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
+  llmtf:vllm-cu129
 ```
-### Вариант 2: локальное окружение
-Для локального запуска без Docker:
+
+Сборка, proxy и GPU architecture options описаны в
+[`docker/README.md`](docker/README.md).
+
+### Локальная установка
+
+CPU/API профиль можно установить отдельно:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip setuptools packaging ninja
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements/profiles/api.txt
 ```
 
-Для GPU/vLLM лучше использовать CUDA-совместимое окружение. 
+Для HF/vLLM рекомендуется Docker: там согласованы torch, CUDA и compiled
+kernels. Единственным источником зависимостей являются файлы в
+`requirements/profiles/`; монолитный legacy-профиль удалён.
 
 ## Быстрый запуск
 
-### Запуск полного benchmark
-
-`benchmark/calculate_benchmark.py` запускает локальную оценку и сам распределяет группы задач по GPU.
-
-```bash
-python benchmark/calculate_benchmark.py \
-  --model_dir /path/to/model \
-  --benchmark_config benchmark/config_balanced.yaml \
-  --conv_path conversation_configs/qwen3.json \
-  --output_dir /path/to/output/benchmark \
-  --num_gpus 8 \
-  --tensor_parallel_size 2 \
-  --backend vllm
-```
-
-### Запуск benchmark через vLLM API
-
-`benchmark/calculate_benchmark_api.py` поднимает несколько vLLM OpenAI API server'ов и распределяет задачи между ними.
-
-```bash
-python benchmark/calculate_benchmark_api.py \
-  --model_dir /path/to/model \
-  --benchmark_config benchmark/config_balanced.yaml \
-  --conv_path conversation_configs/qwen3.json \
-  --output_dir /path/to/output/api_benchmark \
-  --num_gpus 4 \
-  --tensor_parallel_size 1 \
-  --base_port 8000 \
-  --api_key EMPTY \
-  --force_recalc
-```
-
-### Оценка foundational/base модели
+### Локальный Hugging Face
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python evaluate_model.py \
-  --model_name_or_path /path/to/base_model \
-  --conv_path conversation_configs/default_foundational.json \
-  --output_dir /path/to/output/llmtf_eval_base \
-  --few_shot_count 5 \
-  --max_prompt_len 4000 \
-  --batch_size 8 \
-  --vllm \
-  --is_foundational
-```
-
-## Поддерживаемые задачи
-
-### Знания и рассуждения
-
-- **MMLU** — тесты общих знаний на русском и английском языках.
-- **Shlepa** — специализированные домены: фильмы, музыка, право, книги. 
-- **DaruMeru** — комплексный русскоязычный бенчмарк: reasoning, QA, world knowledge и NLI-подобные задачи. 
-
-### Навыки и способности
-
-- **Перевод** — Flores ru/en и en/ru.
-- **Суммаризация** — генерация кратких версий новостных и текстовых документов. 
-- **Анализ тональности и классификация** — оценка классификационных способностей и извлечение мнений. 
-- **NER** — распознавание именованных сущностей, включая вложенные и биомедицинские сущности. 
-- **RAG** — вопросно-ответные задачи с контекстом из поисковой выдачи.
-
-### Специализированные задачи
-
-- **IFEval** — проверка следования инструкциям.
-- **Libra** — задачи на работу с длинными контекстами до 32K токенов. 
-- **Математика и физика** — задачи с проверкой финального ответа.
-- **Copy tasks** — проверка устойчивости на копировании предложений, абзацев и документов. 
-
-Полный список задач в `llmtf/tasks/__init__.py`.
-
-
-## Архитектура
-
-### Основные компоненты
-
-- **`llmtf/`** — ядро фреймворка:
-  - `base.py` — базовые классы `Task` и `LLM`;
-  - `model.py` — реализации `HFModel`, `VLLMModel` и API-моделей;
-  - `evaluator.py` — основной класс для оценки;
-  - `tasks/` — коллекция задач для оценки.
-
-- **`benchmark/`** — автоматизированный benchmark:
-  - `calculate_benchmark.py` — параллельное выполнение задач локальными моделями;
-  - `calculate_benchmark_api.py` — параллельное выполнение задач через vLLM API servers;
-  - `llmaaj/` — LLM-as-a-Judge оценка.
-
-- **`conversation_configs/`** — конфигурации chat templates для разных моделей.
-
-
-## Конфигурации
-
-### Conversation configs
-
-Файлы в `conversation_configs/` описывают chat template для моделей.
-
-Для instruct-моделей обычно указывается конкретный chat config. Для base/foundational моделей используйте `conversation_configs/default_foundational.json` и флаг `--is_foundational`.
-
-### Benchmark configs
-
-Файлы в `benchmark/*.yaml` группируют датасеты и параметры:
-- `benchmark/config_balanced.yaml` — полный benchmark.
-- `benchmark/llmtf_benchmark_instruct.yaml` и `benchmark/llmtf_benchmark_instruct_fast.yaml` — instruct-наборы.
-
-В YAML можно задавать task groups, `datasets`, `few_shot_count`, `max_prompt_len`, `max_sample_per_dataset`, `batch_size`, `name_suffix`, `max_new_tokens_reasoning`, параметры `generation` и `extra_args`.
-
-## Результаты
-
-Для каждой задачи в `output_dir` создаются:
-
-- `<task>_params.jsonl` — параметры запуска.
-- `<task>.jsonl` — результаты по отдельным примерам.
-- `<task>_total.jsonl` — агрегированные метрики.
-- `evaluation_results.txt` — сводная таблица.
-- `evaluation_log.txt` — лог запуска.
-
-Если файл `<task>_total.jsonl` уже существует, задача пропускается. Чтобы пересчитать результаты, используйте `--force_recalc`.
-
-
-## Дополнительные сценарии запуска
-
-### Локальная оценка одной модели через vLLM
-
-```bash
-CUDA_VISIBLE_DEVICES=0 python evaluate_model.py \
-  --model_name_or_path /path/to/model \
-  --conv_path conversation_configs/qwen3.json \
-  --output_dir /path/to/output/llmtf_eval \
+  --model_name_or_path /models/instruct \
+  --output_dir /results/hf \
   --dataset_names russiannlp/rucola_custom \
+  --model_context_len 8192 \
+  --model_kind plain \
+  --disable_thinking \
   --few_shot_count 5 \
-  --max_prompt_len 4000 \
-  --batch_size 8 \
-  --vllm \
-  --force_recalc
-```
-
-### Оценка одной модели через `transformers`
-
-```bash
-CUDA_VISIBLE_DEVICES=0 python evaluate_model.py \
-  --model_name_or_path /path/to/model \
-  --conv_path conversation_configs/qwen3.json \
-  --output_dir /path/to/output/llmtf_eval_hf \
-  --dataset_names nlpcoreteam/rummlu \
-  --few_shot_count 5 \
-  --max_prompt_len 4000 \
   --batch_size 1
 ```
 
-### Оценка моделей через vLLM API
+Без `--vllm` используется `HFBackend`. Для PPL добавьте `--ppl_scoring`.
 
-Сначала поднимите vLLM server:
+### Локальный vLLM
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python evaluate_model.py \
+  --model_name_or_path /models/instruct \
+  --output_dir /results/vllm \
+  --dataset_names russiannlp/rucola_custom \
+  --model_context_len 8192 \
+  --model_kind hybrid \
+  --disable_thinking \
+  --gpu_memory_utilization 0.92 \
+  --vllm
+```
+
+`gpu_memory_utilization` по умолчанию также равен `0.92`. Флаг в команде
+оставлен явно для воспроизводимости.
+
+### Two-pass reasoning
+
+Thinking всегда opt-in. Для hybrid/reasoning запуска требуется model-specific
+id закрывающего reasoning-токена:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python evaluate_model.py \
+  --model_name_or_path /models/hybrid \
+  --output_dir /results/reasoning \
+  --dataset_names darumeru/flores_ru_en \
+  --model_context_len 8192 \
+  --model_kind hybrid \
+  --enable_thinking \
+  --end_thinking_token_id ID \
+  --max_new_tokens_reasoning 2048 \
+  --min_new_tokens_reasoning 512 \
+  --gpu_memory_utilization 0.92 \
+  --vllm
+```
+
+Получайте `ID` из tokenizer конкретной модели для `THINK_CLOSE_MARKER`; не
+переносите его между моделями. Reasoning/tool parsers vLLM также являются
+model-specific и не включаются framework'ом автоматически.
+
+### OpenAI-compatible API
+
+Пример текстового vLLM server:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server \
-  --model /path/to/model \
+  --model /models/instruct \
   --port 8000 \
   --tensor-parallel-size 1 \
-  --no-enable-log-requests \
-  --uvicorn-log-level error \
-  --disable-uvicorn-access-log \
-  --disable-log-stats \
-  --model-impl transformers
+  --max-model-len 8192 \
+  --gpu-memory-utilization 0.92 \
+  --language-model-only
 ```
 
-Затем запустите оценку:
-
 ```bash
-python evaluate_model_api.py \
-  --base_url http://localhost:8000 \
-  --model_name_or_path /path/to/model \
-  --api_key EMPTY \
-  --output_dir /path/to/output/api_eval \
+OPENAI_API_KEY=EMPTY python evaluate_model_api.py \
+  --base_url http://127.0.0.1:8000 \
+  --api_profile vllm \
+  --model_name_or_path /models/instruct \
+  --output_dir /results/api \
   --dataset_names russiannlp/rucola_custom \
-  --few_shot_count 5 \
-  --max_prompt_len 4000 \
-  --batch_size 16 \
+  --model_context_len 8192 \
+  --model_kind plain \
   --disable_thinking
 ```
 
-## Параметры генерации
+Используйте `api_profile=openai` для generic API и `vllm` только для сервера с
+соответствующими extensions. Ключ передавайте через окружение; не записывайте
+его в YAML или image. Подробности: [`docs/api_backend.md`](docs/api_backend.md).
 
-У модели есть `generation_config`, который используется по умолчанию. Локальные модели читают его из Hugging Face config, API vLLM модели создают стандартный config. Можно задать произвольный конфиг.
-
-Для reasoning-классов `HFModelReasoning`, `VLLMModelReasoning`, `ApiVLLMModelReasoning` доступен `max_new_tokens_reasoning`: отдельный бюджет на рассуждения, который не входит в `max_new_tokens`.
-
-Приоритеты такие:
-
-1. Явный `generation_config`, переданный в `Evaluator.evaluate(...)`.
-2. Параметры задачи: `task.max_task_new_tokens`, `task.additional_stop_strings`, `task.method_additional_args`.
-3. `model.generation_config`.
-
-`max_prompt_len` ограничивает бюджет промпта. Если контекст модели меньше, чем `max_prompt_len + max_new_tokens` плюс reasoning-бюджет, сначала уменьшается reasoning-бюджет, затем бюджет промпта.
-
-## LLM-as-a-Judge
-Фреймворк включает систему оценки моделей с помощью LLM-судей.
-
-Генерация ответов модели:
+### Foundational/base модель
 
 ```bash
-python benchmark/llmaaj/generate_llmaaj.py \
-  --base_url http://localhost:8000 \
-  --model_name_or_path /path/to/model \
-  --api_key EMPTY \
-  --model_name my_model \
-  --benchmark_name ru_arena-hard-v0.1
+CUDA_VISIBLE_DEVICES=0 python evaluate_model.py \
+  --model_name_or_path /models/base \
+  --conv_path conversation_configs/default_foundational.json \
+  --output_dir /results/base \
+  --dataset_names darumeru/flores_ru_en \
+  --model_context_len 8192 \
+  --model_kind plain \
+  --disable_thinking \
+  --is_foundational \
+  --gpu_memory_utilization 0.92 \
+  --vllm
 ```
 
-Оценка судьей:
+## Режимы модели
+
+| `model_kind` | Thinking выключен | Thinking включён |
+|---|---|---|
+| `plain` | one-pass | warning и one-pass |
+| `hybrid` | one-pass | two-pass reasoning |
+| `reasoning` | ошибка конфигурации | обязательный two-pass |
+
+Thinking включается только `--enable_thinking`; deprecated
+`--disable_thinking` оставлен как явный compatibility alias. Two-pass требует
+`num_return_sequences=1`. PPL всегда one-pass и только HF.
+
+Контекстный бюджет вычисляется из `model_context_len`, максимума ответа задачи
+и reasoning budget. Удалённый `max_prompt_len` больше не используется.
+
+## Benchmark YAML
+
+```yaml
+model:
+  model_kind: hybrid
+  enable_thinking: false
+  model_context_len: 8192
+  max_new_tokens_reasoning: 2048
+  min_new_tokens_reasoning: 512
+  end_thinking_token_id: null
+
+defaults:
+  evaluation:
+    few_shot_count: 0
+    batch_size: 8
+  generation:
+    temperature: 0.0
+
+tasks:
+  - name: classification
+    datasets: [russiannlp/rucola_custom]
+    enable_thinking: false
+```
+
+Неизвестные поля и противоречивые reasoning-настройки завершаются ошибкой до
+загрузки модели. `backend_kwargs` не должен содержать secrets. Точный schema и
+приоритеты: [`docs/configuration.md`](docs/configuration.md).
+
+Локальный runner:
 
 ```bash
-python benchmark/llmaaj/judge_llmaaj.py \
-  --judge_base_url http://localhost:8001 \
-  --judge_model_name_or_path /path/to/judge_model \
-  --judge_api_key EMPTY \
-  --judge_model_name deepseek \
-  --benchmark_name ru_arena-hard-v0.1 \
-  --model_name my_model
+python benchmark/calculate_benchmark.py \
+  --model_dir /models/instruct \
+  --benchmark_config benchmark/config_balanced.yaml \
+  --output_dir /results/benchmark \
+  --num_gpus 4 \
+  --tensor_parallel_size 1 \
+  --backend vllm
 ```
 
-Показ результатов:
+Управляемые vLLM API servers:
 
 ```bash
-python benchmark/llmaaj/show_benchmark.py \
-  --benchmark_name ru_arena-hard-v0.1 \
-  --judge_model_name deepseek
+python benchmark/calculate_benchmark_api.py \
+  --model_dir /models/instruct \
+  --benchmark_config benchmark/config_balanced.yaml \
+  --output_dir /results/api-benchmark \
+  --num_gpus 4 \
+  --tensor_parallel_size 1 \
+  --gpu_memory_utilization 0.92 \
+  --base_port 8000
 ```
 
-## Добавление новой задачи
-Для добавления новой задачи необходимо создать класс, наследующий от `SimpleFewShotHFTask` и зарегистрировать задачу в `TASK_REGISTRY`.
+Для уже запущенного endpoint используйте
+`benchmark/calculate_benchmark_existing_api.py`.
 
-```python
-from llmtf.base import SimpleFewShotHFTask
-from llmtf.metrics import mean
+## Результаты и ошибки
 
+На каждую задачу создаются:
 
-class MyTask(SimpleFewShotHFTask):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._max_task_new_tokens = 512
+- `<task>.jsonl` — JSON array с per-sample результатами;
+- `<task>_params.jsonl` — sanitized run config и fingerprint;
+- `<task>_total.jsonl` — агрегаты и тот же fingerprint;
+- `evaluation_results.txt` и `evaluation_log.txt`.
 
-    def dataset_args(self):
-        return {"path": "my_dataset", "name": "default"}
+Кеш используется только при совпадении fingerprint. Частичная backend-ошибка
+даёт ненулевой exit code и не создаёт новый total. Подробнее:
+[`docs/results.md`](docs/results.md).
 
-    def create_messages(self, sample, with_answer=False):
-        messages = [{"role": "user", "content": sample["question"]}]
-        if with_answer:
-            messages.append({"role": "assistant", "content": sample["answer"]})
-        return messages
+Сводную Markdown-таблицу можно построить так:
 
-    def evaluate(self, sample, prediction):
-        return {"accuracy": int(sample["answer"] == prediction)}
-
-    def aggregation(self):
-        return {"accuracy": mean}
+```bash
+python show_results.py \
+  --log_dir /results/models \
+  --output_dir /results/report \
+  --benchmark_config benchmark/config_balanced.yaml \
+  --category_path benchmark/categories.json
 ```
 
-Примеры notebooks находятся в `examples/`.
+## Архитектура и расширение
 
-## Замечания
+Основной путь: `BaseLLM -> LLM -> Backend`. `LLM` владеет reasoning dispatch,
+backend выполняет только primitives. Старые model facades удалены и не должны
+возвращаться. Описание компонентов: [`docs/architecture.md`](docs/architecture.md).
 
-- Квантизация поддерживается экспериментально и может требовать отдельной проверки.
-- PPL в текущей реализации считается для локальных моделей как средний logprob без экспоненцирования.
+Новая задача наследует `SimpleFewShotHFTask`, задаёт
+`_max_task_new_tokens`, dataset/split methods, `create_messages`, `evaluate` и
+`aggregation`, затем регистрируется в `llmtf/tasks/__init__.py`.
+Минимальная задача на локальном датасете, программный запуск и небольшой
+benchmark YAML находятся в [`examples/`](examples/README.md).
 
-## Лицензия
+LLM-as-a-Judge запускается отдельным pipeline, описанным в
+[`docs/llmaaj.md`](docs/llmaaj.md).
 
-Проект распространяется под открытой лицензией. См. файл `LICENSE`, если он присутствует в поставке.
+## Проверка изменений
+
+```bash
+python3 tests/test_refactor_logic.py
+python3 -m unittest discover -s tests -p 'test_*.py'
+python3 -m compileall -q llmtf evaluate_model.py evaluate_model_api.py benchmark show_results.py dev/tools examples
+git diff --check
+```
+
+Успешные unit-тесты не заменяют GPU/API smoke после изменения runtime,
+контейнеров, reasoning или backend payload.
+
+## Документация
+
+Навигация по документации находится в [`docs/README.md`](docs/README.md).

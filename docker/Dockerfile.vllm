@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1.7
+
+# Build docker/Dockerfile.hf first or point this argument at an equivalent
+# published HF image. This keeps the vLLM profile a strict extension of HF.
+ARG HF_BASE_IMAGE=llmtf:hf-cu129
+FROM ${HF_BASE_IMAGE} AS vllm
+
+ARG PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu129
+ARG VLLM_WHEEL_URL=https://github.com/vllm-project/vllm/releases/download/v0.21.0/vllm-0.21.0+cu129-cp38-abi3-manylinux_2_34_x86_64.whl
+
+ENV PIP_CONSTRAINT=/tmp/requirements/constraints-cu129.txt
+
+COPY requirements/profiles/constraints-cu129.txt /tmp/requirements/constraints-cu129.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install \
+        "${VLLM_WHEEL_URL}" \
+        --extra-index-url "${PYTORCH_INDEX_URL}" \
+    && command -v nvcc \
+    && python -m pip check \
+    && python -c "import causal_conv1d, fla, flash_attn, numpy, torch, transformers, vllm; assert int(numpy.__version__.split('.')[0]) == 2; assert torch.version.cuda.startswith('12.9'); assert vllm.__version__ == '0.21.0'"
+
+LABEL org.opencontainers.image.title="llmtf vLLM CUDA environment" \
+      org.opencontainers.image.description="LLMTF vLLM backend extending the HF CUDA 12.9 image" \
+      org.opencontainers.image.profile="vllm"
+
+WORKDIR /workdir
+CMD ["/bin/bash"]

@@ -1,0 +1,3 @@
+-r common.txt
+
+# Keep this profile free of torch, transformers, vLLM and CUDA packages.

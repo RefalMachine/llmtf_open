@@ -1,0 +1,25 @@
+model:
+  model_kind: plain
+  enable_thinking: false
+  model_context_len: 8192
+  api_profile: vllm
+
+defaults:
+  evaluation:
+    few_shot_count: 0
+    batch_size: 8
+    max_sample_per_dataset: 8
+  generation:
+    temperature: 0.0
+    repetition_penalty: 1.0
+    presence_penalty: 0.0
+    num_return_sequences: 1
+
+tasks:
+  - name: classification
+    datasets:
+      - russiannlp/rucola_custom
+
+  - name: generation
+    datasets:
+      - darumeru/flores_ru_en

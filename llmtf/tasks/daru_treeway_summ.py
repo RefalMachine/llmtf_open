@@ -1,4 +1,4 @@
-from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
 from sklearn.metrics import matthews_corrcoef
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -99,8 +99,8 @@ class DaruTreewayExtractive(Task):
     def prompt_split_name(self) -> str:
         return 'prompt'
 
-    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, **kwargs) -> Tuple[List[Dict], List[Dict]]:
-        assert model.support_method(self.method)
+    def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, **kwargs) -> Tuple[List[Dict], List[Dict]]:
+        self.require_model_method(model)
 
         samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset)
         messages = [{'messages': s['messages']} for s in samples]
@@ -108,7 +108,7 @@ class DaruTreewayExtractive(Task):
 
         return messages, samples
 
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
@@ -123,15 +123,15 @@ class DaruTreewayExtractive(Task):
                 samples.append({'messages': messages_group[j], 'sample': samples_group[j]})
         return samples
         
-    def _prepare_messages(self, sample: Dict, model: LLM, max_prompt_len: int) -> List:
+    def _prepare_messages(self, sample: Dict, model: BaseLLM, max_prompt_len: int) -> List:
         messages_group = []
         samples_group = []
         for sentence in sample['src_sents']:
             s = copy.deepcopy(sample)
             s['sentence'] = sentence
             zero_shot_messages = self.create_messages(s)
-            zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-            if zero_shot_messages_len >= max_prompt_len:
+            zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
+            if zero_shot_messages_len is not None and zero_shot_messages_len >= max_prompt_len:
                 self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
 
             messages_group.append(zero_shot_messages)

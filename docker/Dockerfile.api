@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1.7
+
+ARG PYTHON_VERSION=3.12
+
+FROM python:${PYTHON_VERSION}-slim-bookworm AS api-builder
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv "${VIRTUAL_ENV}"
+
+COPY requirements/profiles/common.txt requirements/profiles/api.txt /tmp/requirements/
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --upgrade pip setuptools wheel \
+    && python -m pip install -r /tmp/requirements/api.txt \
+    && python -m pip check
+
+
+FROM python:${PYTHON_VERSION}-slim-bookworm AS api
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=api-builder /opt/venv /opt/venv
+
+RUN python -m pip check \
+    && python -c "import datasets, numpy, pandas, requests, sklearn; assert int(numpy.__version__.split('.')[0]) == 2"
+
+LABEL org.opencontainers.image.title="llmtf API-only environment" \
+      org.opencontainers.image.description="CPU-only LLMTF dependencies without torch, vLLM or CUDA" \
+      org.opencontainers.image.profile="api"
+
+WORKDIR /workdir
+CMD ["/bin/bash"]

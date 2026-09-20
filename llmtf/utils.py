@@ -3,13 +3,38 @@ import os
 import codecs
 import time
 import logging
-import json 
+import json
 import copy
 import re
 
+
+CANONICAL_MESSAGE_ROLES = frozenset({'system', 'user', 'assistant'})
+
+
+def normalize_message_roles(messages):
+    """Return a copy of chat messages using the framework's canonical roles.
+
+    Some historical datasets use ``bot`` for assistant messages.  Accept that
+    spelling only at the task-data boundary and normalize it immediately so
+    backends, reasoning orchestration and result artifacts all see
+    ``assistant``.
+    """
+    normalized = []
+    for message in messages:
+        if not isinstance(message, dict):
+            raise TypeError("Each chat message must be a dict")
+        item = copy.deepcopy(message)
+        if item.get('role') == 'bot':
+            item['role'] = 'assistant'
+        role = item.get('role')
+        if role not in CANONICAL_MESSAGE_ROLES:
+            raise ValueError(f"Unknown message role {role!r}")
+        normalized.append(item)
+    return normalized
+
 def set_out_handler_to_main_logger(output_dir):
     if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
 
     default_log_name = 'evaluation_log.txt'
     logger = logging.getLogger('llmtf')
@@ -27,42 +52,33 @@ def set_out_handler_to_main_logger(output_dir):
 def remove_image(sample, messages):
     safe_sample = sample.copy()
     safe_sample.pop('image', None)
-    
-    if not messages:
-        return messages
-    
+    if isinstance(safe_sample.get('messages'), list):
+        safe_sample['messages'] = normalize_message_roles(
+            safe_sample['messages']
+        )
+
+    # Backends may return either the rendered prompt string or the original
+    # chat messages.  Only structured chat content can contain image payloads.
+    if not messages or isinstance(messages, str):
+        return safe_sample, messages
+
+    single_message = isinstance(messages, dict)
+    message_items = [messages] if single_message else messages
     safe_messages = []
-    for msg in messages:
+    for msg in message_items:
+        if not isinstance(msg, dict):
+            safe_messages.append(msg)
+            continue
         safe_msg = msg.copy()
+        if safe_msg.get('role') == 'bot':
+            safe_msg['role'] = 'assistant'
         if isinstance(safe_msg.get('content'), list):
             safe_msg['content'] = [
-                item for item in safe_msg['content'] 
-                if item.get('type') != 'image_url'
+                item for item in safe_msg['content']
+                if not isinstance(item, dict) or item.get('type') != 'image_url'
             ]
         safe_messages.append(safe_msg)
-    return safe_sample, safe_messages
-
-class SimpleTaskLogger():
-    def __init__(self, output_dir, task_name, append=False):
-        self.output_dir = output_dir
-        self.task_name = task_name.replace('/', '_')
-        self.append = append
-
-    def __enter__(self):
-        if not os.path.exists(self.output_dir):
-            os.mkdir(self.output_dir)
-        self.file = codecs.open(os.path.join(self.output_dir, self.task_name + '.jsonl'), 'a' if self.append else 'w', 'utf-8')
-        return self
- 
-    def __exit__(self, *args):
-        self.file.close()
-
-    def log_sample(self, sample, pred, prompt, metric, info):
-        sample, prompt = remove_image(sample, prompt)
-        self.log_json({'metric': metric, 'predict': pred, 'sample': sample, 'prompt': prompt, 'info': info})
-    
-    def log_json(self, json_data, indent=4):
-        self.file.write(json.dumps(json_data, ensure_ascii=False, indent=indent) + '\n')
+    return safe_sample, safe_messages[0] if single_message else safe_messages
 
 class CustomTimer():
     def __init__(self, logger, prefix):
@@ -82,44 +98,129 @@ class CustomTimer():
         self.logger.info(f'{self.prefix}: {time_passed:.2f}s')
 
 class MaxLenContext():
-    def __init__(self, task, model, max_prompt_len, custom_generation_config):
+    """Computes effective budgets for a single turn from a single
+    configuration point of truth: model_context_len, task answer budget
+    (task._max_task_new_tokens), and the reasoning upper/floor bounds on
+    model.reasoning_config.
+
+    Effective values derived per call:
+      - answer_new_tokens: tokens reserved for the model's final answer
+        (= task._max_task_new_tokens, or custom_generation_config.max_new_tokens
+        if provided).
+      - reasoning_eff: tokens reserved for the reasoning phase. Initialized
+        to the upper bound (rc.max_new_tokens_reasoning) and trimmed down
+        to fit the deployed model_context_len; never trimmed below the floor
+        (rc.min_new_tokens_reasoning) — if the floor cannot be reserved,
+        reasoning is SKIPPED for this turn (one-pass, loud warning).
+      - pre_turn_tokens: tokens available for the prompt BEFORE the turn
+        (= model_context_len - answer_new_tokens - reasoning_eff). This is the
+        value returned to the caller (few-shot truncation uses it as the upper
+        bound on prompt token count for each sample).
+
+    Future multi-turn extension: each turn re-opens MaxLenContext with the
+    actual cumulative tokens_consumed_so_far + answer/reasoning budgets for
+    THAT turn — no pre-computed budget across all upcoming turns.
+    """
+    def __init__(self, task, model, custom_generation_config,
+                 reasoning_enabled=None, scoring_method="generate"):
         self.task = task
         self.model = model
-        self.max_prompt_len = max_prompt_len
         self.logger = logging.getLogger(__name__ + '.MaxLenContext')
-        self.saved_max_new_tokens = self.model.generation_config.max_new_tokens
+        self.custom_generation_config = custom_generation_config
+        self.target_generation_config = custom_generation_config or model.generation_config
+        self.saved_max_new_tokens = self.target_generation_config.max_new_tokens
+        self.scoring_method = scoring_method
         self.reasoning = False
-        if hasattr(self.model.generation_config, "max_new_tokens_reasoning"):
-            self.saved_max_new_tokens_reasoning = self.model.generation_config.max_new_tokens_reasoning
+        self.skipped_reasoning = False
+        self.effective_reasoning_tokens = 0
+        rc = getattr(self.model, 'reasoning_config', None)
+        if reasoning_enabled is None:
+            # Compatibility for direct callers. Evaluator passes a normalized
+            # execution mode and never relies on this inference.
+            reasoning_enabled = bool(rc is not None and rc.is_reasoning)
+        self.reasoning_enabled = (
+            bool(reasoning_enabled) and scoring_method != "calculate_logsoftmax"
+        )
+        self.effective_enable_thinking = self.reasoning_enabled
+        if rc is not None and self.reasoning_enabled:
             self.reasoning = True
+            self.saved_max_new_tokens_reasoning = rc.max_new_tokens_reasoning
         else:
             self.saved_max_new_tokens_reasoning = 0
-        self.custom_generation_config = custom_generation_config
 
     def __enter__(self):
-        model_max_len = self.model.get_max_model_len()
-        max_prompt_len = self.max_prompt_len
+        model_context_len = self.model.get_model_context_len()
+        answer_new_tokens = (
+            self.task.max_task_new_tokens
+            if self.custom_generation_config is None
+            else self.target_generation_config.max_new_tokens
+        )
+        available_for_prompt_and_reasoning = model_context_len - answer_new_tokens
+        if available_for_prompt_and_reasoning <= 0:
+            raise ValueError(
+                f"model_context_len ({model_context_len}) is too small for this task's "
+                f"answer budget ({answer_new_tokens}). Lower --max_new_tokens on this task, "
+                f"or use a model with larger context (raise --model_context_len)."
+            )
 
-        max_new_tokens = self.task.max_task_new_tokens if self.custom_generation_config is None else self.custom_generation_config.max_new_tokens
-        max_new_tokens_reasoning = self.saved_max_new_tokens_reasoning
-
-        if model_max_len < max_prompt_len + max_new_tokens + max_new_tokens_reasoning:
-            self.logger.warning(f'model_max_len ({model_max_len}) < max_prompt_len ({self.max_prompt_len}) + max_new_tokens ({max_new_tokens})' + (f' + max_new_tokens_reasoning ({max_new_tokens_reasoning})' if self.reasoning else ''))
-            if self.reasoning:
-                max_new_tokens_reasoning = max(model_max_len - max_prompt_len - max_new_tokens, 0)
-                self.logger.warning(f'Lowering max_new_tokens_reasoning to {max_new_tokens_reasoning}')
-            if not self.reasoning or model_max_len < max_prompt_len + max_new_tokens + max_new_tokens_reasoning:
-                max_prompt_len = model_max_len - max_new_tokens
-                self.logger.warning(f'Lowering max_prompt_len to {max_prompt_len}')
-                
-        self.model.generation_config.max_new_tokens = max_new_tokens
+        # Default: skip reasoning (plain turn or reasoning budget already
+        # available elsewhere). If the model is reasoning/hybrid, try to
+        # reserve the full upper bound first; trim down if that would leave no
+        # room for the prompt; if even the floor cannot be reserved, skip
+        # reasoning for this turn (one-pass, loud warning).
+        reasoning_eff = 0
         if self.reasoning:
-            self.model.generation_config.max_new_tokens_reasoning = max_new_tokens_reasoning
-        return max_prompt_len
+            rc = self.model.reasoning_config
+            upper = rc.max_new_tokens_reasoning
+            floor = rc.min_new_tokens_reasoning
+            reasoning_eff = min(
+                upper, max(0, available_for_prompt_and_reasoning - 1)
+            )
+            if reasoning_eff == 0 or reasoning_eff < floor:
+                if rc.model_kind.value == "reasoning":
+                    raise ValueError(
+                        f"Strict reasoning requires at least {floor} reasoning tokens, "
+                        f"but model_context_len={model_context_len} and answer budget="
+                        f"{answer_new_tokens} leave only "
+                        f"{max(0, available_for_prompt_and_reasoning - 1)} while "
+                        f"preserving a positive prompt budget."
+                    )
+                self.logger.warning(
+                    f"reasoning budget would be {reasoning_eff} (< floor {floor}); "
+                    f"reasoning SKIPPED for this task — model runs one-pass with "
+                    f"enable_thinking=False. To enable reasoning, lower "
+                    f"--max_new_tokens on this task, or raise --model_context_len."
+                )
+                reasoning_eff = 0
+                self.skipped_reasoning = True
+                self.effective_enable_thinking = False
+            elif reasoning_eff < upper:
+                self.logger.warning(
+                    f"Lowering max_new_tokens_reasoning from upper bound {upper} "
+                    f"to {reasoning_eff} to fit model_context_len={model_context_len}, "
+                    f"answer_new_tokens={answer_new_tokens}."
+                )
+
+        pre_turn_tokens = model_context_len - answer_new_tokens - reasoning_eff
+        if pre_turn_tokens <= 0:
+            raise ValueError(
+                f"model_context_len ({model_context_len}) is too small for this task: "
+                f"answer_new_tokens={answer_new_tokens}, reasoning_eff={reasoning_eff} "
+                f"leave no room for the prompt. Lower the answer budget, disable "
+                f"reasoning, or use a model with larger context."
+            )
+
+        self.target_generation_config.max_new_tokens = answer_new_tokens
+        if self.reasoning:
+            self.model.reasoning_config.max_new_tokens_reasoning = reasoning_eff
+        self.effective_reasoning_tokens = reasoning_eff
+
+        return pre_turn_tokens
 
     def __exit__(self, *args):
-        self.model.generation_config.max_new_tokens = self.saved_max_new_tokens
-        self.model.generation_config.max_new_tokens_reasoning = self.saved_max_new_tokens_reasoning
+        self.target_generation_config.max_new_tokens = self.saved_max_new_tokens
+        if self.reasoning:
+            self.model.reasoning_config.max_new_tokens_reasoning = self.saved_max_new_tokens_reasoning
 
 
 def calculate_offset_mapping_llama3_workaround(prompts, tokens, tokenizer):

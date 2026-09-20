@@ -1,9 +1,7 @@
-eval_results_all*
-test*
+/eval_results_all*
 __pycache__/
 *.pyc
-run_evaluate*
-dump*
+/dump*
 outputs/
 benchmark/balanced/
 benchmark/greedy/
@@ -13,4 +11,12 @@ benchmark/greedy_old/
 battles_raw
 benchmark/balanced*
 bench_logs_test/
-results.md
+/results.md
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+.env.*
+!.env.example

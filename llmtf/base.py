@@ -7,9 +7,7 @@ import os
 from datasets import load_dataset, Dataset
 from tqdm import tqdm
 from llmtf.metrics import mean
-
-#os.environ['VLLM_ATTENTION_BACKEND'] = 'XFORMERS'
-#os.environ['VLLM_USE_V1'] = '0'
+from llmtf.utils import normalize_message_roles
 
 class Base(abc.ABC):
     def __init__(self, **kwargs):
@@ -84,7 +82,21 @@ class Task(Base):
     def leaderboard_aggregation(self, metrics: Dict) -> float:
         return mean([metrics[m] for m in metrics])
 
-class LLM(Base):
+    def require_model_method(self, model):
+        if not model.support_method(self.method):
+            backend = getattr(model, 'backend', model)
+            raise NotImplementedError(
+                f"{type(backend).__name__} does not support task method "
+                f"{self.method!r} with the selected configuration"
+            )
+
+class BaseLLM(Base):
+    """Abstract public contract for an LLM (what evaluator/tasks depend on).
+
+    Concrete implementation lives in llmtf/llm.py as `LLM`, which composes a
+    Backend (llmtf/backends/) and runs reasoning orchestration on top.
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -104,16 +116,54 @@ class LLM(Base):
     def calculate_tokens_proba_batch(self, **kwargs):
         pass
 
-    @abstractmethod
-    def apply_model_prompt(self, **kwargs):
-        pass
+    def calculate_logsoftmax(self, **kwargs):
+        raise NotImplementedError("calculate_logsoftmax is an optional HF capability")
+
+    def calculate_logsoftmax_batch(self, **kwargs):
+        raise NotImplementedError("calculate_logsoftmax is an optional HF capability")
 
     @abstractmethod
     def support_method(self, **kwargs):
         pass
-    
-    @abstractmethod
+
+    def apply_model_prompt(self, **kwargs):
+        """Debug-only: render chat template to a string.
+
+        Optional: supported only on local backends (HF/vLLM). The API
+        backend has no local chat template and raises NotImplementedError.
+        Prefer count_tokens_for_messages for token-counting; an API backend
+        may return None when the server exposes no counter.
+        """
+        raise NotImplementedError(
+            "apply_model_prompt is supported only on local backends (HF/vLLM) "
+            "that render the chat template in-process; the API backend exposes "
+            "no chat-template rendering. Use count_tokens_for_messages directly "
+            "and handle an unavailable count (None)."
+        )
+
     def count_tokens_for_prompt(self, **kwargs):
+        """Debug-only: tokenize a bare string.
+
+        Optional: supported only on local backends (HF/vLLM). The API
+        backend has no local tokenizer and raises NotImplementedError.
+        """
+        raise NotImplementedError(
+            "count_tokens_for_prompt is supported only on local backends (HF/vLLM) "
+            "that have a local tokenizer; the API backend has no local tokenizer. "
+            "Use count_tokens_for_messages on messages."
+        )
+
+    @abstractmethod
+    def add_stop_strings(self, stop_strings):
+        pass
+
+    @abstractmethod
+    def reset_stop_strings(self):
+        pass
+
+    @abstractmethod
+    def count_tokens_for_messages(self, **kwargs):
+        """Unified token-count contract: messages in, int or None out."""
         pass
 
     @abstractmethod
@@ -121,7 +171,15 @@ class LLM(Base):
         pass
 
     @abstractmethod
-    def get_max_model_len(self):
+    def get_model_context_len(self):
+        """Deployed model context length (engine ceiling / HF config /
+        server max_model_len), possibly overridden via --model_context_len."""
+        pass
+
+    @property
+    @abstractmethod
+    def reasoning_config(self):
+        """ReasoningConfig (model_kind, max_new_tokens_reasoning, fmt)."""
         pass
 
 class SimpleFewShotHFTask(Task):
@@ -144,8 +202,8 @@ class SimpleFewShotHFTask(Task):
     def prompt_dataset_start_idx(self) -> int:
         return 0
 
-    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
-        assert model.support_method(self.method)
+    def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+        self.require_model_method(model)
 
         samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count)
         messages = [{'messages': s['messages']} for s in samples]
@@ -156,7 +214,7 @@ class SimpleFewShotHFTask(Task):
                 m['tokens_of_interest'] = self.choices
         return messages, samples
     
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
@@ -174,23 +232,32 @@ class SimpleFewShotHFTask(Task):
             samples.append({'messages': self._prepare_messages(sample, model, max_prompt_len, few_shot_count, prompt_dataset), 'sample': sample})
         return samples
         
-    def _prepare_messages(self, sample: Dict, model: LLM, max_prompt_len: int, few_shot_count: int, prompt_dataset: Dataset) -> List:
+    def _prepare_messages(self, sample: Dict, model: BaseLLM, max_prompt_len: int, few_shot_count: int, prompt_dataset: Dataset) -> List:
         k = min(few_shot_count, len(prompt_dataset))
 
-        zero_shot_messages = self.create_messages(copy.deepcopy(sample), with_answer=False)
-        zero_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(zero_shot_messages))
-        if zero_shot_messages_len >= max_prompt_len:
+        zero_shot_messages = normalize_message_roles(
+            self.create_messages(copy.deepcopy(sample), with_answer=False)
+        )
+        zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
+        if zero_shot_messages_len is not None and zero_shot_messages_len >= max_prompt_len:
             self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
 
-        message_groups = [self.create_messages(copy.deepcopy(prompt_dataset[i]), with_answer=True) for i in range(k-1, -1, -1)]
+        message_groups = [
+            normalize_message_roles(
+                self.create_messages(
+                    copy.deepcopy(prompt_dataset[i]), with_answer=True
+                )
+            )
+            for i in range(k-1, -1, -1)
+        ]
         message_groups.append(zero_shot_messages)
         
         for i in range(k):
             messages = []
             for group in message_groups[i:]:
                 messages += group
-            few_shot_messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
-            if few_shot_messages_len < max_prompt_len:
+            few_shot_messages_len = model.count_tokens_for_messages(messages)
+            if few_shot_messages_len is None or few_shot_messages_len < max_prompt_len:
                 return messages
         else:
             return zero_shot_messages

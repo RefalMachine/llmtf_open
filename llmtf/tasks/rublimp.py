@@ -1,4 +1,4 @@
-from llmtf.base import SimpleFewShotHFTask, LLM
+from llmtf.base import SimpleFewShotHFTask, BaseLLM
 from typing import List, Dict, Tuple
 from tqdm import tqdm
 from datasets import load_dataset, Dataset
@@ -61,8 +61,8 @@ class RuBlimpClassify(SimpleFewShotHFTask):
         messages.append({'role': 'assistant', 'content': bot_content})
         return messages
 
-    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
-        assert model.support_method(self.method)
+    def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+        self.require_model_method(model)
 
         samples = []
         dataset_args_generator = self.dataset_args()
@@ -73,7 +73,7 @@ class RuBlimpClassify(SimpleFewShotHFTask):
 
         return messages, samples
     
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
         samples = []
         dataset = load_dataset(**dataset_args)
         test_dataset = dataset[self.test_split_name()]
@@ -171,8 +171,8 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         messages.append({'role': 'assistant', 'content': bot_content})
         return messages
     
-    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
-        assert model.support_method(self.method)
+    def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+        self.require_model_method(model)
 
         samples = []
         dataset_args_generator = self.dataset_args()
@@ -183,7 +183,7 @@ class RuBlimpChoice(SimpleFewShotHFTask):
 
         return messages, samples
     
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, dataset_args) -> List:
         samples = []
         dataset = load_dataset(**dataset_args)
         test_dataset = dataset[self.test_split_name()]

@@ -5,7 +5,7 @@ import re
 from datasets import load_dataset, Dataset
 from tqdm import tqdm
 import os
-from llmtf.base import SimpleFewShotHFTask, LLM
+from llmtf.base import SimpleFewShotHFTask, BaseLLM
 from llmtf.metrics import mean
 from pathlib import Path
 import sys
@@ -136,7 +136,7 @@ class RuIFEvalTask(SimpleFewShotHFTask):
     def leaderboard_aggregation(metrics: Dict) -> float:
         return metrics['prompt_level_accuracy']
     
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         """Load and prepare ruIFEval dataset from JSONL files."""
         data_path = Path(self.dataset_args()['path'])
         

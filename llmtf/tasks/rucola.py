@@ -1,4 +1,4 @@
-from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
 from sklearn.metrics import matthews_corrcoef
 from tqdm import tqdm
 from typing import Dict, List, Tuple

@@ -1,0 +1,11 @@
+# One binary-compatible CUDA/PyTorch line for both HF and vLLM images.
+numpy>=2,<2.3
+datasets<4
+torch==2.11.0+cu129
+torchvision==0.26.0+cu129
+torchaudio==2.11.0+cu129
+transformers==5.9.0
+vllm==0.21.0
+flash-attn==2.7.4.post1
+flash-linear-attention==0.4.0
+causal-conv1d==1.6.2.post1

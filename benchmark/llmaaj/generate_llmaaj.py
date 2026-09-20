@@ -1,6 +1,4 @@
 import argparse
-from llmtf.model import ApiVLLMModel
-from llmtf.evaluator import Evaluator
 import os
 import json
 import codecs
@@ -18,20 +16,23 @@ if __name__ == '__main__':
     parser.add_argument('--api_key')
     parser.add_argument('--model_name')
     parser.add_argument('--benchmark_name')
-    parser.add_argument('--disable_thinking', action='store_true')
     parser.add_argument('--disable_filtering_think_block', action='store_true')
     parser.add_argument('--max_new_tokens', type=int, default=4096)
     parser.add_argument('--temperature', type=float, default=0.0)
     parser.add_argument('--repetition_penalty', type=float, default=1.05)
     parser.add_argument('--presence_penalty', type=float, default=0.0)
     args = parser.parse_args()
+
+    from llmtf.backends import APIBackend
+    from llmtf.llm import LLM
     
     assert os.getcwd().endswith('llmtf_open')
 
-    os.environ['OPENAI_API_KEY'] = args.api_key
-    evaluator = Evaluator()
-    
-    model = ApiVLLMModel(args.base_url, enable_thinking=not args.disable_thinking)
+    if args.api_key is not None:
+        os.environ['OPENAI_API_KEY'] = args.api_key
+    elif not os.environ.get('OPENAI_API_KEY'):
+        parser.error('set OPENAI_API_KEY or pass --api_key for a local placeholder')
+    model = LLM(backend=APIBackend(api_base=args.base_url))
     model.from_pretrained(args.model_name_or_path)
     
     model.generation_config.temperature = args.temperature

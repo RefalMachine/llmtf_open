@@ -8,12 +8,40 @@ import os
 from datasets import load_dataset, Dataset
 from typing import Dict, List, Tuple
 from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score, llm_judge_accuracy, llm_judge_instruction_ru
-import transformers.data.metrics.squad_metrics as squad_metrics
 import re
-from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
 from difflib import SequenceMatcher 
 import pandas as pd
 import string
+
+
+def _normalize_squad_answer(text):
+    def remove_articles(value):
+        return re.sub(r'\b(a|an|the)\b', ' ', value)
+    return ' '.join(
+        remove_articles(
+            ''.join(ch for ch in text.lower() if ch not in string.punctuation)
+        ).split()
+    )
+
+
+def _squad_exact(prediction, ground_truth):
+    return int(_normalize_squad_answer(prediction) == _normalize_squad_answer(ground_truth))
+
+
+def _squad_f1(prediction, ground_truth):
+    prediction_tokens = _normalize_squad_answer(prediction).split()
+    ground_truth_tokens = _normalize_squad_answer(ground_truth).split()
+    common = set(prediction_tokens) & set(ground_truth_tokens)
+    shared = sum(min(prediction_tokens.count(token), ground_truth_tokens.count(token))
+                 for token in common)
+    if not prediction_tokens or not ground_truth_tokens:
+        return float(prediction_tokens == ground_truth_tokens)
+    if shared == 0:
+        return 0.0
+    precision = shared / len(prediction_tokens)
+    recall = shared / len(ground_truth_tokens)
+    return 2 * precision * recall / (precision + recall)
 
 class DarumeruTask(SimpleFewShotHFTask):
     DARUMERU_HF_PATH = 'RefalMachine/darumeru'
@@ -36,9 +64,6 @@ class DarumeruTask(SimpleFewShotHFTask):
         inputs = sample['inputs']
         for m in messages:
             m['content'] = m['content'].format(**inputs)
-            if m['role'] == 'bot':
-                m['role'] = 'assistant'
-            assert m['role'] in ['user', 'system', 'assistant'], f"Unknown role {m['role']}"
         return messages
 
 class CopyText(DarumeruTask):
@@ -107,7 +132,7 @@ class CopyText(DarumeruTask):
             "lcs": lcs_metric,
         }
 
-    def load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, **kwargs) -> Tuple[List[Dict], List[Dict]]:
+    def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, **kwargs) -> Tuple[List[Dict], List[Dict]]:
         self.model_tokenizer = model.tokenizer
         self.model_leading_space = model.leading_space
         return super().load_dataset(model, max_prompt_len=max_prompt_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count, **kwargs)
@@ -130,8 +155,8 @@ class MultiQ(DarumeruTask):
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = [answer["segment"] for answer in sample['outputs']]
-        f1 = metric_max_over_ground_truths(squad_metrics.compute_f1, y_pred, y_true)
-        em = metric_max_over_ground_truths(squad_metrics.compute_exact, y_pred, y_true)
+        f1 = metric_max_over_ground_truths(_squad_f1, y_pred, y_true)
+        em = metric_max_over_ground_truths(_squad_exact, y_pred, y_true)
 
         return {
             "f1": f1,
@@ -151,8 +176,8 @@ class MultiQLLMJudge(MultiQ):
         y_true = [answer["segment"] for answer in sample['outputs']]
 
         llm_judge_acc = metric_max_over_ground_truths(lambda x, y: llm_judge_accuracy(self.model, y, x, instruction=self.llm_judge_instruction), y_pred, y_true)
-        f1 = metric_max_over_ground_truths(squad_metrics.compute_f1, y_pred, y_true)
-        em = metric_max_over_ground_truths(squad_metrics.compute_exact, y_pred, y_true)
+        f1 = metric_max_over_ground_truths(_squad_f1, y_pred, y_true)
+        em = metric_max_over_ground_truths(_squad_exact, y_pred, y_true)
         return {
             "llm_judge_accuracy": llm_judge_acc,
             "f1": f1,
@@ -204,7 +229,7 @@ class PARus(DarumeruTask):
         sample['inputs']['choice2'] = c1
         return sample
 
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
@@ -344,7 +369,7 @@ class ruTiE(DarumeruTask):
         y_pred = sorted([pair for pair in y_pred.items()], key=lambda x: -x[1])[0][0]
         return {"acc": {'val': y_true == y_pred, 'id': sample['meta']['question_id']}}
 
-    def _load_dataset(self, model: LLM, max_len: int, max_sample_per_dataset: int, *args, **kwargs) -> List:
+    def _load_dataset(self, model: BaseLLM, max_len: int, max_sample_per_dataset: int, *args, **kwargs) -> List:
         dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
         samples = self._prepare_messages(test_dataset, model, max_len, max_sample_per_dataset)
@@ -357,7 +382,7 @@ class ruTiE(DarumeruTask):
         sample['inputs']['choice2'] = c1
         return sample
 
-    def _prepare_messages(self, samples: Dataset, model: LLM, max_len: int, max_sample_per_dataset: int) -> List:
+    def _prepare_messages(self, samples: Dataset, model: BaseLLM, max_len: int, max_sample_per_dataset: int) -> List:
         samples = sorted(samples, key=lambda x: x['meta']['question_id'])
         all_dataset_messages = []
         dialog_shift = 0
@@ -378,15 +403,15 @@ class ruTiE(DarumeruTask):
             
             sample['inputs']['context'] = "\n".join(context)
             messages = self.create_messages(copy.deepcopy(sample)) #self.apply_inputs(sample['messages'], sample.get('inputs', {}))
-            messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
-            while messages_len >= max_len:
+            messages_len = model.count_tokens_for_messages(messages)
+            while messages_len is not None and messages_len >= max_len:
                 context = context[1:]
                 sample['inputs']['context'] = "\n".join(context)
                 messages = self.create_messages(copy.deepcopy(sample))#self.apply_inputs(sample['messages'], sample.get('inputs', {}))
-                messages_len = model.count_tokens_for_prompt(model.apply_model_prompt(messages))
+                messages_len = model.count_tokens_for_messages(messages)
                 dialog_shift += 1
 
-            if messages_len >= max_len:
+            if messages_len is not None and messages_len >= max_len:
                 self.logger.warning(f'WARNING: messages_len >= max_len')
                 pass
 

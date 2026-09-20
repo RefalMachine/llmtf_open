@@ -1,4 +1,4 @@
-from llmtf.base import Task, SimpleFewShotHFTask, LLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
 from sklearn.metrics import matthews_corrcoef
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -51,7 +51,7 @@ class HabrQASbS(SimpleFewShotHFTask):
         dataset = dataset.add_column('outputs', outputs)
         return dataset
 
-    def _load_dataset(self, model: LLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> List:
         samples = []
         dataset = self._convert_dataset(load_dataset(**self.dataset_args()))
 

@@ -1,3 +1,7 @@
+model:
+  model_kind: plain
+  enable_thinking: false
+
 defaults:
   generation:
     temperature: 0.3
@@ -11,7 +15,6 @@ tasks:
       - rusbeirrag/rubqqa_llmaaj
       - rusbeirrag/rubqqa_data_first_llmaaj
     few_shot_count: 0
-    max_prompt_len: 16000
     max_sample_per_dataset: 5000
 
   - name: rag_rus_tydiqa
@@ -19,7 +22,6 @@ tasks:
       - rusbeirrag/rus_tydiqa_llmaaj
       - rusbeirrag/rus_tydiqa_data_first_llmaaj
     few_shot_count: 0
-    max_prompt_len: 16000
     max_sample_per_dataset: 5000
 
   - name: rag_sberquadqa
@@ -27,7 +29,6 @@ tasks:
       - rusbeirrag/sberquadqa_llmaaj
       - rusbeirrag/sberquadqa_data_first_llmaaj
     few_shot_count: 0
-    max_prompt_len: 16000
     max_sample_per_dataset: 5000
 
   - name: rag_xquadqa
@@ -35,7 +36,6 @@ tasks:
       - rusbeirrag/rus_xquadqa_llmaaj
       - rusbeirrag/rus_xquadqa_data_first_llmaaj
     few_shot_count: 0
-    max_prompt_len: 16000
     max_sample_per_dataset: 5000
 
   - name: translation
@@ -66,10 +66,8 @@ tasks:
       - Mykes/patient_queries_ner-(json)
       - RCC-MSU/collection3-(json)
     few_shot_count: 3
-    max_prompt_len: 8000
     name_suffix: few_shot
-    extra_args:
-      think: false
+    enable_thinking: false
 
   - name: ner_in-place
     datasets:
@@ -78,10 +76,8 @@ tasks:
       - Mykes/patient_queries_ner-(in-place)
       - RCC-MSU/collection3-(in-place)
     few_shot_count: 3
-    max_prompt_len: 8000
     name_suffix: few_shot
-    extra_args:
-      think: false
+    enable_thinking: false
 
   - name: nlpcoreteam_mmlu_ru_zero_shot
     datasets:
@@ -163,146 +159,124 @@ tasks:
     datasets:
       - libra/passkey
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_matreshka_yes_no
     datasets:
       - libra/matreshka_yes_no
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_matreshka_names
     datasets:
       - libra/matreshka_names
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_passkey_with_librusec
     datasets:
       - libra/passkey_with_librusec
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_librusec_history
     datasets:
       - libra/librusec_history
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_gsm100
     datasets:
       - libra/ru_gsm100
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_sci_passage_count
     datasets:
       - libra/ru_sci_passage_count
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_2wikimultihopqa
     datasets:
       - libra/ru_2wikimultihopqa
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_long_context_multiq
     datasets:
       - libra/long_context_multiq
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_sci_abstract_retrieval
     datasets:
       - libra/ru_sci_abstract_retrieval
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_trec
     datasets:
       - libra/ru_trec
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_sci_fi
     datasets:
       - libra/ru_sci_fi
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_librusec_mhqa
     datasets:
       - libra/librusec_mhqa
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_babilong_qa1
     datasets:
       - libra/ru_babilong_qa1
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_babilong_qa2
     datasets:
       - libra/ru_babilong_qa2
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_babilong_qa3
     datasets:
       - libra/ru_babilong_qa3
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_babilong_qa4
     datasets:
       - libra/ru_babilong_qa4
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_babilong_qa5
     datasets:
       - libra/ru_babilong_qa5
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_quality
     datasets:
       - libra/ru_quality
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_tpo
     datasets:
       - libra/ru_tpo
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
 
   - name: libra_ru_qasper
     datasets:
       - libra/ru_qasper
     few_shot_count: 0
-    max_prompt_len: 32000
     max_sample_per_dataset: 1000
-
