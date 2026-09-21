@@ -89,6 +89,15 @@ _stub_third_party()
 logging.basicConfig(level=logging.WARNING)
 
 
+def _load_task_source(relative_path, module_name):
+    spec = importlib.util.spec_from_file_location(
+        module_name, os.path.join(ROOT, relative_path)
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_imports_and_kind_enum():
     from llmtf.llm import LLM
     from llmtf.base import BaseLLM
@@ -695,6 +704,251 @@ def test_api_backend_apply_model_prompt_not_implemented():
     except NotImplementedError:
         raised_count = True
     assert raised_count, 'expected NotImplementedError from APIBackend.count_tokens_for_prompt'
+
+
+def test_task_prompt_budget_and_quota_helpers():
+    from llmtf.base import (
+        PromptTooLongError, distribute_sample_limit, ensure_prompt_fits,
+    )
+    assert distribute_sample_limit(8, 57).count(1) == 8
+    assert sum(distribute_sample_limit(8, 57)) == 8
+    assert sum(distribute_sample_limit(100, 45)) == 100
+    ensure_prompt_fits(None, 10, 'task')
+    ensure_prompt_fits(10, 10, 'task')
+    try:
+        ensure_prompt_fits(11, 10, 'task')
+        raise AssertionError('oversized prompt was accepted')
+    except PromptTooLongError as exc:
+        assert 'does not define a semantics-preserving truncation policy' in str(exc)
+
+
+def test_ruopinion_parser_never_executes_model_output():
+    module = _load_task_source(
+        'llmtf/tasks/ruopinionne.py', 'task_ruopinionne_test'
+    )
+    parsed = module.pred2opinions_default(
+        "{'Source': 'NULL', 'Target': 'x', 'Polarity': 'POS', "
+        "'Expression': ['x']}"
+    )
+    assert parsed[0]['Target'] == 'x'
+    assert module.pred2opinions_default(
+        "__import__('os').environ.clear()"
+    ) == []
+    assert module.pred2opinions_default('null') == []
+
+
+def test_ruparam_uses_canonical_message_roles():
+    module = _load_task_source('llmtf/tasks/ruparam.py', 'task_ruparam_test')
+    task = module.RuParam(instruction='{sent_lhs} / {sent_rhs}')
+    messages = task.create_messages(
+        {'gram': 'ok', 'ungram': 'bad', 'order': 's'}, with_answer=True
+    )
+    assert [message['role'] for message in messages] == ['user', 'assistant']
+
+
+def test_ruparam_normalises_inverse_rows_and_source_confusables():
+    module = _load_task_source(
+        'llmtf/tasks/ruparam.py', 'task_ruparam_normalise_test'
+    )
+    row = module._normalise_row({
+        'id': 'duplicate-id',
+        'gram': 'stored ungrammatical',
+        'ungram': 'stored grammatical',
+        'label': ' category ',
+        'source': 'torfl_С1',  # Cyrillic С in the source export.
+        'order': 'i',
+    }, 7)
+    assert row['gram'] == 'stored grammatical'
+    assert row['ungram'] == 'stored ungrammatical'
+    assert row['category'] == 'category'
+    assert row['source'] == 'torfl_C1'
+    assert row['part'] == 'torfl'
+    assert row['torfl_level'] == 'C1'
+    assert row['row_id'].startswith('7:')
+
+
+def test_ruparam_pair_accuracy_and_diagnostic_slices():
+    module = _load_task_source(
+        'llmtf/tasks/ruparam.py', 'task_ruparam_aggregation_test'
+    )
+
+    def result(row_id, presentation, correct, category, part, level=None):
+        return {
+            'row_id': row_id,
+            'presentation': presentation,
+            'correct': correct,
+            'category': category,
+            'source': 'torfl_A1' if part == 'torfl' else 'RuConst',
+            'part': part,
+            'torfl_level': level,
+            'identical_sentences': False,
+        }
+
+    results = [
+        result('0:digest', 'grammatical_first', True, 'agreement',
+               'torfl', 'A1'),
+        result('0:digest', 'grammatical_second', True, 'agreement',
+               'torfl', 'A1'),
+        # A different annotated row may have the same source id in the CSV;
+        # row_id, not that source id, is the aggregation identity.
+        result('1:digest', 'grammatical_first', True, 'island',
+               'parametric'),
+        result('1:digest', 'grammatical_second', False, 'island',
+               'parametric'),
+    ]
+    score, details = module.RuParam._aggregate_pair_accuracy(results)
+    assert score == 0.5
+    assert details['pair_count'] == 2
+    assert details['presentation_count'] == 4
+    assert details['category_macro_accuracy'] == 0.5
+    assert details['by_category']['agreement'] == {
+        'accuracy': 1.0, 'count': 1,
+    }
+    assert details['by_category']['island'] == {
+        'accuracy': 0.0, 'count': 1,
+    }
+    assert details['by_part']['torfl']['accuracy'] == 1.0
+    assert details['by_part']['parametric']['accuracy'] == 0.0
+    assert details['by_torfl_level']['A1']['count'] == 1
+
+
+def test_ruparam_loader_is_zero_shot_and_accepts_train_fallback():
+    module = _load_task_source(
+        'llmtf/tasks/ruparam.py', 'task_ruparam_loader_test'
+    )
+    task = module.RuParam(instruction='{sent_lhs} / {sent_rhs}')
+    try:
+        task._load_dataset(None, 100, 1, few_shot_count=1)
+        raise AssertionError('RuParam accepted a few-shot configuration')
+    except ValueError as exc:
+        assert 'few_shot_count=0' in str(exc)
+
+    class FakeDataset(list):
+        def select(self, indexes):
+            return FakeDataset([self[index] for index in indexes])
+
+    rows = FakeDataset([
+        {
+            'id': 'same-id', 'gram': 'good one', 'ungram': 'bad one',
+            'label': 'one', 'source': 'torfl_A1', 'order': 's',
+        },
+        {
+            'id': 'same-id', 'gram': 'bad two', 'ungram': 'good two',
+            'label': 'two', 'source': 'RuConst', 'order': 'i',
+        },
+    ])
+    module.load_dataset = lambda **kwargs: {'train': rows}
+    module.tqdm = lambda values: values
+
+    class FakeModel:
+        @staticmethod
+        def count_tokens_for_messages(messages):
+            return len(messages)
+
+    loaded = task._load_dataset(
+        FakeModel(), max_prompt_len=100, max_sample_per_dataset=2,
+        few_shot_count=0,
+    )
+    assert len(loaded) == 4
+    assert len({item['sample']['row_id'] for item in loaded}) == 2
+    assert loaded[2]['sample']['gram'] == 'good two'
+    assert loaded[2]['sample']['ungram'] == 'bad two'
+    assert [item['sample']['correct_choice'] for item in loaded] == [
+        '1', '2', '1', '2',
+    ]
+
+
+def test_shlepa_keeps_correct_answer_a():
+    module = _load_task_source('llmtf/tasks/shlepa.py', 'task_shlepa_test')
+    task = module.ShlepaSmallMMLU('example/dataset')
+    module.random.shuffle = lambda values: None
+    doc = {
+        'question': 'q', 'correct_answer': 'answerA',
+        'answerA': 'correct', 'answerB': 'b', 'answerC': 'c', 'answerD': 'd',
+    }
+    additional = {
+        f'answer{label}': [f'{label}{index}' for index in range(5)]
+        for label in 'ABCD'
+    }
+    result = task._helper(doc, additional)
+    assert result['gold'] == 'A'
+
+
+def test_shlepa_distractors_use_full_dataset_when_sample_limit_is_one():
+    module = _load_task_source('llmtf/tasks/shlepa.py', 'task_shlepa_limit_test')
+    task = module.ShlepaSmallMMLU('example/dataset')
+
+    class FakeDataset:
+        def __init__(self):
+            self.rows = [
+                {'id': index, 'answerA': f'a{index}'} for index in range(6)
+            ]
+        def __len__(self):
+            return len(self.rows)
+        def __getitem__(self, index):
+            if isinstance(index, list):
+                return {
+                    key: [self.rows[item][key] for item in index]
+                    for key in self.rows[0]
+                }
+            return self.rows[index]
+
+    distractors = task._get_additional_samples(0, FakeDataset())
+    assert distractors['id'] == [1, 2, 3, 4, 5]
+
+
+def test_rublimp_empty_prediction_is_incorrect_not_an_exception():
+    module = _load_task_source('llmtf/tasks/rublimp.py', 'task_rublimp_test')
+    classify = module.RuBlimpClassify(dataset_slices=['slice'])
+    choice = module.RuBlimpChoice(dataset_slices=['slice'])
+    assert classify.evaluate({'correct': True}, '')['acc'] is False
+    assert choice.evaluate({'swap': False}, None)['acc'] is False
+
+
+def test_copytext_rejects_backend_without_local_tokenizer_early():
+    module = _load_task_source('llmtf/tasks/darumeru.py', 'task_copytext_test')
+    task = module.CopyText(subtask='sent', lang='ru')
+    model = type('APIModel', (), {'backend': object()})()
+    try:
+        task.load_dataset(
+            model, max_prompt_len=100, max_sample_per_dataset=1,
+            few_shot_count=0,
+        )
+        raise AssertionError('CopyText accepted a backend without a tokenizer')
+    except NotImplementedError as exc:
+        assert 'requires a local tokenizer' in str(exc)
+
+
+def test_llmaaj_loader_uses_evaluator_prompt_budget_name():
+    import ast
+    path = os.path.join(ROOT, 'llmtf/tasks/llm_as_a_judge.py')
+    with open(path, encoding='utf-8') as source:
+        tree = ast.parse(source.read(), filename=path)
+    task_class = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == 'LLMAsJudgeStyleControl'
+    )
+    loader = next(
+        node for node in task_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == 'load_dataset'
+    )
+    arguments = [argument.arg for argument in loader.args.args]
+    assert 'max_prompt_len' in arguments
+    assert 'max_len' not in arguments
+
+
+def test_ner_in_place_requires_the_complete_original_text():
+    module = _load_task_source(
+        'llmtf/tasks/ner/ner_abc.py', 'task_ner_abc_test'
+    )
+    sample = {'tokens': ['Иван', 'пришёл', '.']}
+    check = module.NerInPlaceAbc.check_text
+    assert check(None, sample, '<PERSON>Иван</PERSON> пришёл.')
+    assert not check(None, sample, '<PERSON>Иван</PERSON>')
+    assert not check(
+        None, sample, '<PERSON>Иван</PERSON> пришёл. Лишнее'
+    )
 
 
 if __name__ == '__main__':

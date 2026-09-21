@@ -1,1 +1,1 @@
-from .rusbeir_rag import RusbeirRag, RusbeirRagLLMJudge
+from .rusbeir_rag import LazyAPIJudgeModel, RusbeirRag, RusbeirRagLLMJudge

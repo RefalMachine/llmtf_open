@@ -88,3 +88,9 @@ Concrete task должен задать `_max_task_new_tokens`, dataset argument
 prompt splits, `create_messages`, `evaluate` и `aggregation`. Метод задачи —
 один из `generate`, `calculate_tokens_proba`, `calculate_logsoftmax`.
 Регистрация находится в `llmtf/tasks/__init__.py`.
+
+Обычный evaluator dispatch поддерживает все три метода. До backend-вызова он
+проверяет capability, task budget, выравнивание dataset payloads и canonical
+roles; после вызова — alignment batch result и согласованность metric keys с
+`aggregation()`. Повторная программная регистрация имени требует явного
+`allow_override=True`.

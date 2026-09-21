@@ -7,30 +7,26 @@
 
 ## Высокий приоритет: task layer и внешние задачи
 
-### 1. Аудит и переработка task-логики
+### 1. Архитектурная доработка task layer
 
-Эта задача является первоочередной и обязательной предпосылкой для внешней
-регистрации задач. До расширения plugin surface провести системный аудит
-`Task`, `SimpleFewShotHFTask`, `TASK_REGISTRY`, dataset loading и взаимодействия
-task-а с evaluator/model:
+Корректностная стабилизация завершена и зафиксирована в
+`dev/TASK_BUGFIX_REPORT.md`: базовый task/evaluator contract валидируется,
+task identity участвует в cache fingerprint, а найденные дефекты встроенных
+задач исправлены с migration notes и regression evidence. Следующий этап не
+блокирует bugfix-коммит и сознательно оставлен как архитектурная работа:
 
-- проверить и формализовать публичный task-контракт: обязательные методы и
-  поля, scoring methods, message roles, answer budgets, stop configuration,
-  few-shot semantics, aggregation и leaderboard aggregation;
-- найти дублирование и неявные соглашения в существующих задачах, унифицировать
-  повторяющуюся логику и удалить зависимости от случайных import side effects;
-- проверить naming/run identity, task params, cache fingerprint и provenance,
-  чтобы код или конфигурация задачи однозначно участвовали в совместимости
-  результатов;
-- унифицировать validation и сообщения об ошибках для некорректных datasets,
-  splits, samples, messages, metrics и неподдерживаемых backend methods;
-- проверить ленивую загрузку optional tasks и внешних зависимостей, чтобы одна
-  недоступная задача не ломала импорт всего registry;
-- определить стабильный минимальный API для пользовательских задач и покрыть
-  его contract tests до реализации plugin loader;
-- актуализировать встроенные задачи и документацию по результатам аудита, не
-  меняя метрики молча: любые намеренные semantic changes должны иметь migration
-  note и regression evidence.
+- сократить дублирование dataset/few-shot/prompt-budget логики между
+  историческими задачами без изменения их метрик;
+- формализовать стабильный минимальный публичный API расширения задач поверх
+  уже проверяемого внутреннего контракта;
+- завершить ленивую загрузку optional tasks и внешних зависимостей, не полагаясь
+  на import side effects;
+- определить декларативные dataset/sample schemas и единый слой сообщений об
+  ошибках для task-specific полей и split conventions;
+- покрыть будущий публичный API отдельными contract tests до реализации plugin
+  loader;
+- определить migration policy для prompts и метрик, чтобы архитектурные
+  изменения не меняли benchmark baselines молча.
 
 ### 2. Регистрация задач из примонтированных каталогов
 

@@ -1,4 +1,4 @@
-from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM, ensure_prompt_fits
 from sklearn.metrics import matthews_corrcoef
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -82,6 +82,10 @@ class DaruTreewayExtractive(Task):
             score = []
             for i, group in df.groupby('id'):    
                 min_len = min([len(s) for s in group['scores']])
+                if min_len == 0:
+                    raise ValueError(
+                        f"No scored tokens for extractive group {i}"
+                    )
                 scores_group = [np.mean(s[:min_len]) for s in group['scores']]
                 group['score'] = scores_group
                 ap = r_precision(group['labels'], group['score'])
@@ -131,8 +135,9 @@ class DaruTreewayExtractive(Task):
             s['sentence'] = sentence
             zero_shot_messages = self.create_messages(s)
             zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
-            if zero_shot_messages_len is not None and zero_shot_messages_len >= max_prompt_len:
-                self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
+            ensure_prompt_fits(
+                zero_shot_messages_len, max_prompt_len, self.run_name()
+            )
 
             messages_group.append(zero_shot_messages)
             samples_group.append(s)

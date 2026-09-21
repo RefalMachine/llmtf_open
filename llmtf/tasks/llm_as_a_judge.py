@@ -1,4 +1,4 @@
-from llmtf.base import Task, BaseLLM
+from llmtf.base import Task, BaseLLM, ensure_prompt_fits
 from typing import List, Dict, Tuple
 import codecs
 import json
@@ -572,12 +572,16 @@ class LLMAsJudgeStyleControl(Task):
     def load_dataset(
         self,
         model: BaseLLM,
-        max_len: int,
+        max_prompt_len: int,
         max_sample_per_dataset: int,
         few_shot_count: int
     ) -> Tuple[List[Dict], List[Dict]]:
+        self.require_model_method(model)
         self.logger.info(f'Ignoring few_shot_count for {self.name()}')
-        assert few_shot_count == 0
+        if few_shot_count != 0:
+            raise ValueError(
+                f"{self.run_name()} requires few_shot_count=0"
+            )
         '''
         n=len(model_outputs) -- число вопросов
         m=len(reference_model_outputs) -- число моделей в пайплайне
@@ -610,19 +614,28 @@ class LLMAsJudgeStyleControl(Task):
             reference_model_name =  reference_outputs['model_name']
             reference_outputs_path = reference_outputs['path']
             reference_outputs = read_json(reference_outputs_path)[:max_sample_per_dataset]
-            assert len(reference_outputs) == len(model_outputs)
+            if len(reference_outputs) != len(model_outputs):
+                raise ValueError(
+                    f"LLM judge inputs are misaligned for "
+                    f"{reference_model_name!r}: {len(reference_outputs)} "
+                    f"reference outputs != {len(model_outputs)} model outputs"
+                )
             for i, o in enumerate(reference_outputs):
-                assert o['instruction'] == model_outputs[i]['instruction']
+                if o.get('instruction') != model_outputs[i].get('instruction'):
+                    raise ValueError(
+                        f"LLM judge instruction mismatch for "
+                        f"{reference_model_name!r} at index {i}"
+                    )
                 o['id'] = i
 
             for i in range(len(model_outputs)): # по всем заданиям
                 sample_direct = self._create_sample(model_outputs[i], reference_outputs[i], model_name, reference_model_name)
                 samples.append({'sample': sample_direct})
-                messages.append({'messages': self._prepare_messages(sample_direct, model, max_len)})
+                messages.append({'messages': self._prepare_messages(sample_direct, model, max_prompt_len)})
 
                 sample_reverse = self._reverse_sample(sample_direct)
                 samples.append({'sample': sample_reverse})
-                messages.append({'messages': self._prepare_messages(sample_reverse, model, max_len)})
+                messages.append({'messages': self._prepare_messages(sample_reverse, model, max_prompt_len)})
 
         if self.method == 'calculate_tokens_proba':
             for m in messages:
@@ -687,8 +700,7 @@ class LLMAsJudgeStyleControl(Task):
     def _prepare_messages(self, sample: Dict, model: BaseLLM, max_len: int):
         zero_shot_messages = self.create_messages(copy.deepcopy(sample), with_answer=False)
         zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
-        if zero_shot_messages_len is not None and zero_shot_messages_len >= max_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_len}. Will be truncated.')
+        ensure_prompt_fits(zero_shot_messages_len, max_len, self.run_name())
         return zero_shot_messages
 
     def create_messages(self, sample: Dict, with_answer=False):
@@ -881,7 +893,7 @@ Respond with ONLY a JSON object in this exact format:
             # Fallback к случайному решению при ошибке
             return {
                 "score": {
-                    'outcome': "tie",
+                    'outcome': "invalid",
                     'id': sample['id'],
                     'model_name': sample['model_name'],
                     'reference_model_name': sample['reference_model_name'],

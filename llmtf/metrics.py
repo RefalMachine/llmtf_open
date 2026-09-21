@@ -17,6 +17,8 @@ def f1_macro_score(items):
 
 def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
     """Compute max metric between prediction and each ground truth."""
+    if not ground_truths:
+        raise ValueError("ground_truths must contain at least one answer")
     scores_for_ground_truths = []
     for ground_truth in ground_truths:
         score = metric_fn(prediction, ground_truth)
@@ -64,6 +66,8 @@ def get_order_relevance_k(labels, scores, k):
 
 def r_precision(labels, scores):
     total_labels = np.array(labels).astype(int).sum()
+    if total_labels <= 0:
+        return 0.0
     order_relevance = get_order_relevance_k(labels, scores, total_labels)
     return order_relevance.sum() / total_labels
 

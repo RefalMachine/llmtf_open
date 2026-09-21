@@ -9,6 +9,30 @@ from tqdm import tqdm
 from llmtf.metrics import mean
 from llmtf.utils import normalize_message_roles
 
+
+class PromptTooLongError(ValueError):
+    """A task's irreducible zero-shot prompt exceeds its prompt budget."""
+
+
+def ensure_prompt_fits(token_count, max_prompt_len, task_name="task"):
+    """Fail closed when a prompt cannot fit instead of claiming truncation."""
+    if token_count is not None and token_count > max_prompt_len:
+        raise PromptTooLongError(
+            f"{task_name} zero-shot prompt has {token_count} tokens, exceeding "
+            f"the available prompt budget {max_prompt_len}; the task does not "
+            "define a semantics-preserving truncation policy"
+        )
+
+
+def distribute_sample_limit(total, bucket_count):
+    """Distribute an upper bound across buckets without exceeding it."""
+    if not isinstance(total, int) or total < 0:
+        raise ValueError("sample limit must be a non-negative integer")
+    if not isinstance(bucket_count, int) or bucket_count <= 0:
+        raise ValueError("bucket_count must be a positive integer")
+    base, remainder = divmod(total, bucket_count)
+    return [base + (index < remainder) for index in range(bucket_count)]
+
 class Base(abc.ABC):
     def __init__(self, **kwargs):
         self.backend_logger = None
@@ -43,7 +67,8 @@ class Task(Base):
     def __init__(self, name_suffix=None, **kwargs):
         super().__init__(**kwargs)
         self.method_additional_args = {}
-        self._max_new_tokens = None
+        if not hasattr(self, '_max_task_new_tokens'):
+            self._max_task_new_tokens = None
         self.additional_stop_strings = []
         self.name_suffix = ''
         if name_suffix is not None:
@@ -220,11 +245,17 @@ class SimpleFewShotHFTask(Task):
         test_dataset = dataset[self.test_split_name()]
         prompt_dataset = dataset[self.prompt_split_name()]
         
-        test_dataset_sample_ids = list(range(min(max_sample_per_dataset, len(test_dataset))))
         prompt_dataset_sample_ids = list(range(self.prompt_dataset_start_idx(), min(self.prompt_dataset_start_idx() + few_shot_count, len(prompt_dataset))))
         if self.test_split_name() == self.prompt_split_name():
             prompt_dataset_sample_ids_set = set(prompt_dataset_sample_ids)
-            test_dataset_sample_ids = [i for i in test_dataset_sample_ids if i not in prompt_dataset_sample_ids_set]
+            test_dataset_sample_ids = [
+                i for i in range(len(test_dataset))
+                if i not in prompt_dataset_sample_ids_set
+            ][:max_sample_per_dataset]
+        else:
+            test_dataset_sample_ids = list(
+                range(min(max_sample_per_dataset, len(test_dataset)))
+            )
             
         test_dataset = test_dataset.select(test_dataset_sample_ids)
         prompt_dataset = prompt_dataset.select(prompt_dataset_sample_ids)
@@ -239,8 +270,9 @@ class SimpleFewShotHFTask(Task):
             self.create_messages(copy.deepcopy(sample), with_answer=False)
         )
         zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
-        if zero_shot_messages_len is not None and zero_shot_messages_len >= max_prompt_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
+        ensure_prompt_fits(
+            zero_shot_messages_len, max_prompt_len, self.run_name()
+        )
 
         message_groups = [
             normalize_message_roles(
@@ -257,7 +289,7 @@ class SimpleFewShotHFTask(Task):
             for group in message_groups[i:]:
                 messages += group
             few_shot_messages_len = model.count_tokens_for_messages(messages)
-            if few_shot_messages_len is None or few_shot_messages_len < max_prompt_len:
+            if few_shot_messages_len is None or few_shot_messages_len <= max_prompt_len:
                 return messages
         else:
             return zero_shot_messages

@@ -1,8 +1,6 @@
-from llmtf.base import Task
-
 import string
 import random
-from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM, ensure_prompt_fits
 from llmtf.metrics import mean
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -54,8 +52,9 @@ class ShlepaSmallMMLU(Task):
         samples = []
         dataset = load_dataset(self.dataset_name)
         test_dataset = dataset[self.test_split_name()]
-        test_dataset = test_dataset.select(range(min(max_sample_per_dataset, len(test_dataset))))
-        for i, sample in tqdm(enumerate(test_dataset)):
+        evaluation_size = min(max_sample_per_dataset, len(test_dataset))
+        for i in tqdm(range(evaluation_size)):
+            sample = test_dataset[i]
             additional_samples = self._get_additional_samples(i, test_dataset)
             messages, sample = self._prepare_messages(sample, model, max_prompt_len, additional_samples)
             if len(messages) > 0:
@@ -67,8 +66,9 @@ class ShlepaSmallMMLU(Task):
         if len(zero_shot_messages) == 0:
             return [], sample
         zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
-        if zero_shot_messages_len is not None and zero_shot_messages_len >= max_prompt_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
+        ensure_prompt_fits(
+            zero_shot_messages_len, max_prompt_len, self.run_name()
+        )
 
         return zero_shot_messages, sample
 
@@ -83,12 +83,16 @@ class ShlepaSmallMMLU(Task):
 
     def _get_additional_samples(self, index: int, dataset: Dataset):
         next_doc_count = 5
-        if index < len(dataset) - next_doc_count:
-            next_docs = dataset[index+1:index+next_doc_count+1]
-        else:
-            next_docs = dataset[index-next_doc_count:index]
-        assert len(next_docs[list(dataset[0].keys())[0]]) == next_doc_count
-        return next_docs
+        if len(dataset) <= next_doc_count:
+            raise ValueError(
+                f"{self.run_name()} requires at least {next_doc_count + 1} "
+                "rows to construct distractor choices"
+            )
+        indexes = [
+            (index + offset) % len(dataset)
+            for offset in range(1, next_doc_count + 1)
+        ]
+        return dataset[indexes]
 
     def _helper(self, doc, additional_samples):
         field = doc['correct_answer']
@@ -121,7 +125,8 @@ class ShlepaSmallMMLU(Task):
         inv_label_map = {i: label for i, label in enumerate(string.ascii_uppercase[:12])}
 
         correct_label = label_map.get(fi)
-        if not correct_label: return {"label":"failed row w/o answer","gold":""}
+        if correct_label is None:
+            return {"label":"failed row w/o answer","gold":""}
 
         random.shuffle(doc["choices"])
         gold = fi

@@ -52,8 +52,14 @@ class RuIFEvalTask(SimpleFewShotHFTask):
         self.method = 'generate'
         self._max_task_new_tokens = 1024  # Allow for longer responses
         self.instruction_registry = ru_instructions_registry
-        try: nltk.data.find('tokenizers/punkt_tab')
-        except LookupError: nltk.download('punkt_tab')
+
+    @staticmethod
+    def _ensure_punkt_tab():
+        try:
+            nltk.data.find('tokenizers/punkt_tab')
+        except LookupError:
+            if not nltk.download('punkt_tab'):
+                raise RuntimeError("Failed to download required NLTK punkt_tab data")
 
     def task_name(self) -> str:
         return 'ifeval/ruIFEval'
@@ -74,8 +80,11 @@ class RuIFEvalTask(SimpleFewShotHFTask):
         return messages
 
     def evaluate(self, sample, y_pred) -> Dict:
+        self._ensure_punkt_tab()
         if type(y_pred) == str:
             y_pred = [y_pred]
+        if not isinstance(y_pred, list):
+            y_pred = []
         """Evaluate response using ruIFEval's instruction checking logic."""
         # Get instruction IDs and kwargs from sample
         instruction_ids = sample['instruction_id_list']
@@ -99,7 +108,11 @@ class RuIFEvalTask(SimpleFewShotHFTask):
                 instruction.build_description(prompt=sample['prompt'])
 
             # Check if instruction is followed
-            is_following = mean([p.strip() and instruction.check_following(p) for p in y_pred])
+            is_following = mean([
+                bool(isinstance(p, str) and p.strip())
+                and bool(instruction.check_following(p))
+                for p in y_pred
+            ])
             is_following_list.append(is_following > 0.5)
             
             # Track individual instruction results
@@ -165,7 +178,7 @@ class EnIFEvalTask(RuIFEvalTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.method = 'generate'
-        self._max_new_tokens = 1024
+        self._max_task_new_tokens = 1024
         self.instruction_registry = en_instructions_registry
 
     def task_name(self) -> str:

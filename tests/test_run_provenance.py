@@ -4,9 +4,29 @@ import json
 import tempfile
 
 from llmtf.provenance import (
-    CacheMismatchError, canonical_json, fingerprint_run_config, sanitize,
-    validate_cache,
+    CacheMismatchError, build_run_config, canonical_json,
+    fingerprint_run_config, sanitize, validate_cache,
 )
+from llmtf.base import Task
+from llmtf.reasoning import ReasoningConfig
+
+
+class ProvenanceTask(Task):
+    method = 'generate'
+    _max_task_new_tokens = 4
+    def task_name(self): return 'test/provenance'
+    def load_dataset(self, **kwargs): return [], []
+    def evaluate(self, **kwargs): return {'score': 0.0}
+    def aggregation(self, **kwargs): return {'score': lambda values: 0.0}
+    def dataset_args(self): return {'path': 'json', 'revision': 'fixed'}
+
+
+class ProvenanceModel:
+    reasoning_config = ReasoningConfig()
+    generation_config = type('Config', (), {
+        'to_dict': lambda self: {'max_new_tokens': 4},
+    })()
+    def get_params(self): return {'backend_class': 'FakeBackend'}
 
 
 class RunProvenanceTests(unittest.TestCase):
@@ -42,6 +62,26 @@ class RunProvenanceTests(unittest.TestCase):
             with self.assertRaises(CacheMismatchError):
                 validate_cache(path, 'other')
             self.assertFalse(validate_cache(path, 'other', force_recalc=True))
+
+    def test_task_params_and_implementation_participate_in_fingerprint(self):
+        common = dict(
+            model=ProvenanceModel(), task=ProvenanceTask(),
+            enable_thinking=False, generation_config=None,
+            few_shot_count=0, batch_size=1, max_sample_per_dataset=1,
+            max_prompt_len=100, effective_reasoning_tokens=0,
+            scoring_method='generate', registry_name='test/provenance',
+        )
+        left = build_run_config(
+            **common, task_init_params={'instruction': 'left'}
+        )
+        right = build_run_config(
+            **common, task_init_params={'instruction': 'right'}
+        )
+        self.assertNotEqual(
+            fingerprint_run_config(left), fingerprint_run_config(right)
+        )
+        self.assertEqual(left['task']['dataset_args']['revision'], 'fixed')
+        self.assertIn('module_sha256', left['task']['implementation'])
 
 
 if __name__ == '__main__':

@@ -302,15 +302,11 @@ llmaaj_model_name = os.environ.get('LLMAAJ_MODEL_NAME', None)
 
 llmaaj_model = None
 if llmaaj_api_base is not None and llmaaj_api_key is not None and llmaaj_model_name is not None:
-    try:
-        from llmtf.llm import LLM
-        from llmtf.backends import APIBackend
-        llmaaj_model = LLM(backend=APIBackend(api_base=llmaaj_api_base, api_key=llmaaj_api_key))
-        llmaaj_model.from_pretrained(llmaaj_model_name)
-    except Exception as e:
-        print(f'Не удалось инициализировать rag_llmaaj задачи из-за ошибки: {e}')
-else:
-    pass
+    llmaaj_model = rag.LazyAPIJudgeModel(
+        api_base=llmaaj_api_base,
+        api_key=llmaaj_api_key,
+        model_name=llmaaj_model_name,
+    )
 
 if llmaaj_model is not None:
     TASK_REGISTRY.update({

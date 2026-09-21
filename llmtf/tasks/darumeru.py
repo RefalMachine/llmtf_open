@@ -9,7 +9,7 @@ from datasets import load_dataset, Dataset
 from typing import Dict, List, Tuple
 from llmtf.metrics import mean, metric_max_over_ground_truths, f1_macro_score, llm_judge_accuracy, llm_judge_instruction_ru
 import re
-from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
+from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM, ensure_prompt_fits
 from difflib import SequenceMatcher 
 import pandas as pd
 import string
@@ -133,6 +133,13 @@ class CopyText(DarumeruTask):
         }
 
     def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int, **kwargs) -> Tuple[List[Dict], List[Dict]]:
+        backend = getattr(model, 'backend', model)
+        if not hasattr(backend, 'tokenizer') or not hasattr(backend, 'leading_space'):
+            raise NotImplementedError(
+                f"{type(backend).__name__} cannot run {self.run_name()}: "
+                "CopyText requires a local tokenizer, leading-space metadata, "
+                "and token ids in generation output"
+            )
         self.model_tokenizer = model.tokenizer
         self.model_leading_space = model.leading_space
         return super().load_dataset(model, max_prompt_len=max_prompt_len, max_sample_per_dataset=max_sample_per_dataset, few_shot_count=few_shot_count, **kwargs)
@@ -404,16 +411,14 @@ class ruTiE(DarumeruTask):
             sample['inputs']['context'] = "\n".join(context)
             messages = self.create_messages(copy.deepcopy(sample)) #self.apply_inputs(sample['messages'], sample.get('inputs', {}))
             messages_len = model.count_tokens_for_messages(messages)
-            while messages_len is not None and messages_len >= max_len:
+            while context and messages_len is not None and messages_len > max_len:
                 context = context[1:]
                 sample['inputs']['context'] = "\n".join(context)
                 messages = self.create_messages(copy.deepcopy(sample))#self.apply_inputs(sample['messages'], sample.get('inputs', {}))
                 messages_len = model.count_tokens_for_messages(messages)
                 dialog_shift += 1
 
-            if messages_len is not None and messages_len >= max_len:
-                self.logger.warning(f'WARNING: messages_len >= max_len')
-                pass
+            ensure_prompt_fits(messages_len, max_len, self.run_name())
 
             all_dataset_messages.append({'messages': messages, 'sample': s})
 

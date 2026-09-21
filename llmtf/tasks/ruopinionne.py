@@ -1,11 +1,12 @@
-from llmtf.base import SimpleFewShotHFTask
+import ast
 import json
 import copy
 from tqdm import tqdm
 from datasets import Dataset, DatasetDict
 from datasets import load_dataset as load_dataset_hf
-from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM
-import json
+from llmtf.base import (
+    Task, SimpleFewShotHFTask, BaseLLM, ensure_prompt_fits,
+)
 from collections import Counter
 from typing import Dict, List, Tuple
 from functools import lru_cache
@@ -382,32 +383,22 @@ def load_dataset(dataset_path, test=False):
     return ds
     
 def pred2opinions_default(y_pred):
-    y_pred = y_pred.strip()#y_pred[3:].lstrip()
-    try:
-        y_predict_dict = json.loads(y_pred)
-    except:
-        try:
-            y_predict_dict = eval(y_pred)
-        except:
-            y_predict_dict = []
-    if type(y_predict_dict) == dict:
-        y_predict_dict = [y_predict_dict]
-    return y_predict_dict
-
-def pred2opinions_default(y_pred):
+    if not isinstance(y_pred, str):
+        return []
     if y_pred.startswith('```json') and y_pred.endswith('```'):
         y_pred = y_pred[len('```json'):-len('```')].strip()
     try:
         y_predict_dict = json.loads(y_pred)
-    except:
+    except (json.JSONDecodeError, TypeError):
         try:
-            y_predict_dict = eval(y_pred)
-        except:
-            #print(y_pred)
+            y_predict_dict = ast.literal_eval(y_pred)
+        except (ValueError, SyntaxError):
             y_predict_dict = []
-    if type(y_predict_dict) == dict:
+    if isinstance(y_predict_dict, dict):
         y_predict_dict = [y_predict_dict]
-    return y_predict_dict
+    if not isinstance(y_predict_dict, list):
+        return []
+    return [item for item in y_predict_dict if isinstance(item, dict)]
 
 class RuOpinionNE(SimpleFewShotHFTask):
     def __init__(self, instruction, short_instruction=None, pred2opinions=pred2opinions_default, test=False, repeate_instruction=False, restrict_generation=False, **kwargs):
@@ -458,7 +449,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
         if type(opinion['Expression']) == str:
             opinion['Expression'] = [opinion['Expression']]
 
-        types_ok = type(opinion['Source']) == str and type(opinion['Target']) == str and type(opinion['Polarity']) == str and type(opinion['Expression']) == list
+        types_ok = type(opinion['Source']) == str and type(opinion['Target']) == str and type(opinion['Polarity']) == str and type(opinion['Expression']) == list and all(isinstance(expr, str) for expr in opinion['Expression'])
         #return types_ok
         if not types_ok:
             return False
@@ -542,8 +533,9 @@ class RuOpinionNE(SimpleFewShotHFTask):
 
         zero_shot_messages = self.create_messages(copy.deepcopy(sample), with_answer=False, full_instruct=k==0 or self.repeate_instruction)
         zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
-        if zero_shot_messages_len is not None and zero_shot_messages_len >= max_prompt_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_len} greater then {max_prompt_len}. Will be truncated.')
+        ensure_prompt_fits(
+            zero_shot_messages_len, max_prompt_len, self.run_name()
+        )
 
         message_groups = [self.create_messages(copy.deepcopy(prompt_dataset[i]), with_answer=True, full_instruct=(i==0)) for i in range(k)]
         
@@ -552,7 +544,7 @@ class RuOpinionNE(SimpleFewShotHFTask):
             for group in message_groups[:k-i]:
                 messages += group
             few_shot_messages_len = model.count_tokens_for_messages(messages + zero_shot_messages)
-            if few_shot_messages_len is None or few_shot_messages_len < max_prompt_len:
+            if few_shot_messages_len is None or few_shot_messages_len <= max_prompt_len:
                 return messages + zero_shot_messages
         else:
             return zero_shot_messages

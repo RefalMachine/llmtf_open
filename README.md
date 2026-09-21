@@ -7,6 +7,12 @@ LLMTF Open — фреймворк для оценки языковых моде�
 Текущая версия — `v0.3.0`. Изменения и инструкция по миграции находятся в
 [`docs/releases/v0.3.0.md`](docs/releases/v0.3.0.md).
 
+После выпуска `v0.3.0` task layer получил отдельный bugfix-коммит без изменения
+версии. Исправления evaluator contracts, PPL boundaries, cache identity и
+встроенных задач перечислены в
+[`dev/TASK_BUGFIX_REPORT.md`](dev/TASK_BUGFIX_REPORT.md). Изменённые метрики и
+выборки требуют нового baseline; старые totals не следует смешивать с новыми.
+
 Текущая архитектура проверена на `Qwen/Qwen3.5-2B` и
 `Qwen/Qwen3.5-2B-Base` через HF, local vLLM и vLLM-compatible API. Известные
 ограничения находятся в [`BACKLOG.md`](BACKLOG.md).
@@ -264,11 +270,23 @@ python benchmark/calculate_benchmark_api.py \
 - `<task>.jsonl` — JSON array с per-sample результатами;
 - `<task>_params.jsonl` — sanitized run config и fingerprint;
 - `<task>_total.jsonl` — агрегаты и тот же fingerprint;
+- `<task>_aggregation_details.jsonl` — optional диагностические срезы метрик;
 - `evaluation_results.txt` и `evaluation_log.txt`.
 
 Кеш используется только при совпадении fingerprint. Частичная backend-ошибка
 даёт ненулевой exit code и не создаёт новый total. Подробнее:
 [`docs/results.md`](docs/results.md).
+
+Fingerprint schema v2 включает identity/config задачи, а сводный отчёт
+учитывает только успешные или совместимо закэшированные задачи текущего
+вызова — stale totals из общего output-каталога в среднее не попадают.
+
+`ruparam` загружается из публичного
+[`RefalMachine/RuParam`](https://huggingface.co/datasets/RefalMachine/RuParam),
+требует `--few_shot_count 0` и предъявляет каждую строку в двух порядках.
+Основной результат — micro accuracy пар, правильных в обоих порядках;
+category/source/part/TORFL-level slices и category macro сохраняются в
+`ruparam_aggregation_details.jsonl`.
 
 Сводную Markdown-таблицу можно построить так:
 

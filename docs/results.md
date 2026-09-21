@@ -13,6 +13,12 @@
 процесс был жёстко завершён до записи закрывающей скобки, перед разбором
 необходимо вручную проверить последний объект и дописать закрывающую скобку.
 
+Aggregation-функция задачи может вернуть пару `(primary_value, details)`.
+Тогда primary value попадает в `_total.jsonl`, а JSON-совместимые details — в
+`_aggregation_details.jsonl`. Например, RuParam оставляет leaderboard micro
+accuracy по минимальным парам, а category/source/part/level slices и category
+macro сохраняет только как диагностику.
+
 ## `predict` и `info`
 
 `predict` — только raw newly generated continuation. Assistant-prefill и
@@ -27,7 +33,11 @@ surface-form aggregation. API top-k является censored ranking, а не �
 
 Fingerprint строится из sanitized canonical run config. Он учитывает model,
 backend, task, sampling, effective execution mode, reasoning и continuation
-provenance. API credentials не сериализуются.
+provenance. В schema v2 task identity также включает registry name, init params,
+dataset arguments, полное имя класса и SHA-256 файла модуля задачи. API
+credentials не сериализуются. Remote dataset revision учитывается только если
+она явно присутствует в `dataset_args`; автоматическое разрешение Hub revision
+пока не выполняется.
 
 При существующем результате:
 
@@ -46,8 +56,18 @@ Backend batch errors сохраняют исходные indexes и fail closed.
 задачи, формирует `EvaluationSummary` и CLI возвращает ненулевой exit code,
 если хотя бы одна запрошенная задача завершилась ошибкой.
 
+Перед исполнением evaluator проверяет task method и answer budget, alignment
+messages/samples, canonical message roles и единую metric schema. Пустой
+dataset или несовместимый backend method являются task failure, а не пустым
+успешным результатом.
+
 Всегда проверяйте exit code и наличие totals для всех requested datasets.
 Успех одного task не означает успех всего процесса.
+
+`evaluation_results.txt` строится только из успешно завершённых либо
+совместимо закэшированных задач текущего вызова. Другие `_total.jsonl` в том же
+каталоге не попадают в среднее; если текущий вызов не дал ни одного total,
+старый summary удаляется, чтобы не выдавать его за новый результат.
 
 ## Сводная таблица
 

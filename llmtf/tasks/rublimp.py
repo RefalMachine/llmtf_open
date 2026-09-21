@@ -1,4 +1,4 @@
-from llmtf.base import SimpleFewShotHFTask, BaseLLM
+from llmtf.base import SimpleFewShotHFTask, BaseLLM, distribute_sample_limit
 from typing import List, Dict, Tuple
 from tqdm import tqdm
 from datasets import load_dataset, Dataset
@@ -66,8 +66,16 @@ class RuBlimpClassify(SimpleFewShotHFTask):
 
         samples = []
         dataset_args_generator = self.dataset_args()
-        for _ in self.dataset_slices:
-            samples += self._load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count, next(dataset_args_generator))
+        quotas = distribute_sample_limit(
+            max_sample_per_dataset, len(self.dataset_slices)
+        )
+        for quota in quotas:
+            dataset_args = next(dataset_args_generator)
+            if quota == 0:
+                continue
+            samples += self._load_dataset(
+                model, max_prompt_len, quota, few_shot_count, dataset_args
+            )
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
 
@@ -79,11 +87,17 @@ class RuBlimpClassify(SimpleFewShotHFTask):
         test_dataset = dataset[self.test_split_name()]
         prompt_dataset = dataset[self.prompt_split_name()]
         
-        test_dataset_sample_ids = list(range(min(max_sample_per_dataset, len(test_dataset))))
         prompt_dataset_sample_ids = list(range(self.prompt_dataset_start_idx(), min(self.prompt_dataset_start_idx() + few_shot_count, len(prompt_dataset))))
         if self.test_split_name() == self.prompt_split_name():
             prompt_dataset_sample_ids_set = set(prompt_dataset_sample_ids)
-            test_dataset_sample_ids = [i for i in test_dataset_sample_ids if i not in prompt_dataset_sample_ids_set]
+            test_dataset_sample_ids = [
+                i for i in range(len(test_dataset))
+                if i not in prompt_dataset_sample_ids_set
+            ][:max_sample_per_dataset]
+        else:
+            test_dataset_sample_ids = list(
+                range(min(max_sample_per_dataset, len(test_dataset)))
+            )
             
         test_dataset = test_dataset.select(test_dataset_sample_ids)
         prompt_dataset = prompt_dataset.select(prompt_dataset_sample_ids)
@@ -102,7 +116,8 @@ class RuBlimpClassify(SimpleFewShotHFTask):
     
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = self.get_answer(sample)
-        y_pred = y_pred.strip()[0]
+        normalized = y_pred.strip() if isinstance(y_pred, str) else ""
+        y_pred = normalized[0] if normalized else ""
         return {'acc': y_true == y_pred, 'f1_macro': (y_true, y_pred)}
 
     def get_answer(self, sample):
@@ -176,8 +191,16 @@ class RuBlimpChoice(SimpleFewShotHFTask):
 
         samples = []
         dataset_args_generator = self.dataset_args()
-        for _ in self.dataset_slices:
-            samples += self._load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count, next(dataset_args_generator))
+        quotas = distribute_sample_limit(
+            max_sample_per_dataset, len(self.dataset_slices)
+        )
+        for quota in quotas:
+            dataset_args = next(dataset_args_generator)
+            if quota == 0:
+                continue
+            samples += self._load_dataset(
+                model, max_prompt_len, quota, few_shot_count, dataset_args
+            )
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
 
@@ -189,11 +212,17 @@ class RuBlimpChoice(SimpleFewShotHFTask):
         test_dataset = dataset[self.test_split_name()]
         prompt_dataset = dataset[self.prompt_split_name()]
         
-        test_dataset_sample_ids = list(range(min(max_sample_per_dataset, len(test_dataset))))
         prompt_dataset_sample_ids = list(range(self.prompt_dataset_start_idx(), min(self.prompt_dataset_start_idx() + few_shot_count, len(prompt_dataset))))
         if self.test_split_name() == self.prompt_split_name():
             prompt_dataset_sample_ids_set = set(prompt_dataset_sample_ids)
-            test_dataset_sample_ids = [i for i in test_dataset_sample_ids if i not in prompt_dataset_sample_ids_set]
+            test_dataset_sample_ids = [
+                i for i in range(len(test_dataset))
+                if i not in prompt_dataset_sample_ids_set
+            ][:max_sample_per_dataset]
+        else:
+            test_dataset_sample_ids = list(
+                range(min(max_sample_per_dataset, len(test_dataset)))
+            )
             
         test_dataset = test_dataset.select(test_dataset_sample_ids)
         prompt_dataset = prompt_dataset.select(prompt_dataset_sample_ids)
@@ -209,7 +238,8 @@ class RuBlimpChoice(SimpleFewShotHFTask):
 
     def evaluate(self, sample, y_pred) -> Dict:
         y_true = self.get_answer(sample)
-        y_pred = y_pred.strip()[0]
+        normalized = y_pred.strip() if isinstance(y_pred, str) else ""
+        y_pred = normalized[0] if normalized else ""
         return {'acc': y_true == y_pred, 'f1_macro': (y_true, y_pred)}
 
     def get_answer(self, sample):

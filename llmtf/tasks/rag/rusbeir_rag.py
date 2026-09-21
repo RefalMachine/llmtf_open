@@ -1,7 +1,42 @@
 from llmtf.base import SimpleFewShotHFTask
 from typing import Any, Dict
 from llmtf.metrics import metric_max_over_ground_truths, rougel, mean
+import hashlib
 import pandas as pd
+
+
+class LazyAPIJudgeModel:
+    """Initialize the optional API judge only when its metric is evaluated."""
+
+    def __init__(self, api_base, api_key, model_name):
+        self.api_base = api_base
+        self._api_key = api_key
+        self.model_name = model_name
+        self._model = None
+
+    def _get_model(self):
+        if self._model is None:
+            from llmtf.llm import LLM
+            from llmtf.backends import APIBackend
+
+            self._model = LLM(backend=APIBackend(
+                api_base=self.api_base, api_key=self._api_key
+            ))
+            self._model.from_pretrained(self.model_name)
+        return self._model
+
+    def generate_batch(self, *args, **kwargs):
+        return self._get_model().generate_batch(*args, **kwargs)
+
+    def get_params(self):
+        return {
+            'backend_class': 'APIBackend',
+            'endpoint_sha256': hashlib.sha256(
+                self.api_base.encode('utf-8')
+            ).hexdigest(),
+            'model_name_or_path': self.model_name,
+            'lazy_initialization': True,
+        }
 
 def convert_context(context):
     segments = [f'**Сегмент №{i+1}**:\n' + c['chunk'] for i, c in enumerate(context)]
@@ -56,7 +91,10 @@ class RusbeirRag(SimpleFewShotHFTask):
         return 0
     
     def get_answer(self, sample):
-        return sample['answer'].strip()
+        answers = sample.get('answers') or []
+        if not answers:
+            raise ValueError("RAG sample has no reference answers")
+        return answers[0].strip()
 
 llm_judge_instruction_default = [
     {"role": "user", "content": "Твоя задача - оценить, является ли ответ модели семантически эквивалентным хотя бы одному из допустимых ответов. Ответ модели может быть более развернутым или содержать дополнительную информацию, но главное - он должен содержать корректный ответ на вопрос. НЕ сравнивай с тем, что ты считаешь правильным ответом - сравнивай ТОЛЬКО с предложенными допустимыми ответами. Отвечай только Yes или No.\n\nВопрос: В каком городе находится Эйфелева башня?\n\nОтвет модели: Париж\n\nДопустимые ответы:\n1) Москва\n2) Лондон\n3) Берлин"},

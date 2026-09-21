@@ -99,7 +99,7 @@ _ALL_CAPITAL_WORD_FREQUENCY = 20
 _NUM_WORDS_LOWER_LIMIT = 100
 _NUM_WORDS_UPPER_LIMIT = 500
 
-patterns = "[A-Za-z0-9!#$%&'()*+,./:;<=>?@[\]^_`{|}~—\"\-]+"
+patterns = r'''[A-Za-z0-9!#$%&'()*+,./:;<=>?@[\]^_`{|}~—"\-]+'''
 morph = MorphAnalyzer()
 
 def lemmatize(doc):

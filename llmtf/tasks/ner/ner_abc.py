@@ -161,14 +161,15 @@ class NerJsonAbc(NerAbc):
     
     def extract_answer(self, gen_pred: str):
         try:
+            if not isinstance(gen_pred, str):
+                return []
             gen_pred = gen_pred.replace('```json', '').strip()
             gen_pred = gen_pred.replace('json\n', '').strip()
             gen_pred = gen_pred.replace('```', '').strip()
             predict = json.loads(gen_pred)
-            # assert isinstance(predict[0], list)
-        except:
-            predict = []
-        return predict
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            return []
+        return predict if isinstance(predict, list) else []
 
     def evaluate(self, sample, gen_pred) -> Dict:
         y_pred = self.extract_answer(gen_pred)
@@ -199,12 +200,11 @@ class NerInPlaceAbc(NerAbc):
         super().__init__(**kwargs)
 
     def check_text(self, sample, gen_pred: str):
+        if not isinstance(gen_pred, str):
+            return False
         text_pred = re.sub(r"<\w+>|</\w+>", "", gen_pred)
-        tokens_pred = re.findall(r"\d+.\d+|[\w]+|\.{3}|[.,!?:;()\[\]«»]", text_pred)
-        for token_gold, token_pred in zip(sample["tokens"], tokens_pred):
-            if token_gold != token_pred:
-                return False
-        return True
+        tokens_pred = re.findall(r"\d+\.\d+|[\w]+|\.{3}|[.,!?:;()\[\]«»]", text_pred)
+        return list(sample["tokens"]) == tokens_pred
 
     def extract_answer(self, gen_pred: str):
         matches = re.findall(r'<(\w+)>(.*?)</\1>', gen_pred)

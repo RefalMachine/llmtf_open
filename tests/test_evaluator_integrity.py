@@ -1,4 +1,6 @@
 from pathlib import Path
+import copy
+import json
 import tempfile
 import unittest
 from unittest import mock
@@ -44,6 +46,7 @@ class FailingModel:
     def get_params(self): return {'backend_class': 'FailingBackend'}
     def add_stop_strings(self, values): pass
     def reset_stop_strings(self): pass
+    def support_method(self, method): return method == 'generate'
     def generate_batch(self, **kwargs):
         raise BackendBatchError({0: RuntimeError('failed request')})
 
@@ -67,6 +70,131 @@ class EvaluatorIntegrityTests(unittest.TestCase):
             self.assertFalse(
                 (Path(directory) / 'test_failing_batch_total.jsonl').exists()
             )
+
+    def test_duplicate_task_registration_requires_explicit_override(self):
+        with mock.patch('llmtf.evaluator.set_random_seed', lambda seed: None):
+            evaluator = Evaluator()
+        name = 'test/duplicate_registration'
+        evaluator.add_new_task(name, FailingTask, {})
+        with self.assertRaisesRegex(ValueError, 'already registered'):
+            evaluator.add_new_task(name, FailingTask, {})
+        evaluator.add_new_task(
+            name, FailingTask, {}, allow_override=True
+        )
+
+    def test_report_ignores_totals_outside_current_run(self):
+        with mock.patch('llmtf.evaluator.set_random_seed', lambda seed: None):
+            evaluator = Evaluator()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'current_total.jsonl').write_text(json.dumps({
+                'task_name': 'current', 'leaderboard_result': 1.0,
+            }), encoding='utf-8')
+            (root / 'stale_total.jsonl').write_text(json.dumps({
+                'task_name': 'stale', 'leaderboard_result': 0.0,
+            }), encoding='utf-8')
+            evaluator.create_report(directory, {'current'})
+            report = (root / 'evaluation_results.txt').read_text(
+                encoding='utf-8'
+            )
+            self.assertEqual(report, 'mean\tcurrent\n1.000\t1.000')
+
+
+class LogsoftTask(Task):
+    method = 'calculate_logsoftmax'
+    _max_task_new_tokens = 1
+    def task_name(self): return 'test/logsoft_dispatch'
+    def load_dataset(self, **kwargs):
+        return (
+            [{'messages': [{'role': 'assistant', 'content': 'answer'}]}],
+            [{'sample': {'id': 1}}],
+        )
+    def evaluate(self, sample, prediction): return {'metric': 1.0}
+    def aggregation(self): return {'metric': lambda values: sum(values) / len(values)}
+
+
+class PPLTask(Task):
+    method = 'generate'
+    _max_task_new_tokens = 4
+    def task_name(self): return 'test/ppl_boundary'
+    def load_dataset(self, **kwargs):
+        return (
+            [{'messages': [
+                {'role': 'user', 'content': 'question'},
+                {'role': 'assistant', 'content': 'Answer: '},
+            ]}],
+            [{'sample': {'answer': 'yes'}}],
+        )
+    def get_answer(self, sample): return sample['answer']
+    def evaluate(self, sample, prediction): return {'unused': 0.0}
+    def aggregation(self): return {'unused': lambda values: 0.0}
+
+
+class LogsoftModel(FailingModel):
+    def support_method(self, method): return method in {'generate', 'calculate_logsoftmax'}
+    def apply_model_prompt(self, messages):
+        return ''.join(message['content'] for message in messages)
+    def calculate_logsoftmax_batch(self, messages, **kwargs):
+        prompts = [self.apply_model_prompt(item) for item in messages]
+        outputs = []
+        infos = []
+        for prompt, item in zip(prompts, messages):
+            rendered = copy.deepcopy(item)
+            answer_start = len(prompt) - len(item[-1]['content']) + len('Answer: ')
+            rendered[-1]['tokens'] = [
+                [10, -9.0, [answer_start - 2, answer_start]],
+                [11, -0.2, [answer_start, len(prompt)]],
+            ]
+            outputs.append(rendered)
+            infos.append({'generated_len': 1})
+        return prompts, outputs, infos
+
+
+class EvaluatorLogsoftTests(unittest.TestCase):
+    def setUp(self):
+        with mock.patch('llmtf.evaluator.set_random_seed', lambda seed: None):
+            self.evaluator = Evaluator()
+
+    def test_normal_evaluator_dispatches_calculate_logsoftmax(self):
+        name = 'test/logsoft_dispatch_registry'
+        self.evaluator.add_new_task(name, LogsoftTask, {})
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch(
+                'llmtf.evaluator.tqdm', lambda iterable, **kwargs: iterable
+            ):
+                summary = self.evaluator.evaluate(
+                    LogsoftModel(), directory, datasets_names=[name],
+                    few_shot_count=0, batch_size=1,
+                    max_sample_per_dataset=1,
+                )
+            self.assertTrue(summary.ok, summary.failed)
+            total = json.loads(
+                (Path(directory) / 'test_logsoft_dispatch_total.jsonl')
+                .read_text(encoding='utf-8')
+            )
+            self.assertEqual(total['results']['metric'], 1.0)
+
+    def test_ppl_excludes_assistant_prefill_tokens(self):
+        name = 'test/ppl_boundary_registry'
+        self.evaluator.add_new_task(name, PPLTask, {})
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch(
+                'llmtf.evaluator.tqdm', lambda iterable, **kwargs: iterable
+            ), mock.patch(
+                'llmtf.evaluator.np.mean',
+                lambda values: sum(values) / len(values),
+            ):
+                summary = self.evaluator.evaluate_ppl(
+                    LogsoftModel(), directory, datasets_names=[name],
+                    few_shot_count=0, batch_size=1,
+                    max_sample_per_dataset=1,
+                )
+            self.assertTrue(summary.ok, summary.failed)
+            total = json.loads(
+                (Path(directory) / 'test_ppl_boundary_total.jsonl')
+                .read_text(encoding='utf-8')
+            )
+            self.assertAlmostEqual(total['results']['ppl'], -0.2)
 
 
 if __name__ == '__main__':

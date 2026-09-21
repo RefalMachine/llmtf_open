@@ -403,10 +403,22 @@ class LLM(BaseLLM):
         return result.reasoning_prompts, result.final_outputs, infos_batch
 
     def calculate_logsoftmax(self, messages, continue_last_assistant_message=True, log_only_last=True):
-        return self.backend.calculate_logsoftmax(messages, continue_last_assistant_message=continue_last_assistant_message, log_only_last=log_only_last)
+        prompts, outputs, infos = self.calculate_logsoftmax_batch(
+            [messages],
+            continue_last_assistant_message=continue_last_assistant_message,
+            log_only_last=log_only_last,
+        )
+        return prompts[0], outputs[0], infos[0]
 
     def calculate_logsoftmax_batch(self, messages, continue_last_assistant_message=True, log_only_last=True):
-        return self.backend.calculate_logsoftmax_batch(messages, continue_last_assistant_message=continue_last_assistant_message, log_only_last=log_only_last)
+        result = self.backend.calculate_logsoftmax_batch(
+            messages,
+            continue_last_assistant_message=continue_last_assistant_message,
+            log_only_last=log_only_last,
+        )
+        return validate_batch_result(
+            result, len(messages), method="calculate_logsoftmax"
+        )
 
     # --- proxy to backend ---
 
@@ -417,6 +429,15 @@ class LLM(BaseLLM):
     @property
     def tokenizer(self):
         return self.backend.tokenizer
+
+    @property
+    def leading_space(self):
+        if not hasattr(self.backend, 'leading_space'):
+            raise NotImplementedError(
+                f"{type(self.backend).__name__} does not expose local tokenizer "
+                "leading-space metadata"
+            )
+        return self.backend.leading_space
 
     def apply_model_prompt(self, messages, continue_last_assistant_message=True, add_think_token=False):
         return self.backend.apply_model_prompt(messages, continue_last_assistant_message=continue_last_assistant_message, add_think_token=add_think_token)

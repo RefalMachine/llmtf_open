@@ -1,4 +1,4 @@
-from llmtf.base import Task, BaseLLM
+from llmtf.base import Task, BaseLLM, ensure_prompt_fits, distribute_sample_limit
 from llmtf.metrics import mean
 from typing import Dict, List, Tuple
 from datasets import DatasetDict, load_dataset, Dataset
@@ -220,7 +220,9 @@ class MMLU(Task):
         messages = []
         samples = []
         subjects = list(SUBCATEGORIES.keys())
-        max_samples_per_subject = max_sample_per_dataset // len(subjects) + 1
+        sample_quotas = distribute_sample_limit(
+            max_sample_per_dataset, len(subjects)
+        )
         #subject_datasets = load_dataset_multiprocessing(subjects, 1) #TODO: to params
         subject_datasets = load_dataset_darulm(subjects)
         for i, dataset in enumerate(tqdm(subject_datasets)):
@@ -229,7 +231,10 @@ class MMLU(Task):
             dataset_test = dataset['test']
             dataset_dev = dataset['dev']
 
-            subject_samples = self._load_dataset(subject, dataset_test, dataset_dev, model, max_prompt_len, max_samples_per_subject, few_shot_count)
+            subject_samples = self._load_dataset(
+                subject, dataset_test, dataset_dev, model, max_prompt_len,
+                sample_quotas[i], few_shot_count,
+            )
 
             subject_messages = [{'messages': s['messages']} for s in subject_samples]
             subject_samples = [{'sample': s['sample']} for s in subject_samples]
@@ -260,8 +265,11 @@ class MMLU(Task):
         
         zero_shot_messages_with_headline = self._create_messages(subject, sample, int2str, add_headline=True, add_answer=False)
         zero_shot_messages_with_headline_len = model.count_tokens_for_messages(zero_shot_messages_with_headline)
-        if zero_shot_messages_with_headline_len is not None and zero_shot_messages_with_headline_len >= max_prompt_len:
-            self.logger.warning(f'WARNING: sample zero-shot len {zero_shot_messages_with_headline_len} greater then {max_prompt_len}. Will be truncated.')
+        ensure_prompt_fits(
+            zero_shot_messages_with_headline_len,
+            max_prompt_len,
+            self.run_name(),
+        )
 
         zero_shot_messages_without_headline = copy.deepcopy(self._create_messages(subject, sample, int2str, add_headline=False, add_answer=False))
         message_groups = [self._create_messages(subject, few_shot_samples[i], int2str, add_headline=(i == 0), add_answer=True) for i in range(k)]
@@ -270,7 +278,7 @@ class MMLU(Task):
             for group in message_groups[:k-i]:
                 messages += group
             few_shot_messages_len = model.count_tokens_for_messages(messages + zero_shot_messages_without_headline)
-            if few_shot_messages_len is None or few_shot_messages_len < max_prompt_len:
+            if few_shot_messages_len is None or few_shot_messages_len <= max_prompt_len:
                 messages += zero_shot_messages_without_headline
                 break
         else:

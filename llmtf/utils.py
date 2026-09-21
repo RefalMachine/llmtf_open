@@ -42,6 +42,7 @@ def set_out_handler_to_main_logger(output_dir):
     for handler in logger.handlers:
         if handler.__class__ == logging.FileHandler and handler.baseFilename.endswith(default_log_name):
             logger.removeHandler(handler)
+            handler.close()
 
     fh = logging.FileHandler(os.path.join(output_dir, default_log_name))
     fh.setLevel(logging.INFO)

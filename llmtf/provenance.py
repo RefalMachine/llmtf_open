@@ -1,6 +1,7 @@
 """Canonical run configuration, redaction and cache fingerprint helpers."""
 
 import hashlib
+import inspect
 import json
 from pathlib import Path
 from typing import Any, Dict
@@ -8,7 +9,7 @@ from typing import Any, Dict
 from llmtf.config import config_to_dict
 
 
-RUN_CONFIG_SCHEMA_VERSION = 1
+RUN_CONFIG_SCHEMA_VERSION = 2
 _SECRET_FRAGMENTS = (
     "api_key", "apikey", "authorization", "password", "secret", "token",
     "credential",
@@ -55,11 +56,60 @@ def fingerprint_run_config(config: Dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(config).encode("utf-8")).hexdigest()
 
 
+def _stable_task_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _stable_task_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_stable_task_value(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        return sorted((_stable_task_value(item) for item in value), key=str)
+    if isinstance(value, Path) or value is None \
+            or isinstance(value, (str, int, float, bool)):
+        return value
+    get_params = getattr(value, 'get_params', None)
+    if callable(get_params):
+        return {
+            'class': f"{type(value).__module__}.{type(value).__qualname__}",
+            'params': _stable_task_value(get_params()),
+        }
+    return {'class': f"{type(value).__module__}.{type(value).__qualname__}"}
+
+
+def _task_implementation_identity(task) -> Dict[str, Any]:
+    task_cls = type(task)
+    identity = {
+        'class': f"{task_cls.__module__}.{task_cls.__qualname__}",
+    }
+    source_path = inspect.getsourcefile(task_cls)
+    if source_path:
+        try:
+            source = Path(source_path).read_bytes()
+        except OSError:
+            source = None
+        if source is not None:
+            identity['module_sha256'] = hashlib.sha256(source).hexdigest()
+    return identity
+
+
+def _task_dataset_args(task):
+    dataset_args = getattr(task, 'dataset_args', None)
+    if not callable(dataset_args):
+        return None
+    try:
+        value = dataset_args()
+        if not isinstance(value, dict):
+            value = list(value)
+    except TypeError:
+        return None
+    return _stable_task_value(value)
+
+
 def build_run_config(*, model, task, enable_thinking: bool,
                      generation_config, few_shot_count: int, batch_size: int,
                      max_sample_per_dataset: int, max_prompt_len: int,
                      effective_reasoning_tokens: int, scoring_method: str,
-                     requested_enable_thinking=None) -> Dict[str, Any]:
+                     requested_enable_thinking=None, registry_name=None,
+                     task_init_params=None) -> Dict[str, Any]:
     rc = model.reasoning_config
     configured_reasoning = getattr(rc, "configured_max_new_tokens_reasoning",
                                    rc.max_new_tokens_reasoning)
@@ -93,7 +143,11 @@ def build_run_config(*, model, task, enable_thinking: bool,
             },
         },
         "task": {
+            "registry_name": registry_name,
             "name": task.run_name(),
+            "implementation": _task_implementation_identity(task),
+            "init_params": _stable_task_value(task_init_params or {}),
+            "dataset_args": _task_dataset_args(task),
             "method": scoring_method,
             "few_shot_count": few_shot_count,
             "batch_size": batch_size,
