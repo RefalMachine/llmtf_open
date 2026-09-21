@@ -2,6 +2,7 @@ model:
   model_kind: plain
   enable_thinking: false
   is_foundational: true
+  model_context_len: 16000
   probe_api_prefill: true
 
 defaults:
@@ -16,14 +17,13 @@ tasks:
     datasets:
       - darumeru/flores_ru_en
       - darumeru/flores_en_ru
-    max_sample_per_dataset: 20
     few_shot_count: 5
-      
+
   - name: summarization
     datasets:
       - daru/treewayabstractive
       - ilyagusev/gazeta
-    max_sample_per_dataset: 20
+    max_sample_per_dataset: 1000
     few_shot_count: 5
 
   - name: shlepa
@@ -46,23 +46,24 @@ tasks:
     few_shot_count: 5
     name_suffix: few_shot
 
-  - name: internal_copy
-    datasets:
-      - darumeru/cp_para_ru
-      - darumeru/cp_para_en
-      - darumeru/cp_doc_ru
-    few_shot_count: 5
-    max_sample_per_dataset: 20
-
   - name: ner
     datasets:
       - RCC-MSU/collection3-(in-place)
     few_shot_count: 5
-    max_sample_per_dataset: 200
 
   - name: classification
     datasets:
       - sentiment_kinopoisk
       - russiannlp/rucola_custom
     few_shot_count: 5
-    max_sample_per_dataset: 200
+
+  # CopyText requires local tokenizer metadata and return_tokens=True, which
+  # are intentionally unavailable through APIBackend. Keep this group last so
+  # a managed-API run completes every supported group before failing clearly;
+  # HF/local-vLLM runners execute it normally.
+  - name: internal_copy
+    datasets:
+      - darumeru/cp_para_ru
+      - darumeru/cp_para_en
+      - darumeru/cp_doc_ru
+    few_shot_count: 5

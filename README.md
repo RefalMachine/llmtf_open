@@ -260,6 +260,39 @@ python benchmark/calculate_benchmark_api.py \
   --base_port 8000
 ```
 
+Готовые конфиги для Qwen3.5:
+
+```bash
+python -m benchmark.calculate_benchmark_api \
+  --model_dir Qwen/Qwen3.5-2B \
+  --benchmark_config benchmark/llmtf_benchmark_instruct_fast.yaml \
+  --output_dir results/qwen35-2b-instruct-fast-api \
+  --num_gpus 1 --tensor_parallel_size 1
+
+python -m benchmark.calculate_benchmark_api \
+  --model_dir Qwen/Qwen3.5-2B-Base \
+  --benchmark_config benchmark/llmtf_benchmark_foundational.yaml \
+  --output_dir results/qwen35-2b-base-foundational-api \
+  --num_gpus 1 --tensor_parallel_size 1
+```
+
+Managed runner запускает vLLM 0.21 в text-only режиме. Foundational
+конфиг использует контекст 16000 для всего прогона: старые
+task-level `max_len` больше не являются частью schema.
+Повторный запуск без `--force_recalc` продолжает совместимый незавершённый
+прогон; флаг добавляйте только для намеренного полного пересчёта.
+Instruct Fast явно задаёт `assistant_prefill_policy: best_effort`, потому
+что native Qwen3.5 template в vLLM 0.21 не гарантирует exact continuation
+для prefill с завершающим пробелом. Такие samples логируются как
+`unverified` и не доказывают exact local/API parity.
+
+CopyText требует локальные token ids и `leading_space`, поэтому APIBackend его
+намеренно не поддерживает. В foundational-конфиге группа `internal_copy`
+расположена последней: managed-API запуск сначала завершает все совместимые
+группы, затем возвращает ожидаемый non-zero status на CopyText. Полностью
+успешный foundational прогон, включая CopyText, выполняйте через HF или local
+vLLM runner.
+
 Для уже запущенного endpoint используйте
 `benchmark/calculate_benchmark_existing_api.py`.
 
@@ -278,8 +311,8 @@ python benchmark/calculate_benchmark_api.py \
 [`docs/results.md`](docs/results.md).
 
 Fingerprint schema v2 включает identity/config задачи, а сводный отчёт
-учитывает только успешные или совместимо закэшированные задачи текущего
-вызова — stale totals из общего output-каталога в среднее не попадают.
+пересобирается по всем завершённым `_total.jsonl` в output-каталоге.
+Используйте отдельный каталог для каждой модели или несовместимой конфигурации.
 
 `ruparam` загружается из публичного
 [`RefalMachine/RuParam`](https://huggingface.co/datasets/RefalMachine/RuParam),

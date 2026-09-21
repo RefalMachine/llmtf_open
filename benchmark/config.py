@@ -194,7 +194,8 @@ def build_evaluate_command(config, task, *, model_name, output_dir,
                            api=False, base_url=None, conv_path='auto',
                            backend='vllm', tensor_parallel_size=1,
                            force_recalc=False, ppl=False,
-                           is_foundational=False, api_profile=None):
+                           is_foundational=False, api_profile=None,
+                           calculate_tokens_proba_logprobs_count=None):
     entrypoint = 'evaluate_model_api.py' if api else 'evaluate_model.py'
     command = ['python', entrypoint]
     if api:
@@ -214,6 +215,13 @@ def build_evaluate_command(config, task, *, model_name, output_dir,
     ]
     if api and config.model.probe_api_prefill:
         command.append('--probe_api_prefill')
+    if api and calculate_tokens_proba_logprobs_count is not None:
+        command += [
+            '--calculate_tokens_proba_logprobs_count',
+            str(calculate_tokens_proba_logprobs_count),
+        ]
+    if api and (is_foundational or config.model.is_foundational):
+        command += ['--conv_path', conv_path]
     if not api:
         command += ['--conv_path', conv_path]
         if backend == 'vllm':

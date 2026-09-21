@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 /dump*
 outputs/
+/results/
 benchmark/balanced/
 benchmark/greedy/
 benchmark/balanced_old/

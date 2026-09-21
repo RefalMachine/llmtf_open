@@ -21,9 +21,7 @@ import re
 import string
 from typing import Dict, Optional, Sequence, Union
 
-from absl import logging
-
-from ftlangdetect import detect
+import langdetect
 from pymorphy3 import MorphAnalyzer
 
 from . import ru_instructions_util
@@ -32,6 +30,19 @@ from . import ru_instructions_util
 _InstructionArgsDtype = Optional[Dict[str, Union[int, str, Sequence[str]]]]
 
 _LANGUAGES = ru_instructions_util.LANGUAGE_CODES
+
+# langdetect otherwise uses a random feature-selection seed, which makes the
+# same benchmark answer capable of receiving different language labels.
+langdetect.DetectorFactory.seed = 555
+
+
+def _is_language(value, expected_language):
+    """Return False for undetectable text; propagate infrastructure errors."""
+    try:
+        detected_language = langdetect.detect(value.replace("\n", " "))
+    except langdetect.LangDetectException:
+        return False
+    return detected_language == expected_language
 
 # The relational operation for comparison.
 _COMPARISON_RELATION = ("less than", "at least")
@@ -175,17 +186,7 @@ class ResponseLanguageChecker(Instruction):
         """
         assert isinstance(value, str)
 
-        try:
-            return (
-                detect(text=value.replace("\n", " "), low_memory=False)["lang"]
-                == self._language
-            )
-        except:
-            # Count as instruction is followed.
-            logging.error(
-                "Unable to detect language for text %s", value
-            )  # refex: disable=pytotw.037
-            return True
+        return _is_language(value, self._language)
 
 
 class NumberOfSentences(Instruction):
@@ -1442,12 +1443,12 @@ class LetterFrequencyChecker(Instruction):
 
 
 class CapitalLettersEnglishChecker(Instruction):
-    """Checks that the response is in english and is in all capital letters."""
+    """Checks that the response is in Russian and is all capital letters."""
 
     def build_description(self):
         """Build the instruction description."""
         self._description_pattern = (
-            "Your entire response should be in English, and in all capital letters."
+            "Your entire response should be in Russian, and in all capital letters."
         )
         return self._description_pattern
 
@@ -1459,30 +1460,18 @@ class CapitalLettersEnglishChecker(Instruction):
         return []
 
     def check_following(self, value):
-        """Checks that the response is in English and in all capital letters."""
+        """Checks that the response is in Russian and in all capital letters."""
         assert isinstance(value, str)
-
-        try:
-            return (
-                value.isupper()
-                and detect(text=value.replace("\n", " "), low_memory=False)["lang"]
-                == "ru"
-            )
-        except:
-            # Count as instruction is followed.
-            logging.error(
-                "Unable to detect language for text %s", value
-            )  # refex: disable=pytotw.037
-            return True
+        return value.isupper() and _is_language(value, "ru")
 
 
 class LowercaseLettersEnglishChecker(Instruction):
-    """Checks that the response is in english and is in all lowercase letters."""
+    """Checks that the response is in Russian and is all lowercase letters."""
 
     def build_description(self):
         """Build the instruction description."""
         self._description_pattern = (
-            "Your entire response should be in English, and in all lowercase"
+            "Your entire response should be in Russian, and in all lowercase"
             " letters. No capital letters are allowed."
         )
         return self._description_pattern
@@ -1495,21 +1484,9 @@ class LowercaseLettersEnglishChecker(Instruction):
         return []
 
     def check_following(self, value):
-        """Checks that the response is in English and in all lowercase letters."""
+        """Checks that the response is in Russian and in all lowercase letters."""
         assert isinstance(value, str)
-
-        try:
-            return (
-                value.islower()
-                and detect(text=value.replace("\n", " "), low_memory=False)["lang"]
-                == "ru"
-            )
-        except:
-            # Count as instruction is followed.
-            logging.error(
-                "Unable to detect language for text %s", value
-            )  # refex: disable=pytotw.037
-            return True
+        return value.islower() and _is_language(value, "ru")
 
 
 class CommaChecker(Instruction):

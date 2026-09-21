@@ -706,6 +706,67 @@ def test_api_backend_apply_model_prompt_not_implemented():
     assert raised_count, 'expected NotImplementedError from APIBackend.count_tokens_for_prompt'
 
 
+def test_api_foundational_config_propagates_stop_string():
+    from llmtf.backends import APIBackend
+
+    class Response:
+        def __init__(self, data):
+            self._data = data
+
+        def json(self):
+            return self._data
+
+    api = APIBackend(
+        api_base='http://localhost:0', api_profile='vllm',
+        model_context_len=16000,
+    )
+
+    def request(method, path, **kwargs):
+        if path == '/v1/models':
+            return Response({'data': [{'id': 'model', 'max_model_len': 16000}]})
+        if path == '/tokenize':
+            return Response({'count': 1})
+        raise AssertionError(path)
+
+    api._request = request
+    api.from_pretrained('model', is_foundational=True)
+    assert api.generation_config.stop_strings == ['\n\n']
+    assert api.stop_strings_base == ['\n\n']
+    assert api.conversation_template_path.endswith(
+        'conversation_configs/default_foundational.json'
+    )
+
+
+def test_api_probability_all_candidates_censored_returns_zero_bounds():
+    from llmtf.backends import APIBackend
+
+    class Response:
+        def json(self):
+            return {
+                'choices': [{
+                    'logprobs': {'content': [{
+                        'token': 'other',
+                        'top_logprobs': [
+                            {'token': 'other', 'logprob': -0.1},
+                        ],
+                    }]},
+                }],
+                'usage': {'prompt_tokens': 4},
+            }
+
+    api = APIBackend(api_base='http://localhost:0', api_profile='vllm')
+    api.model_name = 'model'
+    api._request = lambda *args, **kwargs: Response()
+    _, probabilities, info = api.calculate_tokens_proba(
+        [{'role': 'user', 'content': 'choose'}], ['1', '2', '3'],
+    )
+    assert probabilities == {'1': 0.0, '2': 0.0, '3': 0.0}
+    assert info['candidate_ranking_resolved'] is False
+    assert info['candidate_score_semantics'] == (
+        'top_k_censored_all_candidates_below_cutoff'
+    )
+
+
 def test_task_prompt_budget_and_quota_helpers():
     from llmtf.base import (
         PromptTooLongError, distribute_sample_limit, ensure_prompt_fits,

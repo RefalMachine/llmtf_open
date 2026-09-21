@@ -33,9 +33,12 @@ format или новый публичный декларативный API.
 13. убрать сетевой side effect IFEval из конструктора задачи;
 14. запретить неявное перезаписывание task registry entries;
 15. покрыть перечисленные случаи dependency-free regression tests;
-16. исключить stale totals из отчёта текущего запуска и сделать task sampling
-    независимым от порядка запуска;
+16. пересобирать отчёт по всем active totals output-каталога, не создавать
+    stale-архивы при force-recalc и сделать task sampling независимым от
+    порядка запуска;
 17. исправить выбор distractors Shlepa при малом sample limit.
+18. сделать cache fingerprint независимым от лениво обнаруживаемых API
+    capabilities и сохранить совместимость с уже записанными schema-v2 totals.
 
 Не входят в этот этап:
 
@@ -86,9 +89,10 @@ format или новый публичный декларативный API.
 - [x] Явный registry conflict error.
 - [x] Task implementation/config identity в fingerprint.
 - [x] Удаление NLTK download из IFEval constructor.
-- [x] Отчёт только по успешным/совместимо закэшированным задачам текущего
-  запуска.
+- [x] Отчёт по всем завершённым totals выделенного output-каталога.
 - [x] Независимый от порядка задач seed перед каждым dataset load.
+- [x] Cache fingerprint не зависит от порядка lazy API capability probes;
+  старые schema-v2 totals проходят совместимую проверку по `run_config`.
 
 ### P2 — документация и regression evidence
 

@@ -8,6 +8,7 @@ from multiprocessing import Queue, Lock
 from queue import Empty
 import nltk
 from benchmark.config import build_evaluate_command, load_benchmark_config
+from llmtf.evaluator import Evaluator
 
 class GPUManager:
     def __init__(self, num_gpus):
@@ -167,6 +168,9 @@ if __name__ == '__main__':
     # Ожидаем завершения всех воркеров
     for p in processes:
         p.join()
+    output_dir = args.output_dir or os.path.join(args.model_dir, 'llmtf_eval')
+    if os.path.isdir(output_dir):
+        Evaluator().create_report(output_dir)
     if any(p.exitcode != 0 for p in processes):
         raise SystemExit(1)
         

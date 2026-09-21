@@ -205,7 +205,7 @@ class APIBackendTests(unittest.TestCase):
         self.assertEqual(info['candidate_surface_coverage']['A'], [' A'])
         self.assertEqual(info['candidate_surface_coverage']['B'], [])
 
-    def test_top_logprobs_fail_when_no_candidate_is_visible(self):
+    def test_top_logprobs_return_zero_bounds_when_no_candidate_is_visible(self):
         backend = self._backend()
         backend._request = lambda *args, **kwargs: Response({
             'choices': [{
@@ -217,12 +217,15 @@ class APIBackendTests(unittest.TestCase):
                 }]},
             }],
         })
-        with self.assertRaisesRegex(
-            BackendRequestError, 'none of the requested candidate'
-        ):
-            backend.calculate_tokens_proba(
-                [{'role': 'user', 'content': 'q'}], ['A', 'B']
-            )
+        _, scores, info = backend.calculate_tokens_proba(
+            [{'role': 'user', 'content': 'q'}], ['A', 'B']
+        )
+        self.assertEqual(scores, {'A': 0.0, 'B': 0.0})
+        self.assertFalse(info['candidate_ranking_resolved'])
+        self.assertEqual(
+            info['candidate_score_semantics'],
+            'top_k_censored_all_candidates_below_cutoff',
+        )
 
     def test_two_pass_reasoning_fails_before_request_without_continuation(self):
         backend = APIBackend(

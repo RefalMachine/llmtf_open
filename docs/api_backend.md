@@ -93,7 +93,10 @@ Top-k не содержит полное распределение. Поэто�
 
 Отсутствующему варианту для совместимости task-интерфейса соответствует
 нижняя граница `0.0`, а не заявленная точная вероятность. Если не найден ни
-один вариант ответа, sample завершается ошибкой. API без logprobs следует
+один вариант, все значения равны `0.0`, а `info` содержит
+`candidate_ranking_resolved: false` и semantics
+`top_k_censored_all_candidates_below_cutoff`. Это сохраняет sample,
+но не доказывает относительный ranking. API без logprobs следует
 настроить с `supports_logprobs=false` в `--backend_kwargs`; probability-задачи
 тогда отклоняются как unsupported до загрузки датасета.
 

@@ -9,7 +9,6 @@ import os
 import json
 import codecs
 import copy
-import time
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -188,7 +187,6 @@ class Evaluator(Base):
         elif isinstance(datasets_names, str):
             datasets_names = [datasets_names]
         self.logger.info(f'Starting eval on {datasets_names}')
-        report_task_names = set()
         for dataset_name in datasets_names:
             try:
                 # Dataset sampling must not depend on which tasks ran before it.
@@ -227,10 +225,10 @@ class Evaluator(Base):
                     )
                     run_fingerprint = fingerprint_run_config(run_config)
                     if self._cache_hit(
-                        output_dir, task, run_fingerprint, force_recalc
+                        output_dir, task, run_fingerprint, force_recalc,
+                        expected_run_config=run_config,
                     ):
                         summary.skipped.append(dataset_name)
-                        report_task_names.add(task.run_name())
                         continue
                     self.evaluate_dataset(
                         task, model, output_dir, max_prompt_len, few_shot_count,
@@ -240,27 +238,28 @@ class Evaluator(Base):
                         run_config, run_fingerprint,
                     )
                 summary.succeeded.append(dataset_name)
-                report_task_names.add(task.run_name())
             except Exception as exc:
                 summary.failed[dataset_name] = f"{type(exc).__name__}: {exc}"
                 self.logger.error(f"Failed to evaluate on {dataset_name}: {exc}")
                 self.logger.error(traceback.format_exc())
         self.logger.info('Ended eval')
-        self.create_report(output_dir, report_task_names)
+        self.create_report(output_dir)
         return summary
 
-    def _cache_hit(self, output_dir, task, expected_fingerprint, force_recalc):
+    def _cache_hit(self, output_dir, task, expected_fingerprint, force_recalc,
+                   expected_run_config=None):
         total_path = Path(output_dir) / f"{task.run_name().replace('/', '_')}_total.jsonl"
         if force_recalc and total_path.exists():
-            stale_path = total_path.with_name(
-                total_path.name + f".stale-{time.time_ns()}"
-            )
-            total_path.rename(stale_path)
+            total_path.unlink()
             self.logger.info(
-                "Archived prior total before forced recalculation: %s", stale_path
+                "Removed prior total before forced recalculation: %s",
+                total_path,
             )
             return False
-        if validate_cache(total_path, expected_fingerprint, force_recalc):
+        if validate_cache(
+            total_path, expected_fingerprint, force_recalc,
+            expected_run_config=expected_run_config,
+        ):
             self.logger.info(f"Found compatible precomputed {task.run_name()}_total")
             return True
         return False
@@ -412,7 +411,6 @@ class Evaluator(Base):
             model.reasoning_config.model_kind, False, "calculate_logsoftmax"
         )
         self.logger.info(f'Starting eval on {datasets_names}')
-        report_task_names = set()
         for dataset_name in datasets_names:
             try:
                 set_random_seed(555)
@@ -449,9 +447,11 @@ class Evaluator(Base):
                         task_init_params=task_init_params,
                     )
                     run_fingerprint = fingerprint_run_config(run_config)
-                    if self._cache_hit(output_dir, task, run_fingerprint, force_recalc):
+                    if self._cache_hit(
+                        output_dir, task, run_fingerprint, force_recalc,
+                        expected_run_config=run_config,
+                    ):
                         summary.skipped.append(dataset_name)
-                        report_task_names.add(task.run_name())
                         continue
                     self.evaluate_dataset_ppl(
                         task, model, output_dir, max_prompt_len, few_shot_count,
@@ -459,13 +459,12 @@ class Evaluator(Base):
                         run_fingerprint,
                     )
                 summary.succeeded.append(dataset_name)
-                report_task_names.add(task.run_name())
             except Exception as exc:
                 summary.failed[dataset_name] = f"{type(exc).__name__}: {exc}"
                 self.logger.error(f"Failed to evaluate PPL on {dataset_name}: {exc}")
                 self.logger.error(traceback.format_exc())
         self.logger.info('Ended eval')
-        self.create_report(output_dir, report_task_names)
+        self.create_report(output_dir)
         return summary
 
     def evaluate_dataset_ppl(self, task, model, output_dir, max_prompt_len,
@@ -544,18 +543,13 @@ class Evaluator(Base):
 
         task.logger.info(str(metrics_res))
 
-    def create_report(self, output_dir, task_names=None):
-        allowed_task_names = (
-            None if task_names is None else set(task_names)
-        )
+    def create_report(self, output_dir):
+        """Rebuild the summary from every completed task in output_dir."""
         reports = {}
         for file_name in os.listdir(output_dir):
             if file_name.endswith('_total.jsonl'):
                 with codecs.open(os.path.join(output_dir, file_name), 'r', 'utf-8') as file:
                     task_report = json.load(file)
-                if allowed_task_names is not None \
-                        and task_report['task_name'] not in allowed_task_names:
-                    continue
                 reports[task_report['task_name']] = task_report['leaderboard_result']
         if not reports:
             self.logger.warning("No successful task totals found; report not created")

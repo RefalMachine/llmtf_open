@@ -16,6 +16,7 @@ sys.modules['datasets.utils'] = datasets_utils
 sys.modules['datasets.utils.logging'] = datasets_logging
 tasks_stub = types.ModuleType('llmtf.tasks')
 tasks_stub.TASK_REGISTRY = {}
+tasks_stub.__path__ = [str(Path(__file__).resolve().parents[1] / 'llmtf' / 'tasks')]
 sys.modules['llmtf.tasks'] = tasks_stub
 
 from llmtf.backends.base import BackendBatchError
@@ -82,7 +83,21 @@ class EvaluatorIntegrityTests(unittest.TestCase):
             name, FailingTask, {}, allow_override=True
         )
 
-    def test_report_ignores_totals_outside_current_run(self):
+    def test_force_recalc_removes_prior_total_without_stale_archive(self):
+        with mock.patch('llmtf.evaluator.set_random_seed', lambda seed: None):
+            evaluator = Evaluator()
+        with tempfile.TemporaryDirectory() as directory:
+            total_path = Path(directory) / 'test_failing_batch_total.jsonl'
+            total_path.write_text('{}', encoding='utf-8')
+            self.assertFalse(
+                evaluator._cache_hit(
+                    directory, FailingTask(), 'new-fingerprint', True
+                )
+            )
+            self.assertFalse(total_path.exists())
+            self.assertEqual(list(Path(directory).glob('*.stale-*')), [])
+
+    def test_report_includes_all_totals_in_output_directory(self):
         with mock.patch('llmtf.evaluator.set_random_seed', lambda seed: None):
             evaluator = Evaluator()
         with tempfile.TemporaryDirectory() as directory:
@@ -93,11 +108,14 @@ class EvaluatorIntegrityTests(unittest.TestCase):
             (root / 'stale_total.jsonl').write_text(json.dumps({
                 'task_name': 'stale', 'leaderboard_result': 0.0,
             }), encoding='utf-8')
-            evaluator.create_report(directory, {'current'})
+            evaluator.create_report(directory)
             report = (root / 'evaluation_results.txt').read_text(
                 encoding='utf-8'
             )
-            self.assertEqual(report, 'mean\tcurrent\n1.000\t1.000')
+            self.assertEqual(
+                report,
+                'mean\tcurrent\tstale\n0.500\t1.000\t0.000',
+            )
 
 
 class LogsoftTask(Task):

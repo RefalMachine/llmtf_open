@@ -3,6 +3,7 @@
 import hashlib
 import inspect
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict
 
@@ -10,23 +11,24 @@ from llmtf.config import config_to_dict
 
 
 RUN_CONFIG_SCHEMA_VERSION = 2
+_VOLATILE_SERVER_CAPABILITIES = frozenset({
+    "detokenize",
+    "logprobs",
+})
 _SECRET_FRAGMENTS = (
-    "api_key", "apikey", "authorization", "password", "secret", "token",
+    "api_key", "apikey", "authorization", "password", "secret",
     "credential",
 )
 
 
 def _is_secret_key(key: str) -> bool:
-    normalized = key.lower().replace("-", "_")
-    # Token budgets/ids and model names are provenance, not credentials.
-    if normalized in {
-        "max_new_tokens", "max_new_tokens_reasoning", "min_new_tokens_reasoning",
-        "end_thinking_token_id", "eos_token_id", "pad_token_id", "bos_token_id",
-        "stop_token_ids", "tokenizer", "use_fast_tokenizer",
-        "calculate_tokens_proba_logprobs_count",
-        "token_probability_surface_forms", "token_probability_aggregation",
-    }:
-        return False
+    normalized = re.sub(r"(?<!^)(?=[A-Z])", "_", key)
+    normalized = normalized.lower().replace("-", "_").replace(" ", "_")
+    # A credential token is conventionally named ``token`` or ``*_token``.
+    # Token counts, token ids, tokenizer settings and API capabilities are
+    # ordinary run provenance and must remain visible.
+    if normalized == "token" or normalized.endswith("_token"):
+        return True
     return any(fragment in normalized for fragment in _SECRET_FRAGMENTS)
 
 
@@ -52,8 +54,32 @@ def canonical_json(config: Dict[str, Any]) -> str:
                       separators=(",", ":"), allow_nan=False)
 
 
+def _fingerprint_payload(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the semantic, order-independent part of a run configuration.
+
+    API capability discovery is intentionally lazy. In particular, logprobs
+    becomes known only after a probability request and detokenize only after a
+    continuation probe. Their observed values therefore depend on which
+    earlier tasks were evaluated instead of loaded from cache. Keep these
+    observations in result provenance, but do not let them invalidate otherwise
+    identical cached results.
+    """
+    payload = sanitize(config)
+    model = payload.get("model") if isinstance(payload, dict) else None
+    capabilities = (
+        model.get("server_capabilities")
+        if isinstance(model, dict) else None
+    )
+    if isinstance(capabilities, dict):
+        for capability in _VOLATILE_SERVER_CAPABILITIES:
+            capabilities.pop(capability, None)
+    return payload
+
+
 def fingerprint_run_config(config: Dict[str, Any]) -> str:
-    return hashlib.sha256(canonical_json(config).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        canonical_json(_fingerprint_payload(config)).encode("utf-8")
+    ).hexdigest()
 
 
 def _stable_task_value(value: Any) -> Any:
@@ -173,12 +199,22 @@ def read_cached_fingerprint(total_path: Path):
 
 
 def validate_cache(total_path: Path, expected_fingerprint: str,
-                   force_recalc=False) -> bool:
+                   force_recalc=False, expected_run_config=None) -> bool:
     if not total_path.exists() or force_recalc:
         return False
-    actual = read_cached_fingerprint(total_path)
+    with total_path.open("r", encoding="utf-8") as source:
+        payload = json.load(source)
+    actual = payload.get("run_fingerprint")
     if actual == expected_fingerprint:
         return True
+    # Compatibility with schema-v2 artifacts written before volatile API
+    # capability observations were excluded from the fingerprint. Compare the
+    # embedded configuration using the current semantic fingerprint instead of
+    # requiring users to recalculate valid benchmark results.
+    cached_run_config = payload.get("run_config")
+    if expected_run_config is not None and isinstance(cached_run_config, dict):
+        if fingerprint_run_config(cached_run_config) == expected_fingerprint:
+            return True
     raise CacheMismatchError(
         f"Cached result at {total_path} has fingerprint {actual!r}, expected "
         f"{expected_fingerprint!r}. Use --force_recalc, a different "

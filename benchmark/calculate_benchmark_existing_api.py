@@ -6,6 +6,7 @@ from queue import Empty
 import requests
 import time
 from benchmark.config import build_evaluate_command, load_benchmark_config
+from llmtf.evaluator import Evaluator
 
 def run_eval(args, config, task):
     """Запускает один таск оценки модели через API."""
@@ -88,4 +89,7 @@ if __name__ == '__main__':
             print(f"[Worker] An unexpected error occurred: {e}", flush=True)
             raise
 
+    output_dir = args.output_dir or os.path.join(os.getcwd(), 'llmtf_eval')
+    if os.path.isdir(output_dir):
+        Evaluator().create_report(output_dir)
     print("\nAll evaluation tasks completed.")

@@ -15,7 +15,6 @@ rouge-score
 pymorphy3
 immutabledict
 langdetect
-fasttext-langdetect
 nltk
 math-verify
 latex2sympy2-extended

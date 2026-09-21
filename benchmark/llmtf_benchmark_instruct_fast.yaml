@@ -1,6 +1,7 @@
 model:
-  model_kind: plain
+  model_kind: hybrid
   enable_thinking: false
+  assistant_prefill_policy: best_effort
 
 defaults:
   generation:
@@ -60,6 +61,12 @@ tasks:
     datasets:
       - russiannlp/rucola_custom
     max_sample_per_dataset: 200
+
+  - name: ruparam
+    datasets:
+      - ruparam
+    few_shot_count: 0
+    max_sample_per_dataset: 100000
 
   - name: ner_json
     datasets:
@@ -159,50 +166,39 @@ tasks:
       presence_penalty: 0.0
       num_return_sequences: 1
 
-  - name: libra_ru_sci_abstract_retrieval
-    datasets:
-      - libra/ru_sci_abstract_retrieval
-    few_shot_count: 0
-    max_sample_per_dataset: 200
-
-  - name: libra_ru_babilong_qa1
-    datasets:
-      - libra/ru_babilong_qa1
-    few_shot_count: 0
-    max_sample_per_dataset: 200
-
-  - name: libra_ru_babilong_qa2
-    datasets:
-      - libra/ru_babilong_qa2
-    few_shot_count: 0
-    max_sample_per_dataset: 200
-
+  # LIBRA Mini (May 2026): the six subsets selected by the dataset authors.
   - name: libra_ru_babilong_qa3
     datasets:
       - libra/ru_babilong_qa3
     few_shot_count: 0
     max_sample_per_dataset: 200
 
-  - name: libra_ru_babilong_qa4
+  - name: libra_ru_sci_passage_count
     datasets:
-      - libra/ru_babilong_qa4
+      - libra/ru_sci_passage_count
     few_shot_count: 0
     max_sample_per_dataset: 200
 
-  - name: libra_ru_babilong_qa5
+  - name: libra_librusec_mhqa
     datasets:
-      - libra/ru_babilong_qa5
+      - libra/librusec_mhqa
     few_shot_count: 0
     max_sample_per_dataset: 200
 
-  - name: libra_ru_tpo
+  - name: libra_long_context_multiq
     datasets:
-      - libra/ru_tpo
+      - libra/long_context_multiq
     few_shot_count: 0
     max_sample_per_dataset: 200
 
-  - name: libra_ru_qasper
+  - name: libra_ru_2wikimultihopqa
     datasets:
-      - libra/ru_qasper
+      - libra/ru_2wikimultihopqa
+    few_shot_count: 0
+    max_sample_per_dataset: 200
+
+  - name: libra_matreshka_names
+    datasets:
+      - libra/matreshka_names
     few_shot_count: 0
     max_sample_per_dataset: 200

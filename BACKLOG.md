@@ -57,6 +57,84 @@ task identity участвует в cache fingerprint, а найденные д�
 - добавить dependency-free tests для discovery/validation/conflicts и
   integration smoke с временным внешним каталогом.
 
+### 3. Архивное зеркало benchmark datasets в Hugging Face
+
+Собрать фактически используемые LLMTF данные в публичном dataset repository
+`RefalMachine/llmtf_benchmark`, чтобы воспроизводимость benchmark не зависела
+от удаления, переименования или несовместимого обновления upstream datasets.
+Пошаговая спецификация: `dev/DATASET_MIRROR_PLAN.md`.
+
+- хранить данные физически в repository (предпочтительно sharded Parquet), а не
+  оставлять ссылки на upstream loading scripts или внешние download URLs;
+- использовать HF dataset configurations для отдельных логических datasets с
+  независимыми schemas; сохранять исходные `train`/`validation`/`dev`/`test`
+  splits внутри соответствующей configuration;
+- не дублировать строки ради `fast`, `full` и `foundational`: хранить эти
+  benchmark-варианты как versioned manifests со списком configurations,
+  filters, sample limits и task parameters;
+- сохранять внутренние срезы вроде MMLU subject/category в явных колонках;
+  если upstream использовал отдельные configurations, записывать исходное имя
+  в `source_config`, чтобы объединение оставалось обратимым;
+- определить стабильную namespacing-схему configuration names и таблицу
+  соответствия `LLMTF task -> mirror config -> upstream repo/config/revision`;
+- закрепить точные upstream revisions, row counts, schemas и content hashes;
+  сохранять авторство, исходную ссылку и citation metadata для каждого
+  зеркалируемого набора;
+- написать идемпотентный export/upload tool с dry-run, resume и валидацией
+  результата через анонимный `load_dataset` для каждой configuration/split;
+- после публикации переключить task loaders на зеркало либо добавить единый
+  configurable dataset source с mirror по умолчанию и явным upstream fallback;
+- добавить CI/maintenance audit, который сверяет manifests, registry,
+  доступность mirror configs и отсутствие случайно закоммиченных HF tokens.
+
+### 4. Очистка и обновление RuParam
+
+Текущий публичный snapshot `RefalMachine/RuParam` содержит 9 505 строк и
+известные data-quality проблемы, перечисленные в `dev/RUPARAM_DATA_AUDIT.md`.
+После получения актуального файла провести отдельную data migration, не смешивая
+её с изменениями task scoring.
+
+- сохранить текущий raw snapshot и его revision как воспроизводимый legacy
+  baseline; новую редакцию публиковать отдельной revision/version с changelog;
+- повторить полный schema/content audit: row count, физические дубликаты,
+  неуникальные исходные `id`, пустые поля, одинаковые `gram`/`ungram`, неверный
+  `order`, whitespace/control characters и Unicode confusables;
+- вручную разобрать либо удалить 100 известных строк с одинаковыми
+  `gram`/`ungram`, строку без label и служебные labels `Разметка 1/2/3`; не
+  применять эвристическую очистку без отчёта о каждой затронутой строке;
+- ввести стабильный уникальный pair id, сохранив исходный id отдельным полем;
+- нормализовать source/level/category значения и проверить соответствие новой
+  авторской таксономии; если будут доступны 11 336 пар и 150 категорий,
+  валидировать их по фактическому файлу, а не зашивать числа заранее;
+- сформировать machine-readable migration report: removed/fixed/unchanged rows,
+  old-to-new ids, распределения source/level/category и content hashes;
+- повторить double-order scoring smoke и category/source/part/level aggregation
+  tests на очищенном snapshot;
+- изменить dataset revision в LLMTF provenance и явно потребовать новый
+  baseline; результаты старой и новой редакций не объединять.
+
+### 5. Leaderboard-категория «Русский язык»
+
+Выделить отдельную категорию языковой компетенции и перенести в неё RuCoLA,
+RuParam, RuBLiMP и SLAVA.
+
+- определить точные result ids: `russiannlp/rucola_custom`, `ruparam`,
+  канонический режим RuBLiMP (`russiannlp/rublimp-(classify)` и/или
+  `russiannlp/rublimp-(choice)`) и будущий стабильный id SLAVA;
+- добавить/зарегистрировать SLAVA в benchmark до включения в category config;
+  сейчас такой task отсутствует в `TASK_REGISTRY`;
+- решить, входят ли оба RuBLiMP-протокола как отдельные равновесные метрики или
+  только один канонический протокол, чтобы один dataset не получил двойной вес;
+- добавить категорию в `benchmark/categories.json`, удалить переносимые task ids
+  из прежних категорий и проверить уникальность членства;
+- определить состав категории отдельно для fast/full/foundational, если задачи
+  доступны не во всех suites; отсутствующая задача должна отображаться как
+  отсутствующая, а не как нулевой результат;
+- зафиксировать правило category mean и влияние новой категории на общий mean;
+  изменение структуры leaderboard требует новой версии baseline;
+- добавить tests на точное членство, отсутствие дублей между категориями и
+  корректное формирование таблицы при частично рассчитанном наборе задач.
+
 ## API и vLLM deployment
 
 - Оптимизировать layout публикуемых HF/vLLM images. Текущий multi-stage build
@@ -74,14 +152,32 @@ task identity участвует в cache fingerprint, а найденные д�
   task-level `tools`/`tool_choice`/дополнительное тело запроса и структурированный
   `tool_calls` в результате. Одних server parser flags для function-calling
   benchmark недостаточно.
-- Обновить встроенный API server runner под vLLM 0.21: убрать устаревшие CLI
-  flags, использовать `--language-model-only` для текстовых прогонов и не
-  дублировать `json_to_jinja` из `llmtf.utils`.
 - Пересмотреть исторические vLLM overrides. Отдельно проверить необходимость
   `enable_prefix_caching`, `disable_sliding_window` и чрезмерного
   `max_logprobs=1000000`; defaults и offline/API режимы должны различаться
   только по доказанной причине. Переименовать устаревшее внутреннее поле
   `max_seq_len_to_capture`, которое сейчас фактически задаёт `max_model_len`.
+
+## Local benchmark runner
+
+- Переработать `benchmark/calculate_benchmark.py`, чтобы local HF/vLLM worker
+  загружал модель один раз на выделенную GPU-группу и переиспользовал её между
+  всеми полученными task groups. Сейчас каждая группа запускает отдельный
+  `evaluate_model.py`, поэтому веса повторно загружаются после завершения каждой
+  группы.
+- Сохранить параллельное выполнение при нескольких GPU: для local vLLM —
+  несколько постоянных replicas с явным `tensor_parallel_size`; для HF —
+  независимые replicas на отдельных GPU либо явно документированное
+  `device_map`-sharding без ошибочного обозначения его как tensor parallel.
+- Изолировать состояние между группами: восстанавливать generation/stop/
+  reasoning config, не переносить task-specific параметры и гарантировать
+  корректную очистку backend resources при ошибке или завершении worker-а.
+- Не допускать одновременной записи разных workers в один artifact; финальный
+  report должен по-прежнему собираться один раз после завершения всех workers.
+- Добавить regression tests на единственную загрузку модели на worker,
+  распределение групп между GPU-наборами, fail-fast одного worker-а и clean
+  shutdown. Сравнить результаты с текущим subprocess runner на небольшом HF и
+  local-vLLM smoke-наборе до удаления старого пути.
 
 ## API response contract
 
@@ -103,11 +199,10 @@ task identity участвует в cache fingerprint, а найденные д�
 - Загружать foundational conversation config единым helper-ом. Один и тот же
   config должен задавать Jinja-шаблон, базовую stop string и provenance hash для
   HF, offline vLLM и управляемого API server.
-- Явно передавать foundational stop strings API-клиенту. Сейчас локальные
-  backends извлекают их из conversation config, а APIBackend начинает с пустой
-  базовой stop-конфигурации. На 8-sample Base exact API прогоне совпали
-  только 3/8 generation predictions; несовпавшие API-ответы имели
-  1400–2041 символ против 54–170 offline.
+- Повторить 8-sample Base local/API parity после добавления
+  foundational stop string в APIBackend. Managed-API one-sample generation
+  уже прошла с `verified_exact`, но историческое расхождение 3/8
+  требует повторного полного замера.
 - Оставить backend-ам только адаптацию единого effective config: HF stop
   strings/token ids, vLLM `stop`/`stop_token_ids`, стандартный API `stop` и
   расширения профиля vLLM.

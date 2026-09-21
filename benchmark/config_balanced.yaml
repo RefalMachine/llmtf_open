@@ -219,17 +219,6 @@ tasks:
       presence_penalty: 0.0
       num_return_sequences: 1
 
-  - name: libra_ru_gsm100
-    datasets:
-      - libra/ru_gsm100
-    few_shot_count: 0
-    max_sample_per_dataset: 1000
-    generation:
-      temperature: 0.3
-      repetition_penalty: 1.0
-      presence_penalty: 0.0
-      num_return_sequences: 1
-
   - name: libra_ru_sci_passage_count
     datasets:
       - libra/ru_sci_passage_count
@@ -266,17 +255,6 @@ tasks:
   - name: libra_ru_sci_abstract_retrieval
     datasets:
       - libra/ru_sci_abstract_retrieval
-    few_shot_count: 0
-    max_sample_per_dataset: 1000
-    generation:
-      temperature: 0.3
-      repetition_penalty: 1.0
-      presence_penalty: 0.0
-      num_return_sequences: 1
-
-  - name: libra_ru_trec
-    datasets:
-      - libra/ru_trec
     few_shot_count: 0
     max_sample_per_dataset: 1000
     generation:
@@ -376,17 +354,6 @@ tasks:
   - name: libra_ru_tpo
     datasets:
       - libra/ru_tpo
-    few_shot_count: 0
-    max_sample_per_dataset: 1000
-    generation:
-      temperature: 0.3
-      repetition_penalty: 1.0
-      presence_penalty: 0.0
-      num_return_sequences: 1
-
-  - name: libra_ru_qasper
-    datasets:
-      - libra/ru_qasper
     few_shot_count: 0
     max_sample_per_dataset: 1000
     generation:

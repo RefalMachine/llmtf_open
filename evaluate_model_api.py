@@ -18,6 +18,10 @@ def build_parser():
     parser.add_argument('--base_url', required=True)
     parser.add_argument('--model_name_or_path', required=True)
     parser.add_argument(
+        '--conv_path', default='auto',
+        help='Conversation JSON used to recover foundational stop strings',
+    )
+    parser.add_argument(
         '--api_profile', choices=['auto', 'openai', 'vllm'],
         default=argparse.SUPPRESS,
         help=(
@@ -52,6 +56,10 @@ def build_parser():
     parser.add_argument('--max_retries', type=int, default=argparse.SUPPRESS)
     parser.add_argument('--retry_backoff', type=float, default=argparse.SUPPRESS)
     parser.add_argument('--num_procs', type=int, default=argparse.SUPPRESS)
+    parser.add_argument(
+        '--calculate_tokens_proba_logprobs_count', type=int,
+        default=argparse.SUPPRESS,
+    )
     parser.add_argument('--redact_endpoint', action=argparse.BooleanOptionalAction,
                         default=argparse.SUPPRESS)
     parser.add_argument('--backend_kwargs', default=None,
@@ -82,7 +90,8 @@ def main(argv=None):
         if args.api_key is not None:
             explicit['api_key'] = args.api_key
         for name in ('model_context_len', 'request_timeout', 'max_retries',
-                     'retry_backoff', 'num_procs', 'redact_endpoint'):
+                     'retry_backoff', 'num_procs', 'redact_endpoint',
+                     'calculate_tokens_proba_logprobs_count'):
             if name in values:
                 explicit[name] = values[name]
         backend_kwargs = merge_backend_kwargs(
@@ -98,6 +107,7 @@ def main(argv=None):
     )
     model.from_pretrained(
         args.model_name_or_path,
+        conversation_template_path=args.conv_path,
         is_foundational=args.is_foundational,
         model_kind=args.model_kind,
         max_new_tokens_reasoning=args.max_new_tokens_reasoning,

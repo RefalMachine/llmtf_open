@@ -47,12 +47,10 @@
     "forever/libra/matreshka_names",
     "forever/libra/passkey_with_librusec",
     "forever/libra/librusec_history",
-    "forever/libra/ru_gsm100",
     "forever/libra/ru_sci_passage_count",
     "forever/libra/ru_2wikimultihopqa",
     "forever/libra/long_context_multiq",
     "forever/libra/ru_sci_abstract_retrieval",
-    "forever/libra/ru_trec",
     "forever/libra/ru_sci_fi",
     "forever/libra/librusec_mhqa",
     "forever/libra/ru_babilong_qa1",
@@ -61,7 +59,6 @@
     "forever/libra/ru_babilong_qa4",
     "forever/libra/ru_babilong_qa5",
     "forever/libra/ru_quality",
-    "forever/libra/ru_tpo",
-    "forever/libra/ru_qasper"
+    "forever/libra/ru_tpo"
   ]
 }

@@ -34,6 +34,11 @@ python evaluate_model.py ... --vllm --gpu_memory_utilization 0.90
 python benchmark/calculate_benchmark_api.py ... --gpu_memory_utilization 0.90
 ```
 
+Managed API runner передаёт один `--max_logprobs` и server-у, и
+API-клиенту. Default равен 100; это снижает риск потери candidate
+в top-k для probability tasks, но не превращает censored top-k в полное
+распределение.
+
 Текущие offline defaults также включают prefix caching и отключают sliding
 window. Это исторические overrides, отмеченные для отдельной ревизии в
 backlog; фиксируйте effective params из `_params.jsonl` при сравнении runs.
@@ -86,9 +91,13 @@ environment или secret manager.
 отдельную копию с reasoning budget и end id; answer phase использует исходные
 answer stops. После задачи базовая конфигурация восстанавливается.
 
-Foundational conversation config определяет local chat template и stop string.
-Передача этой stop string управляемому API пока не унифицирована и отмечена в
-backlog; для Base API обязательно проверяйте фактическую длину ответов.
+Foundational conversation config определяет server chat template и
+базовую stop string API-клиента. Managed runner передаёт один и тот же
+conversation JSON обеим сторонам. Для задач с assistant-prefill включайте
+`probe_api_prefill: true`; это уже задано в `llmtf_benchmark_foundational.yaml`.
+Последняя группа этого конфига — CopyText: она поддерживается локальными HF и
+vLLM backends, но ожидаемо завершается capability error через APIBackend,
+который не возвращает необходимые token ids и `leading_space` metadata.
 
 ## Context budget
 

@@ -5,6 +5,7 @@ import math
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 import requests
 import tqdm
@@ -23,6 +24,7 @@ from llmtf.continuation import (
     candidate_surface_forms,
     resolve_prefill,
 )
+from llmtf.utils import json_to_jinja
 
 
 class APIBackend(Backend):
@@ -71,6 +73,7 @@ class APIBackend(Backend):
         self.server_capabilities = {}
         self._prefill_probe_cache = {}
         self._warned_unverified_prefill = set()
+        self._warned_all_candidates_censored = False
         self._refresh_server_capabilities()
 
     @property
@@ -185,6 +188,18 @@ class APIBackend(Backend):
             'max_new_tokens': 64,
             'do_sample': True
         })
+        if self.is_foundational:
+            template_path = conversation_template_path
+            if template_path == "auto":
+                template_path = str(
+                    Path(__file__).parent.parent.parent
+                    / 'conversation_configs' / 'default_foundational.json'
+                )
+            with open(template_path, encoding='utf-8') as source:
+                _, eos_string = json_to_jinja(json.load(source))
+            self.conversation_template_path = template_path
+            if eos_string:
+                self.generation_config.stop_strings = [eos_string]
         self.eos_token_ids_base = copy.deepcopy(self.generation_config.eos_token_id)
         self.stop_strings_base = copy.deepcopy(self.generation_config.stop_strings)
 
@@ -597,18 +612,16 @@ class APIBackend(Backend):
             token: [surface for surface in surfaces if surface in probs]
             for token, surfaces in tokens_of_interest_augmented
         }
-        if not any(matched_surfaces.values()):
-            display_url = (
-                '<redacted>/v1/chat/completions' if self.redact_endpoint
-                else self.api_base + '/v1/chat/completions'
+        candidate_ranking_resolved = any(matched_surfaces.values())
+        if not candidate_ranking_resolved \
+                and not self._warned_all_candidates_censored:
+            self.logger.warning(
+                "None of the requested candidate surface forms appeared in "
+                "top-%d logprobs. Returning 0.0 lower bounds for every "
+                "candidate; their relative ranking is unresolved.",
+                len(logprobs),
             )
-            raise BackendRequestError(
-                'POST', display_url,
-                message=(
-                    "none of the requested candidate surface forms appeared "
-                    "in the returned top-logprobs"
-                ),
-            )
+            self._warned_all_candidates_censored = True
         probs = {
             token: max((probs[surface] for surface in surfaces), default=0.0)
             for token, surfaces in matched_surfaces.items()
@@ -622,7 +635,11 @@ class APIBackend(Backend):
             'prompt_len': data.get('usage', {}).get('prompt_tokens'),
             'assistant_prefill': prefill_decision.to_dict(),
             'candidate_surface_form_aggregation': 'max',
-            'candidate_score_semantics': 'top_k_censored_ranking',
+            'candidate_score_semantics': (
+                'top_k_censored_ranking' if candidate_ranking_resolved
+                else 'top_k_censored_all_candidates_below_cutoff'
+            ),
+            'candidate_ranking_resolved': candidate_ranking_resolved,
             'candidate_surface_coverage': matched_surfaces,
             'top_logprobs_count': len(logprobs),
         }

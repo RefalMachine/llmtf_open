@@ -40,9 +40,11 @@ python3 -m pytest tests -q
 - MMLU/RuBLiMP quota helpers никогда не превышают raw sample limit.
 - Dataset/messages и backend outputs остаются выровнены.
 - Изменение task params или source digest меняет fingerprint.
+- Lazy API observations `logprobs`/`detokenize` не меняют fingerprint, а
+  старый schema-v2 artifact принимается только при совпадении остальных полей.
 - Повторная регистрация существующего task name требует явного override.
 - Shlepa при `max_sample_per_dataset=1` берёт distractors из полного split.
-- `evaluation_results.txt` не включает stale totals других запусков.
+- `evaluation_results.txt` включает все завершённые totals своего output-каталога.
 
 ## 3. Runtime smoke после pure-logic gate
 
