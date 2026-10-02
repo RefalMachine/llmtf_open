@@ -15,6 +15,8 @@ Compact guide for agents working in `llmtf_open` (LLM evaluation framework for R
 - Benchmark propagation, phase-local stop ids, backend-kwargs precedence, execution-aware budgeting, provenance/cache validation, API batch alignment and centralized continuation are implemented and runtime-tested.
 - Task-layer correctness stabilization is recorded in `dev/TASK_BUGFIX_REPORT.md`: evaluator contracts, normal `calculate_logsoftmax` dispatch, PPL answer boundaries, stable task provenance/cache resume and the listed built-in task fixes are implemented. Managed API Instruct Fast completed with 41 totals; the public `RefalMachine/RuParam` snapshot contains 9,505 rows and completed all 19,010 orientations through managed API. Targeted one-pair HF/local-vLLM smokes also passed. Do not generalize API evidence to full local runs or to the 11,336-pair edition described in the newer paper.
 - Exact local/API parity remains unavailable for unprobed whitespace-ended assistant prefills on vLLM 0.21. Foundational stop propagation is implemented and a one-sample managed-API run passed with `verified_exact`; the historical 8-sample Base parity cell has not yet been repeated.
+- Experimental LegalBench-RU is implemented in the working tree with pinned data, a versioned demonstration pool and dual scoring. The shared legal benchmark uses `benchmark/llmtf_legal_foundational.yaml` and `benchmark/llmtf_legal_instruct.yaml`, combining LawMC and separate closed/grounded/distractor/temporal results without changing the YAML schema. See `docs/legal_benchmark.md` and `dev/LEGALBENCH_RU_VALIDATION_REPORT.md`; technical validation does not establish expert correctness of the legal annotations.
+- The 2026-10-02 Shlepa fix makes `few_shot_count` effective for all four tasks. Demonstration questions and normalized text duplicates are excluded from evaluation, exact k is preserved, and overflow fails explicitly. Old artifacts labelled k>0 were actually zero-shot. HF/local-vLLM Base and Instruct plus Base API checks produced 62 totals / 481 samples with thinking off; see `dev/SHLEPA_FEW_SHOT_FIX_REPORT.md`. This is not a new full v4 matrix or general parity claim.
 
 ## Environment
 
@@ -45,6 +47,7 @@ Compact guide for agents working in `llmtf_open` (LLM evaluation framework for R
 - All three benchmark runners use `benchmark/config.py`, validate `model/defaults/tasks` sections and propagate model kind, explicit thinking mode, context/reasoning budgets, end token id, API profile, backend kwargs and sampling settings. Legacy `extra_args.think` is supported for one transition cycle with a warning.
 - `benchmark/llmaaj/{generate,judge,show_benchmark}_llmaaj.py` must be invoked from the repository root. Prefer `python -m benchmark.llmaaj.generate_llmaaj ...`; the parameterized full launcher is `benchmark/llmaaj/run_full.sh`.
 - `show_results.py` formats model result directories. Category definitions live in `benchmark/categories.json`; current JSON arrays and historical concatenated sample objects are both accepted.
+- Shared legal configs use `show_results.py` without categories. LawMC is 5-shot in legal Foundational and explicitly 0-shot in legal Instruct; standard `Mean` is not an agreed aggregate legal score. `dev/tools/legalbench_ru_report.py` is an optional offline replay diagnostic, not a required benchmark stage.
 - `dev/tools/remap_qwen35_checkpoint.py` is a maintainer-only conversion utility for historical Qwen3.5 checkpoints, not a framework entry point.
 
 ## Core (`llmtf/`)
@@ -101,6 +104,8 @@ Compact guide for agents working in `llmtf_open` (LLM evaluation framework for R
 - RAG LLM-judge tasks are registered only when `LLMAAJ_API_BASE`, `LLMAAJ_API_KEY`, and `LLMAAJ_MODEL_NAME` are all set.
 - `tests/test_refactor_logic.py` is a real pure-logic regression suite and must not be removed. `.gitignore` no longer ignores all `test*`; scratch artifacts under `tests/` must be handled explicitly.
 - PPL is the mean answer-token log probability, not exponentiated perplexity, and is currently HF-only.
+- Shlepa uses `shlepa_train_demonstrations_v1`, a separate demonstration RNG with seed 555, and per-sample `_shlepa` traces. Main Instruct YAMLs omit `few_shot_count` for Shlepa and therefore now execute the CLI default of 5 real demonstrations; set 0 explicitly for zero-shot. Text gold matches only a unique `answerA`–`answerD` value. See `docs/shlepa.md`; require a new output identity or force-recalculation after this source/provenance change.
+- LegalBench-RU IDs, including smoke/reference variants, are excluded from `all` and require explicit selection. PPL is skipped because these tasks have no `get_answer`; do not interpret a skip as PPL validation. Keep dataset, catalog, split and scorer versions/hashes in provenance when changing the protocol; see `docs/legalbench_ru.md`.
 
 ## Verification requirements
 
@@ -118,7 +123,17 @@ If `pytest` is installed, also run:
 python3 -m pytest tests/test_refactor_logic.py -q
 ```
 
-Before claiming runtime safety, build and test all three Docker profiles:
+Rebuild Docker images **only when the execution environment changes**: Dockerfiles,
+Python dependencies or their pins, CUDA/runtime components, system libraries, or
+build settings. Changes limited to task, model, reasoning, backend, evaluator,
+CLI, test, or documentation code do not require an image rebuild; mount the
+working tree into the existing compatible images and run the relevant checks.
+When the environment changes, rebuild the affected profiles and their dependent
+profiles (for example, vLLM when its HF base changes). Do not rebuild images
+merely to validate a source-code integration.
+
+Before claiming runtime safety, test all three Docker profiles using the
+existing compatible images, or rebuilt images when the rule above applies:
 
 - `api`: prove that torch, vLLM and CUDA are not required, then run API generate/probability checks against the supplied endpoint.
 - `hf`: run local HF generate, probability and PPL checks on the GPU host.

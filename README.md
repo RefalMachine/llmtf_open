@@ -52,6 +52,10 @@ docker pull refalmachine/llmtf:v0.3.0-vllm-cu129
 
 Образы содержат зависимости и CUDA runtime, но не копию исходников LLMTF.
 Запускайте их из checkout репозитория, смонтированного в `/workdir`.
+Пересборка нужна только при изменении окружения: Dockerfile, зависимостей,
+CUDA/runtime, системных библиотек или параметров сборки. Изменения исходников
+и документации проверяйте в существующем совместимом образе. При изменении
+HF-образа пересоберите и зависимый vLLM-образ.
 
 ```bash
 docker build -f docker/Dockerfile.api -t llmtf:api .
@@ -295,6 +299,21 @@ vLLM runner.
 
 Для уже запущенного endpoint используйте
 `benchmark/calculate_benchmark_existing_api.py`.
+
+Юридический бенчмарк использует `benchmark/llmtf_legal_foundational.yaml` и
+`benchmark/llmtf_legal_instruct.yaml`: LawMC вместе с отдельными режимами
+LegalBench-RU closed, grounded, distractor и temporal. Конфиги сохраняют
+существующую YAML-схему и параметры основных LLMTF пресетов. Запуск и вывод
+отдельных результатов без категорий описаны в
+[`docs/legal_benchmark.md`](docs/legal_benchmark.md). Методология единого
+legal score пока не определена; стандартный `Mean` её не заменяет.
+
+Все четыре задачи Shlepa теперь используют реальные демонстрации при
+`few_shot_count > 0`. Вопросы демонстраций исключаются из evaluation.
+В основных Instruct YAML число shots не задано, поэтому действует CLI default 5;
+для zero-shot задайте 0 явно. Исторические Shlepa results с k>0 фактически
+были zero-shot и требуют нового запуска для few-shot baseline. Протокол и
+миграция: [`docs/shlepa.md`](docs/shlepa.md).
 
 ## Результаты и ошибки
 

@@ -5,9 +5,23 @@
 хранятся в `dev/`; реализованные пункты следует переносить из этого файла в
 соответствующую документацию и тесты.
 
+Интеграция экспериментального LegalBench-RU, общие legal-конфиги и
+исправление few-shot для Shlepa уже реализованы в рабочем дереве и не являются
+незавершёнными пунктами этого backlog. Актуальное поведение описано в
+[юридическом бенчмарке](docs/legal_benchmark.md) и [протоколе Shlepa](docs/shlepa.md);
+фактические проверки — в
+[LegalBench-RU report](dev/LEGALBENCH_RU_VALIDATION_REPORT.md) и
+[Shlepa fix report](dev/SHLEPA_FEW_SHOT_FIX_REPORT.md). Архитектурные планы
+task/eval v2 ниже остаются отдельной будущей работой.
+
 ## Высокий приоритет: task layer и внешние задачи
 
 ### 1. Архитектурная доработка task layer
+
+Актуальный проект: [Task/eval v2](dev/TASK_EVAL_GRAPH_REFACTOR_PLAN_v2.md).
+Основание: [аудит внешних benchmarks и task layer](dev/EXTERNAL_BENCHMARK_AUDIT.md).
+Различаются R1 (общее исполнение для внешних задач) и R2 (полная миграция,
+judge/coding/multi-turn); это планы, не реализованные возможности.
 
 Корректностная стабилизация завершена и зафиксирована в
 `dev/TASK_BUGFIX_REPORT.md`: базовый task/evaluator contract валидируется,
@@ -134,6 +148,19 @@ RuParam, RuBLiMP и SLAVA.
   изменение структуры leaderboard требует новой версии baseline;
 - добавить tests на точное членство, отсутствие дублей между категориями и
   корректное формирование таблицы при частично рассчитанном наборе задач.
+
+### 6. Штатная интеграция RuBookSum и RuWikiBench
+
+План: [External benchmarks v2](dev/EXTERNAL_BENCHMARK_INTEGRATION_PLAN_v2.md).
+Реализация не начата. Сначала data/protocol inventory и общий invocation/
+workflow contract; первый срез — RuBookSum hierarchical, следующий — Wiki
+ranking с проверкой probability coverage. Затем oracle outline/sections и
+остальные book variants. Обязательны raw-sample resume, offline aggregation,
+lazy optional dependencies и реальные backend gates. Полный coding refactor
+не блокирует этот этап; публичное зеркало и leaderboard inclusion имеют
+отдельные условия. Внешние benchmarks можно исправлять отдельными проверенными
+commits при сохранении подхода и воспроизводимости прежних экспериментов;
+исходные snapshots и соответствующее окружение сохраняются для сравнения.
 
 ## API и vLLM deployment
 

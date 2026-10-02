@@ -32,6 +32,12 @@ published because the API, HF and vLLM profiles have different capabilities.
 
 ## Build
 
+Rebuild only when the execution environment changes: Dockerfiles, dependency
+versions, CUDA/runtime components, system libraries or build settings. For
+source-code or documentation changes, mount the working tree into an existing
+compatible image and run the relevant checks. Rebuild affected profiles and
+their dependents; an HF image change also requires rebuilding its vLLM image.
+
 Run all commands from the repository root:
 
 ```bash
@@ -132,7 +138,7 @@ not require `/tokenize`. Select `--api_profile vllm` to enable vLLM extensions
 such as assistant continuation, stop token ids and template kwargs. See
 `docs/api_backend.md` for the capability contract.
 
-Run the complete build/import gate with:
+When validating an environment change, run the complete build/import gate with:
 
 ```bash
 bash docker/validate_profiles.sh

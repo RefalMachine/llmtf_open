@@ -185,6 +185,9 @@ def build_run_config(*, model, task, enable_thinking: bool,
         },
         "generation_config": effective_generation,
     }
+    provenance_hook = getattr(task, "get_task_provenance", None)
+    if callable(provenance_hook):
+        result["task"]["provenance"] = provenance_hook()
     return sanitize(result)
 
 

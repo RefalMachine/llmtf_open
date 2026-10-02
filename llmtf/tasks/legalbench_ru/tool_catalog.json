@@ -1,0 +1,687 @@
+[
+ {
+  "server": "arbitrage-corpus",
+  "tool": "search_cases",
+  "params": [
+   "query",
+   "court_id",
+   "year",
+   "outcome",
+   "topic",
+   "sum_min",
+   "sum_max",
+   "limit"
+  ],
+  "desc": "Hybrid поиск по арбитражному корпусу: semantic + structured filters."
+ },
+ {
+  "server": "arbitrage-corpus",
+  "tool": "search_cases_precise",
+  "params": [
+   "query",
+   "court_id",
+   "year",
+   "outcome",
+   "topic",
+   "candidate_pool",
+   "final_top_k"
+  ],
+  "desc": "2-stage retrieval с reranker для точного подбора практики."
+ },
+ {
+  "server": "arbitrage-corpus",
+  "tool": "get_case",
+  "params": [
+   "doc_id"
+  ],
+  "desc": "Получить полную карточку дела по ID."
+ },
+ {
+  "server": "arbitrage-corpus",
+  "tool": "list_cases_by_topic",
+  "params": [
+   "topic",
+   "limit"
+  ],
+  "desc": "Все дела по конкретной теме (без semantic search, чистый filter)."
+ },
+ {
+  "server": "arbitrage-corpus",
+  "tool": "get_corpus_stats",
+  "params": [],
+  "desc": "Статистика корпуса — сколько дел, какие темы, суды, годы покрыты."
+ },
+ {
+  "server": "cbr",
+  "tool": "get_exchange_rates",
+  "params": [
+   "date_iso"
+  ],
+  "desc": "Курсы валют ЦБ РФ на указанную дату."
+ },
+ {
+  "server": "cbr",
+  "tool": "get_exchange_rate",
+  "params": [
+   "currency",
+   "date_iso"
+  ],
+  "desc": "Курс одной валюты к рублю на дату."
+ },
+ {
+  "server": "cbr",
+  "tool": "get_key_rate",
+  "params": [],
+  "desc": "Текущая ключевая ставка ЦБ РФ."
+ },
+ {
+  "server": "cbr",
+  "tool": "lookup_bank_by_bic",
+  "params": [
+   "bic"
+  ],
+  "desc": "Поиск банка по БИК."
+ },
+ {
+  "server": "cbr",
+  "tool": "calculate_penalty",
+  "params": [
+   "principal_amount",
+   "days_overdue",
+   "rate_basis"
+  ],
+  "desc": "Расчёт пеней по ключевой ставке ЦБ РФ."
+ },
+ {
+  "server": "efrsb",
+  "tool": "check_company_bankruptcy",
+  "params": [
+   "inn",
+   "ogrn",
+   "name"
+  ],
+  "desc": "Проверка ЮЛ / ИП на банкротство в ЕФРСБ."
+ },
+ {
+  "server": "efrsb",
+  "tool": "check_person_bankruptcy",
+  "params": [
+   "inn",
+   "full_name",
+   "birth_date"
+  ],
+  "desc": "Проверка физ.лица на банкротство (ФЗ-127 глава X с 2015 — потребительское банкротство)."
+ },
+ {
+  "server": "efrsb",
+  "tool": "get_bankruptcy_case_publications",
+  "params": [
+   "case_id",
+   "limit"
+  ],
+  "desc": "Получает список публикаций по конкретному банкротному делу."
+ },
+ {
+  "server": "efrsb",
+  "tool": "search_arbitration_manager",
+  "params": [
+   "full_name",
+   "inn",
+   "sro"
+  ],
+  "desc": "Поиск арбитражного управляющего в реестре."
+ },
+ {
+  "server": "egrul",
+  "tool": "lookup_company",
+  "params": [
+   "identifier"
+  ],
+  "desc": "Получить карточку организации из ЕГРЮЛ/ЕГРИП по ИНН или ОГРН."
+ },
+ {
+  "server": "egrul",
+  "tool": "search_companies",
+  "params": [
+   "query",
+   "limit"
+  ],
+  "desc": "Поиск организаций в ЕГРЮЛ по названию / фрагменту реквизитов."
+ },
+ {
+  "server": "egrul",
+  "tool": "batch_check_problematic",
+  "params": [
+   "identifiers"
+  ],
+  "desc": "Массовая проверка списка ИНН на проблемный статус через multcheck."
+ },
+ {
+  "server": "egrul",
+  "tool": "validate_identifier",
+  "params": [
+   "value"
+  ],
+  "desc": "Локальная валидация ИНН/ОГРН по контрольной цифре. Не делает HTTP-запросов."
+ },
+ {
+  "server": "egrul",
+  "tool": "lookup_company_public",
+  "params": [
+   "identifier"
+  ],
+  "desc": "Получить базовую карточку из ЕГРЮЛ/ЕГРИП без paid API ключа."
+ },
+ {
+  "server": "fns-extended",
+  "tool": "check_disqualification",
+  "params": [
+   "inn",
+   "fio",
+   "limit"
+  ],
+  "desc": "Проверить лицо в реестре дисквалифицированных ФНС."
+ },
+ {
+  "server": "fns-extended",
+  "tool": "check_mass_address",
+  "params": [
+   "address",
+   "inn_legal",
+   "limit"
+  ],
+  "desc": "Проверить адрес в реестре массовых адресов регистрации ФНС."
+ },
+ {
+  "server": "fns-extended",
+  "tool": "check_mass_founder",
+  "params": [
+   "inn",
+   "limit"
+  ],
+  "desc": "Проверить ИНН в реестре массовых учредителей ФНС."
+ },
+ {
+  "server": "fns-extended",
+  "tool": "check_mass_leader",
+  "params": [
+   "inn",
+   "limit"
+  ],
+  "desc": "Проверить ИНН в реестре массовых руководителей ФНС."
+ },
+ {
+  "server": "fns-extended",
+  "tool": "get_fns_data_status",
+  "params": [],
+  "desc": "Статус локального кеша FNS opendata."
+ },
+ {
+  "server": "kad",
+  "tool": "search_cases",
+  "params": [
+   "case_number",
+   "plaintiff",
+   "defendant",
+   "plaintiff_inn",
+   "defendant_inn",
+   "court_id",
+   "date_from",
+   "date_to",
+   "sum_min",
+   "sum_max",
+   "limit"
+  ],
+  "desc": "Поиск арбитражных дел в kad.arbitr.ru."
+ },
+ {
+  "server": "kad",
+  "tool": "get_case_card",
+  "params": [
+   "case_number"
+  ],
+  "desc": "Получает полную карточку дела с историей: стадии, акты, заседания, стороны."
+ },
+ {
+  "server": "kad",
+  "tool": "get_case_documents",
+  "params": [
+   "case_number",
+   "limit"
+  ],
+  "desc": "Список судебных актов (решений, определений, постановлений) по делу."
+ },
+ {
+  "server": "kad",
+  "tool": "list_courts",
+  "params": [],
+  "desc": "Справочник арбитражных судов РФ — для параметра court_id в search_cases."
+ },
+ {
+  "server": "ksrf-corpus",
+  "tool": "search_positions",
+  "params": [
+   "query",
+   "scope",
+   "year_from",
+   "limit"
+  ],
+  "desc": "Поиск правовых позиций КС РФ по теме спора."
+ },
+ {
+  "server": "ksrf-corpus",
+  "tool": "get_decision",
+  "params": [
+   "decision_id"
+  ],
+  "desc": "Получить полную карточку ПКС со всеми правовыми позициями."
+ },
+ {
+  "server": "ksrf-corpus",
+  "tool": "list_by_scope",
+  "params": [
+   "scope"
+  ],
+  "desc": "Все позиции КС по конкретной теме."
+ },
+ {
+  "server": "ksrf-corpus",
+  "tool": "get_corpus_stats",
+  "params": [],
+  "desc": ""
+ },
+ {
+  "server": "msp-registry",
+  "tool": "check_msp_status",
+  "params": [
+   "inn"
+  ],
+  "desc": "Проверить статус субъекта МСП по ИНН."
+ },
+ {
+  "server": "msp-registry",
+  "tool": "refresh_msp",
+  "params": [
+   "force"
+  ],
+  "desc": "Принудительно обновить локальный индекс реестра МСП из bulk XML ФНС."
+ },
+ {
+  "server": "msp-registry",
+  "tool": "get_msp_data_status",
+  "params": [],
+  "desc": "Статус локального кеша реестра МСП."
+ },
+ {
+  "server": "plenum-vs",
+  "tool": "search_plenum",
+  "params": [
+   "query",
+   "limit"
+  ],
+  "desc": "Поиск ПП ВС по теме/ключевым словам."
+ },
+ {
+  "server": "plenum-vs",
+  "tool": "get_plenum",
+  "params": [
+   "plenum_id"
+  ],
+  "desc": "Получить полную карточку ПП по ID или номеру."
+ },
+ {
+  "server": "plenum-vs",
+  "tool": "cite_by_topic",
+  "params": [
+   "topic",
+   "max_decisions",
+   "max_positions_per_decision"
+  ],
+  "desc": "Подобрать топ ПП ВС для конкретной правовой темы."
+ },
+ {
+  "server": "plenum-vs",
+  "tool": "list_plenum_decisions",
+  "params": [
+   "scope_filter"
+  ],
+  "desc": "Каталог всех ПП в датасете (с опциональным фильтром по теме)."
+ },
+ {
+  "server": "pravo",
+  "tool": "search_npa",
+  "params": [
+   "query",
+   "doc_type",
+   "date_from",
+   "date_to",
+   "limit"
+  ],
+  "desc": "Поиск нормативных правовых актов на portal pravo.gov.ru."
+ },
+ {
+  "server": "pravo",
+  "tool": "get_npa",
+  "params": [
+   "eid"
+  ],
+  "desc": "Получает полные метаданные и текст НПА по его eid с pravo.gov.ru."
+ },
+ {
+  "server": "pravo",
+  "tool": "get_npa_version_at_date",
+  "params": [
+   "document_hash",
+   "on_date"
+  ],
+  "desc": "Получает редакцию НПА на конкретную дату через ИПС pravo.gov.ru."
+ },
+ {
+  "server": "pravo",
+  "tool": "list_document_types",
+  "params": [],
+  "desc": "Возвращает справочник типов документов, доступных на pravo.gov.ru."
+ },
+ {
+  "server": "pravo",
+  "tool": "list_signatory_authorities",
+  "params": [
+   "block"
+  ],
+  "desc": "Справочник органов, издающих НПА."
+ },
+ {
+  "server": "pravo",
+  "tool": "list_recent_npa",
+  "params": [
+   "days",
+   "query",
+   "limit"
+  ],
+  "desc": "Лента свежих НПА за последние N дней из open-data каталога pravo.gov.ru (ФСО)."
+ },
+ {
+  "server": "rnp",
+  "tool": "check_rnp",
+  "params": [
+   "inn"
+  ],
+  "desc": "Проверить, был/состоит ли контрагент в Реестре недобросовестных поставщиков (РНП)."
+ },
+ {
+  "server": "rnp",
+  "tool": "refresh_rnp",
+  "params": [
+   "force"
+  ],
+  "desc": "Принудительно обновить локальный индекс РНП из bulk выгрузки ЕИС."
+ },
+ {
+  "server": "rnp",
+  "tool": "get_rnp_status",
+  "params": [],
+  "desc": "Статус локального кеша РНП."
+ },
+ {
+  "server": "rospatent",
+  "tool": "build_trademark_search_url",
+  "params": [
+   "query",
+   "nice_class"
+  ],
+  "desc": "Построить URL для поиска товарных знаков в ФИПС."
+ },
+ {
+  "server": "rospatent",
+  "tool": "build_patent_search_url",
+  "params": [
+   "query",
+   "patent_type"
+  ],
+  "desc": "Построить URL для поиска патентов в ФИПС."
+ },
+ {
+  "server": "rospatent",
+  "tool": "get_trademark_card_url",
+  "params": [
+   "registration_number"
+  ],
+  "desc": "Построить URL карточки товарного знака по номеру регистрации."
+ },
+ {
+  "server": "rospatent",
+  "tool": "get_patent_card_url",
+  "params": [
+   "registration_number"
+  ],
+  "desc": "Построить URL карточки патента по номеру."
+ },
+ {
+  "server": "rospatent",
+  "tool": "build_software_search_url",
+  "params": [
+   "query"
+  ],
+  "desc": "Построить URL для поиска зарегистрированных программ для ЭВМ."
+ },
+ {
+  "server": "rospatent",
+  "tool": "check_attorney_register_url",
+  "params": [
+   "attorney_name"
+  ],
+  "desc": "URL реестра патентных поверенных РФ."
+ },
+ {
+  "server": "rosreestr",
+  "tool": "search_object_by_cadastre",
+  "params": [
+   "cadastre_number"
+  ],
+  "desc": "Поиск объекта по кадастровому номеру в Публичной кадастровой карте."
+ },
+ {
+  "server": "rosreestr",
+  "tool": "search_object_by_address",
+  "params": [
+   "address",
+   "limit"
+  ],
+  "desc": "Поиск объектов по адресу."
+ },
+ {
+  "server": "rosreestr",
+  "tool": "get_object_details",
+  "params": [
+   "cadastre_number"
+  ],
+  "desc": "Детальная карточка объекта."
+ },
+ {
+  "server": "rosreestr",
+  "tool": "get_cadastre_value",
+  "params": [
+   "cadastre_number"
+  ],
+  "desc": "Получает кадастровую стоимость объекта."
+ },
+ {
+  "server": "rosreestr",
+  "tool": "get_encumbrances",
+  "params": [
+   "cadastre_number"
+  ],
+  "desc": "Проверка обременений объекта (ипотека, аренда зарегистрированная, арест, сервитут)."
+ },
+ {
+  "server": "rosreestr",
+  "tool": "list_rosreestr_opendata",
+  "params": [],
+  "desc": "Discovery-каталог открытых данных Росреестра (наборы CSV/XML)."
+ },
+ {
+  "server": "ru-legal-aggregator",
+  "tool": "list_skills",
+  "params": [
+   "pack",
+   "only_user_invocable"
+  ],
+  "desc": "List available skills с метаданными."
+ },
+ {
+  "server": "ru-legal-aggregator",
+  "tool": "find_skill",
+  "params": [
+   "query",
+   "top_k"
+  ],
+  "desc": "Найти подходящий skill для user query — Strategy C router."
+ },
+ {
+  "server": "ru-legal-aggregator",
+  "tool": "get_skill",
+  "params": [
+   "skill_id"
+  ],
+  "desc": "Получить полное содержимое SKILL.md по ID."
+ },
+ {
+  "server": "ru-legal-aggregator",
+  "tool": "get_skill_index",
+  "params": [],
+  "desc": "Получить compact index всех skills (для quick LLM scan)."
+ },
+ {
+  "server": "sanctions-fedsfm",
+  "tool": "check_terrorist_list",
+  "params": [
+   "fio",
+   "birth_date",
+   "limit"
+  ],
+  "desc": "Проверить лицо в перечне Росфинмониторинга (террористы + экстремисты)."
+ },
+ {
+  "server": "sanctions-fedsfm",
+  "tool": "check_inoagent_url",
+  "params": [
+   "name"
+  ],
+  "desc": "URL Минюста РФ для проверки реестра иностранных агентов."
+ },
+ {
+  "server": "sanctions-fedsfm",
+  "tool": "check_cb_sdn_url",
+  "params": [
+   "name"
+  ],
+  "desc": "URL ЦБ РФ — реестр заблокированных лиц по иностранным санкциям."
+ },
+ {
+  "server": "sanctions-fedsfm",
+  "tool": "get_sanctions_status",
+  "params": [],
+  "desc": "Статистика локального кеша санкционных реестров."
+ },
+ {
+  "server": "sanctions-fedsfm",
+  "tool": "check_intl_sanctions",
+  "params": [
+   "name",
+   "limit"
+  ],
+  "desc": "Проверить имя по международным санкционным спискам OFAC SDN (США) + EU."
+ },
+ {
+  "server": "sanctions-fedsfm",
+  "tool": "get_intl_sanctions_status",
+  "params": [],
+  "desc": "Статистика локального индекса международных санкций (OFAC + EU)."
+ },
+ {
+  "server": "soyu-corpus",
+  "tool": "search_cases",
+  "params": [
+   "query",
+   "topic",
+   "year",
+   "instance",
+   "outcome",
+   "limit"
+  ],
+  "desc": "Hybrid поиск по корпусу СОЮ: semantic + structured filters."
+ },
+ {
+  "server": "soyu-corpus",
+  "tool": "get_case",
+  "params": [
+   "doc_id"
+  ],
+  "desc": "Получить полную карточку дела СОЮ по ID."
+ },
+ {
+  "server": "soyu-corpus",
+  "tool": "list_by_topic",
+  "params": [
+   "topic",
+   "limit"
+  ],
+  "desc": "Все дела СОЮ по теме (filter only)."
+ },
+ {
+  "server": "soyu-corpus",
+  "tool": "get_corpus_stats",
+  "params": [],
+  "desc": ""
+ },
+ {
+  "server": "zakupki",
+  "tool": "build_tender_search_url",
+  "params": [
+   "query",
+   "customer_inn",
+   "law",
+   "price_min",
+   "price_max",
+   "okpd_code",
+   "region_code"
+  ],
+  "desc": "Построить URL для поиска закупок в ЕИС."
+ },
+ {
+  "server": "zakupki",
+  "tool": "get_tender_url",
+  "params": [
+   "purchase_number"
+  ],
+  "desc": "Получить URL для просмотра карточки закупки по реестровому номеру."
+ },
+ {
+  "server": "zakupki",
+  "tool": "build_rnp_search_url",
+  "params": [
+   "supplier_inn",
+   "supplier_name",
+   "law"
+  ],
+  "desc": "Построить URL для проверки в реестре недобросовестных поставщиков (РНП)."
+ },
+ {
+  "server": "zakupki",
+  "tool": "build_customer_history_url",
+  "params": [
+   "customer_inn",
+   "law"
+  ],
+  "desc": "История всех закупок конкретного заказчика."
+ },
+ {
+  "server": "zakupki",
+  "tool": "build_supplier_contracts_url",
+  "params": [
+   "supplier_inn",
+   "law"
+  ],
+  "desc": "История контрактов конкретного поставщика."
+ }
+]

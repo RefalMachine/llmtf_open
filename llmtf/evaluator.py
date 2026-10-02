@@ -1,4 +1,5 @@
 from llmtf.tasks import TASK_REGISTRY
+from llmtf.task_selection import resolve_task_names
 from llmtf.base import Task, Base
 from llmtf.utils import (
     CustomTimer, MaxLenContext, normalize_message_roles,
@@ -182,10 +183,7 @@ class Evaluator(Base):
         summary = EvaluationSummary()
         if generation_config is not None:
             model.logger.warning('Custom generation_config receives full priority over internal generation config. Compose it carefully.')
-        if datasets_names == 'all':
-            datasets_names = list(TASK_REGISTRY.keys())
-        elif isinstance(datasets_names, str):
-            datasets_names = [datasets_names]
+        datasets_names = resolve_task_names(datasets_names, TASK_REGISTRY)
         self.logger.info(f'Starting eval on {datasets_names}')
         for dataset_name in datasets_names:
             try:
@@ -403,10 +401,7 @@ class Evaluator(Base):
         )
         set_out_handler_to_main_logger(output_dir)
         summary = EvaluationSummary()
-        if datasets_names == 'all':
-            datasets_names = list(TASK_REGISTRY.keys())
-        elif isinstance(datasets_names, str):
-            datasets_names = [datasets_names]
+        datasets_names = resolve_task_names(datasets_names, TASK_REGISTRY)
         resolve_reasoning_execution(
             model.reasoning_config.model_kind, False, "calculate_logsoftmax"
         )

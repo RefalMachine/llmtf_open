@@ -1,0 +1,20 @@
+{
+  "dataset_repo": "AlsKozlov/legalbench-ru",
+  "dataset_revision": "d6e21bfee9a2842ea3eb5b2e97a5c8f1186d41f1",
+  "filename": "legalbench_ru.jsonl",
+  "dataset_sha256": "4c63ca94fb87787e98f46f2ed013e41cef0c455c73943d4f850127062d3bca2a",
+  "code_revision": "090163977d0e9a58a5887a38ec144f95cb37e464",
+  "catalog_sha256": "a8fd548eb204d4172706fca7637b304f5d4692a811a37a6f10fe89904bf970d0",
+  "annotation_version": "upstream_snapshot",
+  "catalog_version": "upstream_0901639",
+  "prompt_version": "upstream_0901639",
+  "invocation_protocol": "text_catalog_v1",
+  "scorer_version": "legalbench_ru_corrected_v1",
+  "reference_scorer_version": "legalbench_ru_upstream_0901639_v1_type_repair",
+  "aggregation_version": "corrected_raw_micro_reference_rounded_micro_v1",
+  "demonstration_policy_version": "bucket_prefix_v1",
+  "change_ledger_version": 1,
+  "row_count": 846,
+  "canary_count": 1,
+  "needs_expert_review": true
+}

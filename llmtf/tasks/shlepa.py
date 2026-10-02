@@ -1,6 +1,6 @@
 import string
 import random
-from llmtf.base import Task, SimpleFewShotHFTask, BaseLLM, ensure_prompt_fits
+from llmtf.base import Task, BaseLLM, PromptTooLongError, ensure_prompt_fits
 from llmtf.metrics import mean
 from tqdm import tqdm
 from typing import Dict, List, Tuple
@@ -10,7 +10,6 @@ import copy
 def flatten(xss):
     return [x for xs in xss for x in xs]
 
-#TODO: refactoring
 class ShlepaSmallMMLU(Task):
     def __init__(self, dataset_name, **kwargs):
         super().__init__(**kwargs)
@@ -37,10 +36,22 @@ class ShlepaSmallMMLU(Task):
     def test_split_name(self) -> str:
         return 'train'
 
+    def dataset_args(self) -> Dict:
+        return {'path': self.dataset_name}
+
+    def get_task_provenance(self) -> Dict:
+        return {
+            'few_shot_protocol': 'shlepa_train_demonstrations_v1',
+            'demonstration_selection': 'first_valid_distinct_train_questions',
+            'demonstration_seed': 555,
+            'evaluation_excludes': 'demonstration_questions',
+            'context_overflow_policy': 'error_keep_all_demonstrations',
+        }
+
     def load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int) -> Tuple[List[Dict], List[Dict]]:
         self.require_model_method(model)
 
-        samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset)
+        samples = self._load_dataset(model, max_prompt_len, max_sample_per_dataset, few_shot_count)
         messages = [{'messages': s['messages']} for s in samples]
         samples = [{'sample': s['sample']} for s in samples]
         for m in messages:
@@ -48,37 +59,102 @@ class ShlepaSmallMMLU(Task):
 
         return messages, samples
 
-    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int) -> List:
+    @staticmethod
+    def _question_key(sample):
+        return ' '.join(sample['question'].split()).casefold()
+
+    def _load_dataset(self, model: BaseLLM, max_prompt_len: int, max_sample_per_dataset: int, few_shot_count: int = 0) -> List:
+        if isinstance(few_shot_count, bool) or not isinstance(few_shot_count, int) or few_shot_count < 0:
+            raise ValueError('Shlepa requires a non-negative integer few_shot_count')
         samples = []
-        dataset = load_dataset(self.dataset_name)
+        dataset = load_dataset(**self.dataset_args())
         test_dataset = dataset[self.test_split_name()]
-        evaluation_size = min(max_sample_per_dataset, len(test_dataset))
-        for i in tqdm(range(evaluation_size)):
+        demonstration_messages = []
+        demonstration_indices = []
+        demonstration_questions = set()
+        if few_shot_count:
+            demonstration_rng = random.Random(555)
+            for i in range(len(test_dataset)):
+                question = self._question_key(test_dataset[i])
+                if question in demonstration_questions:
+                    continue
+                messages, _ = self.create_messages(
+                    copy.deepcopy(test_dataset[i]),
+                    self._get_additional_samples(i, test_dataset),
+                    with_answer=True, rng=demonstration_rng,
+                )
+                if not messages:
+                    continue
+                demonstration_messages.extend(messages)
+                demonstration_indices.append(i)
+                demonstration_questions.add(question)
+                if len(demonstration_indices) == few_shot_count:
+                    break
+            if len(demonstration_indices) != few_shot_count:
+                raise ValueError(
+                    f'{self.run_name()} cannot supply {few_shot_count} distinct valid demonstrations'
+                )
+        evaluation_indices = [
+            i for i in range(len(test_dataset))
+            if self._question_key(test_dataset[i]) not in demonstration_questions
+        ][:max_sample_per_dataset]
+        if few_shot_count and not evaluation_indices:
+            raise ValueError(f'{self.run_name()} has no evaluation questions outside the demonstrations')
+        evaluation_indices = set(evaluation_indices)
+        # Consume the same query-shuffle sequence as zero-shot for shared rows.
+        # Demonstrations use a separate RNG and never affect query choice order.
+        stop_index = max(evaluation_indices) + 1 if evaluation_indices else 0
+        for i in tqdm(range(stop_index)):
             sample = test_dataset[i]
             additional_samples = self._get_additional_samples(i, test_dataset)
-            messages, sample = self._prepare_messages(sample, model, max_prompt_len, additional_samples)
+            messages, sample = self.create_messages(copy.deepcopy(sample), additional_samples)
+            if i not in evaluation_indices or not messages:
+                continue
+            messages, sample = self._prepare_messages(
+                sample, model, max_prompt_len, additional_samples,
+                demonstration_messages=demonstration_messages,
+                demonstration_indices=demonstration_indices,
+                query_messages=messages,
+            )
+            sample['_shlepa']['dataset_index'] = i
             if len(messages) > 0:
                 samples.append({'messages': messages, 'sample': sample})
         return samples
         
-    def _prepare_messages(self, sample: Dict, model: BaseLLM, max_prompt_len: int, additional_samples: List[Dict]) -> List:
-        zero_shot_messages, sample = self.create_messages(copy.deepcopy(sample), additional_samples)
+    def _prepare_messages(self, sample: Dict, model: BaseLLM, max_prompt_len: int, additional_samples: List[Dict], *, demonstration_messages=(), demonstration_indices=(), query_messages=None) -> List:
+        if query_messages is None:
+            zero_shot_messages, sample = self.create_messages(copy.deepcopy(sample), additional_samples)
+        else:
+            zero_shot_messages = query_messages
         if len(zero_shot_messages) == 0:
             return [], sample
-        zero_shot_messages_len = model.count_tokens_for_messages(zero_shot_messages)
-        ensure_prompt_fits(
-            zero_shot_messages_len, max_prompt_len, self.run_name()
-        )
+        messages = list(demonstration_messages) + zero_shot_messages
+        token_count = model.count_tokens_for_messages(messages)
+        if demonstration_indices:
+            if token_count is not None and token_count > max_prompt_len:
+                raise PromptTooLongError(
+                    f'{self.run_name()} fixed {len(demonstration_indices)}-shot prompt has '
+                    f'{token_count} tokens; budget {max_prompt_len}'
+                )
+        else:
+            ensure_prompt_fits(token_count, max_prompt_len, self.run_name())
+        sample['_shlepa'] = {
+            'requested_shots': len(demonstration_indices),
+            'effective_shots': len(demonstration_indices),
+            'demonstration_indices': list(demonstration_indices),
+            'prompt_token_count': token_count,
+        }
 
-        return zero_shot_messages, sample
+        return messages, sample
 
-    def create_messages(self, sample: Dict, additional_samples: List[Dict]):
-        sample = self._helper(sample, additional_samples)
+    def create_messages(self, sample: Dict, additional_samples: List[Dict], with_answer=False, *, rng=None):
+        sample = self._helper(sample, additional_samples, rng=rng)
         if len(sample['gold']) != 1:
             return [], sample
 
         instruction = '''{question}\nA. {choices[0]}\nB. {choices[1]}\nC. {choices[2]}\nD. {choices[3]}\nE. {choices[4]}\nF. {choices[5]}\nG. {choices[6]}\nH. {choices[7]}\nI. {choices[8]}\nJ. {choices[9]}\nK. {choices[10]}\nL. {choices[11]}\n\nОтветь одной буквой.'''
-        messages = [{'role': 'user', 'content': instruction.format(**sample)}, {'role': 'assistant', 'content': 'Ответ:'}]
+        answer = 'Ответ:' + (self.get_answer(sample) if with_answer else '')
+        messages = [{'role': 'user', 'content': instruction.format(**sample)}, {'role': 'assistant', 'content': answer}]
         return messages, sample
 
     def _get_additional_samples(self, index: int, dataset: Dataset):
@@ -94,7 +170,7 @@ class ShlepaSmallMMLU(Task):
         ]
         return dataset[indexes]
 
-    def _helper(self, doc, additional_samples):
+    def _helper(self, doc, additional_samples, *, rng=None):
         field = doc['correct_answer']
         fi = None
         if field == 'answerA' or field in ['A','А']:
@@ -105,13 +181,11 @@ class ShlepaSmallMMLU(Task):
             fi = "C"
         if field == 'answerD' or field in ['D','Д']:
             fi = "D"
-        if fi:
-            doc["choices"] = [doc[f"answer{s}"] for s in list('ABCD')]
-
-        else:
-            for idx,(key,val) in enumerate(list(doc.items())[1:-1]):
-                if field == val:
-                    fi = {0:"A",1:"B",2:"C",3:"D"}.get(idx)
+        if fi is None:
+            matching_labels = [label for label in 'ABCD' if field == doc[f'answer{label}']]
+            fi = matching_labels[0] if len(matching_labels) == 1 else None
+        if fi is None:
+            return {"label": "failed row w/o answer", "gold": ""}
 
         doc["choices"] = [doc[f"answer{s}"] for s in list('ABCD')]
 
@@ -121,14 +195,9 @@ class ShlepaSmallMMLU(Task):
         doc["choices"].extend(extended_choices[:8])
         assert len(doc["choices"]) == 12
 
-        label_map = {label: i for i, label in enumerate(string.ascii_uppercase[:12])}
         inv_label_map = {i: label for i, label in enumerate(string.ascii_uppercase[:12])}
 
-        correct_label = label_map.get(fi)
-        if correct_label is None:
-            return {"label":"failed row w/o answer","gold":""}
-
-        random.shuffle(doc["choices"])
+        (rng if rng is not None else random).shuffle(doc["choices"])
         gold = fi
         shuffled_label = doc["choices"].index(doc[f"answer{gold}"])
         doc["label"] = inv_label_map[shuffled_label]

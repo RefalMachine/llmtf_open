@@ -1,8 +1,7 @@
 import os
 import argparse
-from multiprocessing import Queue
 import subprocess
-from queue import Empty
+from queue import Empty, Queue
 import requests
 import time
 from benchmark.config import build_evaluate_command, load_benchmark_config

@@ -1,0 +1,7 @@
+LegalBench-RU © 2026 ru-legal contributors (AlsKozlov).
+https://github.com/AlsKozlov/legalbench-ru/tree/090163977d0e9a58a5887a38ec144f95cb37e464
+https://huggingface.co/datasets/AlsKozlov/legalbench-ru
+Data and catalog: CC BY 4.0. Upstream scoring/prompt code: Apache-2.0.
+Changes by llmtf contributors, 2026-09-29: isolated pure reference functions,
+strict corrected scoring, fixed demo/eval selection, framework integration,
+provenance and offline paired reports. See change_ledger.json and docs/legalbench_ru.md.

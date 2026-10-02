@@ -14,6 +14,12 @@
 - [Результаты, кеш и ошибки](results.md) — artifacts, fingerprints и failure
   semantics.
 - [LLM-as-a-Judge](llmaaj.md) — генерация candidates, judge pipeline и reports.
+- [Юридический бенчмарк](legal_benchmark.md) — общие Base/Instruct конфиги,
+  LawMC и режимы LegalBench-RU, запуск и таблица отдельных результатов.
+- [LegalBench-RU](legalbench_ru.md) — экспериментальный набор, fixed few-shot,
+  двойной scoring и проверка протокола.
+- [Shlepa](shlepa.md) — настоящие few-shot demonstrations для всех четырёх
+  задач, состав evaluation и миграция прежних результатов.
 - [Docker-профили](../docker/README.md) — образы `api`, `hf` и `vllm`.
 Код и тесты имеют приоритет над документацией при обнаружении расхождения.
 Исторические планы и snapshot-specific validation artifacts находятся в

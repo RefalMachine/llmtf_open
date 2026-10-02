@@ -1,0 +1,24 @@
+LegalBench-RU — лицензии
+========================
+
+ДАННЫЕ (датасет: legalbench_ru.jsonl, holdout_questions_only.jsonl и все кейсы
+в tasks/): Creative Commons Attribution 4.0 International (CC BY 4.0).
+
+Вы свободны:
+  - Делиться — копировать и распространять материал в любом формате;
+  - Адаптировать — ремиксовать, преобразовывать, использовать в любых целях,
+    в том числе коммерческих.
+При условии указания авторства (Attribution): дайте ссылку на LegalBench-RU и
+укажите, вносились ли изменения.
+
+Полный текст лицензии: https://creativecommons.org/licenses/by/4.0/legalcode.ru
+Краткая сводка:        https://creativecommons.org/licenses/by/4.0/deed.ru
+
+КОД (харнесс: score.py, validate.py, qa.py, coverage.py, models.py, и пр.):
+Apache License 2.0 — как у репозитория ru-legal.
+
+Тексты нормативных актов РФ и реквизиты постановлений судов, на которые ссылается
+датасет, являются официальными документами и общественным достоянием;
+оригинальны (защищены CC BY 4.0) — формулировки вопросов и gold-ответы.
+
+© 2026 ru-legal contributors.

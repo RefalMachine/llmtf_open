@@ -15,6 +15,13 @@
 - `--assistant_prefill_policy {auto,exact,portable,best_effort}`;
 - `--backend_kwargs JSON_OBJECT`.
 
+`--few_shot_count` по умолчанию равен 5 в обеих single-model CLI. Если ни
+`defaults.evaluation`, ни task-level YAML не задают этот параметр, benchmark
+runner оставляет CLI default. Например, Shlepa в основных Instruct YAML
+теперь получает реальные 5-shot; для zero-shot задайте `few_shot_count: 0`.
+Правила выбора и исключения демонстраций зависят от задачи, см.
+[Shlepa](shlepa.md) и [LegalBench-RU](legalbench_ru.md).
+
 CLI options, которые пользователь передал явно, имеют приоритет над
 одноимёнными полями `backend_kwargs`. Не переданные CLI defaults не затирают
 JSON. Неизвестный constructor key отклоняется до model loading.
@@ -83,6 +90,12 @@ Task содержит `name`, непустой `datasets` и может пере
 
 Secrets в `backend_kwargs` запрещены. Передавайте credentials через runtime
 environment или secret manager.
+
+Юридические presets `benchmark/llmtf_legal_foundational.yaml` и
+`benchmark/llmtf_legal_instruct.yaml` используют эту же схему. Новый датасет
+добавляется task group, его режимы — registry IDs в `datasets`; специальный
+раздел modes или отдельный runner не нужен. Состав, параметры и отчёт:
+[юридический бенчмарк](legal_benchmark.md).
 
 ## Sampling и stops
 

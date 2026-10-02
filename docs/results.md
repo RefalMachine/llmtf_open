@@ -56,6 +56,12 @@ provenance, но не участвуют в semantic fingerprint. Их набл�
 Это запрещает случайно смешивать plain/reasoning или разные backend settings в
 одном output identity.
 
+Shlepa после исправления от 2026-10-02 имеет новый source digest и provenance
+`shlepa_train_demonstrations_v1`. Старые результаты с записанным k>0 фактически
+были zero-shot; их нельзя использовать как few-shot baseline. Изменилось и
+сопоставление текстового gold. Пересчёт и sample trace описаны в
+[протоколе Shlepa](shlepa.md).
+
 ## Failure semantics
 
 Backend batch errors сохраняют исходные indexes и fail closed. Задача с
@@ -94,3 +100,10 @@ python show_results.py \
 
 Добавьте `--n_bags N` для bootstrap и `--show_time` для колонок времени.
 PPL totals без поля `time` отображаются с пустым значением времени.
+
+Для общих legal-конфигов не передавайте `--category_path`: таблица показывает
+LawMC и каждое значение closed/grounded/distractor/temporal отдельно. Проверяйте
+наличие всех пяти totals; `Mean` не является согласованным итоговым legal score.
+`dev/tools/legalbench_ru_report.py` нужен только для дополнительной offline
+проверки LegalBench-RU artifacts, а не для формирования этой таблицы. Команды:
+[юридический бенчмарк](legal_benchmark.md).

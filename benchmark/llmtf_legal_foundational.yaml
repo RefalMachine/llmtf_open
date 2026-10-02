@@ -1,0 +1,30 @@
+# Runtime defaults match llmtf_benchmark_foundational.yaml.
+# Batch size is selected by the runner, as in the main benchmark.
+model:
+  model_kind: plain
+  enable_thinking: false
+  is_foundational: true
+  model_context_len: 16000
+  probe_api_prefill: true
+
+defaults:
+  generation:
+    temperature: 0.0
+    repetition_penalty: 1.0
+    presence_penalty: 0.0
+    num_return_sequences: 1
+
+tasks:
+  - name: law_mc
+    datasets:
+      - shlepa/lawmc
+    few_shot_count: 5
+
+  - name: legalbench_ru
+    datasets:
+      - legalbench_ru/closed
+      - legalbench_ru/grounded
+      - legalbench_ru/distractor
+      - legalbench_ru/temporal
+    few_shot_count: 5
+    name_suffix: 5shot

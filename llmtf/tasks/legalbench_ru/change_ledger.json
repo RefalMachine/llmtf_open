@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "date": "2026-09-29",
+  "changes": [
+    {
+      "id": "json",
+      "previous": "Brace counting",
+      "current": "Exactly one strict JSON object, optional fence; duplicate keys/nonfinite/extra text rejected",
+      "counterexample": "String containing }, two objects, duplicate tool keys"
+    },
+    {
+      "id": "tool_types",
+      "previous": "Can crash on non-string tool",
+      "current": "Type errors get 0 and status in both scorers",
+      "counterexample": "tool=4 or args=[]"
+    },
+    {
+      "id": "tool_routing",
+      "previous": "Function suffix equality",
+      "current": "Full server.tool equality",
+      "counterexample": "wrong.lookup vs right.lookup"
+    },
+    {
+      "id": "refusal",
+      "previous": "null anywhere or textual heuristic",
+      "current": "Valid top-level tool=null only",
+      "counterexample": "Non-null tool and null argument"
+    },
+    {
+      "id": "numbers",
+      "previous": "Substring",
+      "current": "Lexical numeric boundaries; no unit conversion, identifiers retain zeros",
+      "counterexample": "10 vs 210, -10 vs 10, decimal suffix"
+    },
+    {
+      "id": "citation",
+      "previous": "Preceding act globally",
+      "current": "Clause-local binding in either direction; ambiguous status",
+      "counterexample": "ст. 1 ГК РФ; ст. 2 ТК РФ"
+    },
+    {
+      "id": "labels",
+      "previous": "First label",
+      "current": "Unique binary/MC label; case-insensitive MC",
+      "counterexample": "Да или Нет; A B"
+    },
+    {
+      "id": "args",
+      "previous": "Lowercased str",
+      "current": "Typed JSON equality, case-sensitive strings, ordered arrays",
+      "counterexample": "true vs 1; null vs absent"
+    },
+    {
+      "id": "aggregation",
+      "previous": "Rounded per-sample mean",
+      "current": "Raw corrected micro; retain rounded reference micro",
+      "counterexample": "1/3 repeated"
+    }
+  ]
+}

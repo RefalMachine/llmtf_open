@@ -343,3 +343,16 @@ if llmaaj_model is not None:
             'params': {'model': llmaaj_model, 'instruction': rusbeir_rag_data_first, 'dataset': 'bearberry/rus_xquadqa', 'name_suffix': 'data_first'}
         },
     })
+
+
+# Experimental suites are explicit opt-in and preserve the historical `all`.
+from .legalbench_ru import LegalBenchRU
+
+for _mode in ('closed', 'grounded', 'distractor', 'temporal', 'upstream_all_zero_shot'):
+    for _selection in ('full', 'smoke'):
+        _name = 'legalbench_ru/' + _mode + ('_smoke' if _selection == 'smoke' else '')
+        TASK_REGISTRY[_name] = {
+            'class': LegalBenchRU,
+            'params': {'mode': _mode, 'selection': _selection},
+            'include_in_all': False,
+        }
