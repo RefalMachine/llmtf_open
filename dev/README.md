@@ -23,6 +23,12 @@
   реализация, offline contracts и фактическое покрытие runtime-проверок;
 - [SHLEPA_FEW_SHOT_FIX_REPORT.md](SHLEPA_FEW_SHOT_FIX_REPORT.md) — исправление
   игнорируемого few-shot count для всех четырёх задач Shlepa;
+- [RUTAR_VALIDATION_REPORT.md](RUTAR_VALIDATION_REPORT.md) — протокол и
+  фактические проверки бинарной задачи RuTaR;
+- [RULEGALNER_MANUAL_VALIDATION_RESULTS.json](RULEGALNER_MANUAL_VALIDATION_RESULTS.json)
+  — проверка ручного RuLegalNER: 12 наборов artifacts / 96 ответов на
+  HF/local-vLLM/API, Base/Instruct, 0/5-shot, thinking off; версии, метрики,
+  fingerprints и ограничения этого smoke;
 - `TASK_EVAL_GRAPH_REFACTOR_PLAN.md`, `EXTERNAL_BENCHMARK_INTEGRATION_PLAN.md`
   — предыдущие версии этих проектов, сохранённые для истории;
 - `TASK_BUGFIX_PLAN.md`, `TASK_BUGFIX_REPORT.md` — завершённая корректностная
@@ -43,3 +49,8 @@ LegalBench-RU artifacts и парных сравнений. Общий юрид�
 `tools/validate_shlepa_few_shot.py` — воспроизводимая проверка реальных
 0/1/5-shot промптов и artifacts на HF, local vLLM или API. Покрытие выполненных
 серий и ограничения находятся в `SHLEPA_FEW_SHOT_FIX_REPORT.md`.
+
+`tools/validate_rulegalner_manual.py` — task smoke на HF, local vLLM или API;
+по умолчанию выполняет 0/5-shot, по 8 тестовых фрагментов. Это проверка generate
+с thinking off, не полная v4 matrix. Запуск и протокол описаны в
+[руководстве](../docs/legal_benchmark.md#проверка-интеграции-rulegalner-от-2026-10-04).

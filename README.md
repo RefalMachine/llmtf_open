@@ -301,9 +301,11 @@ vLLM runner.
 `benchmark/calculate_benchmark_existing_api.py`.
 
 Юридический бенчмарк использует `benchmark/llmtf_legal_foundational.yaml` и
-`benchmark/llmtf_legal_instruct.yaml`: LawMC вместе с отдельными режимами
-LegalBench-RU closed, grounded, distractor и temporal. Конфиги сохраняют
-существующую YAML-схему и параметры основных LLMTF пресетов. Запуск и вывод
+`benchmark/llmtf_legal_instruct.yaml`: LawMC, бинарные налоговые вопросы
+RuTaR, отдельные режимы LegalBench-RU closed, grounded, distractor и temporal,
+а также экспериментальный NER по ручной переразметке RuLegalNER
+(`LAW`, `PROVISION`, `PENALTY`, точный macro-F1 с учётом повторов).
+Конфиги сохраняют существующую YAML-схему и параметры основных LLMTF пресетов. Запуск и вывод
 отдельных результатов без категорий описаны в
 [`docs/legal_benchmark.md`](docs/legal_benchmark.md). Методология единого
 legal score пока не определена; стандартный `Mean` её не заменяет.

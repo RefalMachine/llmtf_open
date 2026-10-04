@@ -93,7 +93,7 @@ class IntegrationTests(unittest.TestCase):
     def test_registry_all_and_explicit(self):
         selected=resolve_task_names('all',TASK_REGISTRY)
         self.assertTrue(all(not n.startswith('legalbench_ru/') for n in selected))
-        self.assertEqual(len(selected),sum(not n.startswith('legalbench_ru/') for n in TASK_REGISTRY))
+        self.assertEqual(len(selected), sum(spec.get('include_in_all', True) for spec in TASK_REGISTRY.values()))
         self.assertEqual(resolve_task_names('legalbench_ru/closed',TASK_REGISTRY),['legalbench_ru/closed'])
 
     def test_ppl_skipped(self):
@@ -110,7 +110,8 @@ class IntegrationTests(unittest.TestCase):
             selected = [name for task in cfg.tasks for name in task.datasets]
             self.assertEqual(set(selected), {
                 'shlepa/lawmc', 'legalbench_ru/closed', 'legalbench_ru/grounded',
-                'legalbench_ru/distractor', 'legalbench_ru/temporal',
+                'legalbench_ru/distractor', 'legalbench_ru/temporal', 'rutar/closed',
+                'rulegalner_manual/legal',
             })
             self.assertEqual(len(selected), len(set(selected)))
             reference_path = ('benchmark/llmtf_benchmark_foundational.yaml'
@@ -155,11 +156,13 @@ class IntegrationTests(unittest.TestCase):
                     patch('llmtf.evaluator.Evaluator'):
                 runpy.run_module('benchmark.calculate_benchmark_existing_api',
                                  run_name='__main__')
-            self.assertEqual(execute.call_count, 2)
+            self.assertEqual(execute.call_count, 4)
             commands = [call.args[0] for call in execute.call_args_list]
             self.assertIn('shlepa/lawmc', commands[0])
             for mode in ('closed', 'grounded', 'distractor', 'temporal'):
                 self.assertIn('legalbench_ru/' + mode, commands[1])
+            self.assertIn('rutar/closed', commands[2])
+            self.assertIn('rulegalner_manual/legal', commands[3])
             for command in commands:
                 self.assertEqual(command[command.index('--batch_size') + 1], '10000000')
 

@@ -361,7 +361,7 @@ def get_answer_str_nested(sample) -> str:
             tagged_text += f"<{event[3]}>"
         else:
             tagged_text += f"</{event[3]}>"
-    return tagged_text
+    return tagged_text + text[prev_len:]
 
 def extract_answer_nested(text):
     entities = []

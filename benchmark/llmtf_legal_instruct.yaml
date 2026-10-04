@@ -32,3 +32,15 @@ tasks:
     few_shot_count: 0
     name_suffix: 0shot
     max_sample_per_dataset: 200
+
+  - name: rutar
+    datasets:
+      - rutar/closed
+    few_shot_count: 0
+    name_suffix: 0shot
+
+  - name: rulegalner_manual
+    datasets:
+      - rulegalner_manual/legal
+    few_shot_count: 0
+    name_suffix: 0shot

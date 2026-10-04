@@ -62,6 +62,13 @@ Shlepa после исправления от 2026-10-02 имеет новый s
 сопоставление текстового gold. Пересчёт и sample trace описаны в
 [протоколе Shlepa](shlepa.md).
 
+Общие NER-задачи после исправлений от 2026-10-04 включают в provenance
+`ner_scoring_version=exact_string_multiset_v2` и SHA-256 общего скорера.
+RuLegalNER manual отдельно фиксирует hashes скорера, helpers и ресурсов задачи.
+Прежние artifacts не становятся результатами исправленного протокола:
+используйте новый output-каталог либо `--force_recalc` для пересчёта.
+Состав исправлений описан в [руководстве](legal_benchmark.md#исправления-общего-ner-скоринга-от-2026-10-04).
+
 ## Failure semantics
 
 Backend batch errors сохраняют исходные indexes и fail closed. Задача с
@@ -102,8 +109,11 @@ python show_results.py \
 PPL totals без поля `time` отображаются с пустым значением времени.
 
 Для общих legal-конфигов не передавайте `--category_path`: таблица показывает
-LawMC и каждое значение closed/grounded/distractor/temporal отдельно. Проверяйте
-наличие всех пяти totals; `Mean` не является согласованным итоговым legal score.
+LawMC, четыре режима LegalBench-RU, accuracy RuTaR и macro-F1 ручного RuLegalNER
+отдельно. Проверяйте наличие всех семи totals; `Mean` не является согласованным
+итоговым legal score. В RuLegalNER `format_valid` и `exact_match` — диагностики,
+основной результат — только `f1-macro`. Для этой задачи sample bootstrap
+отключён, поскольку фрагменты одного исходного документа зависимы.
 `dev/tools/legalbench_ru_report.py` нужен только для дополнительной offline
 проверки LegalBench-RU artifacts, а не для формирования этой таблицы. Команды:
 [юридический бенчмарк](legal_benchmark.md).

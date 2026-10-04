@@ -3,9 +3,37 @@ from functools import partial
 from typing import List, Dict, Tuple
 import re
 import json
+import hashlib
+from pathlib import Path
 from llmtf.base import SimpleFewShotHFTask
 from llmtf.utils import Multiset
 from llmtf.metrics import mean
+
+
+def parse_ner_json(output):
+    """Read one entity array, allowing only an optional enclosing code fence.
+
+    Return validity separately: a malformed answer is not a correct empty answer.
+    Entity strings are never normalized or edited by the parser.
+    """
+    if not isinstance(output, str):
+        return [], False
+    text = output.strip()
+    fence = re.fullmatch(r'```(?:json)?\s*\n?(.*?)\s*```', text, flags=re.DOTALL)
+    if fence:
+        text = fence.group(1)
+    try:
+        parsed = json.loads(text)
+    except (ValueError, RecursionError):
+        return [], False
+    if not isinstance(parsed, list):
+        return [], False
+    for pair in parsed:
+        if (not isinstance(pair, list) or len(pair) != 2
+                or not all(isinstance(value, str) and value for value in pair)):
+            return [], False
+    return parsed, True
+
 
 def list_to_dict_multiset(l, tags):
     d = {tag: [] for tag in tags}
@@ -81,6 +109,11 @@ class NerAbc(SimpleFewShotHFTask):
     def aggregation(self) -> Dict:
         return {"f1-macro": partial(f1_macro, tags=self.TAGS)}
 
+    def get_task_provenance(self):
+        # The concrete task's hash does not cover this shared scoring module.
+        return {'ner_scoring_version': 'exact_string_multiset_v2',
+                'ner_shared_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+
 
 class NerDictAbc(NerAbc):
     def __init__(
@@ -101,14 +134,16 @@ class NerDictAbc(NerAbc):
         return answer_str
     
     def extract_answer(self, gen_pred: str):
+        if not isinstance(gen_pred, str):
+            return {}
         tag_lines = gen_pred.split('\n')
         answer = {}
         for tag_line in tag_lines:
-            match = re.match(r'((?:\w-)?\w+):\s*\[([^\]]+)\]', tag_line)
+            match = re.fullmatch(r'\s*([\w-]+):\s*\[(.*)\]\s*', tag_line)
             if match and len(match.groups()) == 2:
                 tag = match.group(1)
-                tokens = [token.strip() for token in match.group(2).split(',')]
-                answer[tag] = tokens
+                tokens = [token.strip() for token in match.group(2).split(',') if token.strip()]
+                answer.setdefault(tag, []).extend(tokens)
         return answer
 
     def evaluate(self, sample, gen_pred: str) -> Dict:
@@ -160,24 +195,13 @@ class NerJsonAbc(NerAbc):
         return answer_str
     
     def extract_answer(self, gen_pred: str):
-        try:
-            if not isinstance(gen_pred, str):
-                return []
-            gen_pred = gen_pred.replace('```json', '').strip()
-            gen_pred = gen_pred.replace('json\n', '').strip()
-            gen_pred = gen_pred.replace('```', '').strip()
-            predict = json.loads(gen_pred)
-        except (json.JSONDecodeError, TypeError, AttributeError):
-            return []
-        return predict if isinstance(predict, list) else []
+        return parse_ner_json(gen_pred)[0]
 
     def evaluate(self, sample, gen_pred) -> Dict:
         y_pred = self.extract_answer(gen_pred)
         y_gold = self.get_gold_entities(sample)
 
-        pred_tags = set([x[0] for x in y_pred if len(x) > 0 and x[0] in self.TAGS])
-        gold_tags = set([x[0] for x in y_gold if len(x) > 0 and x[0] in self.TAGS])
-        combined_tags = set(list(pred_tags) + list(gold_tags))
+        combined_tags = set(self.TAGS)
         
         y_pred = list_to_dict_multiset(y_pred, combined_tags)
         y_gold = list_to_dict_multiset(y_gold, combined_tags)
@@ -203,23 +227,25 @@ class NerInPlaceAbc(NerAbc):
         if not isinstance(gen_pred, str):
             return False
         text_pred = re.sub(r"<\w+>|</\w+>", "", gen_pred)
-        tokens_pred = re.findall(r"\d+\.\d+|[\w]+|\.{3}|[.,!?:;()\[\]«»]", text_pred)
-        return list(sample["tokens"]) == tokens_pred
+        # Token spacing is reconstructed by the task; retain every other
+        # character, including punctuation outside the old regex allowlist.
+        text_gold = ''.join(sample["tokens"])
+        return re.sub(r'\s+', '', text_gold) == re.sub(r'\s+', '', text_pred)
 
     def extract_answer(self, gen_pred: str):
-        matches = re.findall(r'<(\w+)>(.*?)</\1>', gen_pred)
+        if not isinstance(gen_pred, str):
+            return []
+        matches = re.findall(r'<(\w+)>(.*?)</\1>', gen_pred, flags=re.DOTALL)
         return [list(match) for match in matches]
     
     def evaluate(self, sample, gen_pred) -> Dict:
-        if not self.check_text(sample, gen_pred):
+        if not isinstance(gen_pred, str) or not self.check_text(sample, gen_pred):
             y_pred = []
         else:
             y_pred = self.extract_answer(gen_pred)
         y_gold = self.get_gold_entities(sample)
 
-        pred_tags = set([x[0] for x in y_pred if len(x) > 0 and x[0] in self.TAGS])
-        gold_tags = set([x[0] for x in y_gold if len(x) > 0 and x[0] in self.TAGS])
-        combined_tags = set(list(pred_tags) + list(gold_tags))
+        combined_tags = set(self.TAGS)
         
         y_pred = list_to_dict_multiset(y_pred, combined_tags)
         y_gold = list_to_dict_multiset(y_gold, combined_tags)
@@ -302,7 +328,7 @@ def get_answer_str_bio_in_place(self, sample) -> str:
         elif tag_mod == "I-":
             entity_tokens.append(token)
         else:
-            new_tokens.append(f"<{tag_base}>{token}</{tag_base}>]")
+            new_tokens.append(f"<{tag_base}>{token}</{tag_base}>")
         prev_tag_base = tag_base
     if len(entity_tokens) > 0:
         new_tokens.append(f"<{tag_base}>{' '.join(entity_tokens)}</{tag_base}>")

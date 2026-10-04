@@ -15,9 +15,12 @@
   semantics.
 - [LLM-as-a-Judge](llmaaj.md) — генерация candidates, judge pipeline и reports.
 - [Юридический бенчмарк](legal_benchmark.md) — общие Base/Instruct конфиги,
-  LawMC и режимы LegalBench-RU, запуск и таблица отдельных результатов.
+  LawMC, режимы LegalBench-RU, RuTaR и ручной RuLegalNER, запуск и таблица
+  семи отдельных результатов; протокол RuLegalNER и исправления NER-скоринга.
 - [LegalBench-RU](legalbench_ru.md) — экспериментальный набор, fixed few-shot,
   двойной scoring и проверка протокола.
+- [RuTaR](rutar.md) — бинарные налоговые вопросы, закреплённый snapshot,
+  фиксированные демонстрации и accuracy по вероятностям ответов.
 - [Shlepa](shlepa.md) — настоящие few-shot demonstrations для всех четырёх
   задач, состав evaluation и миграция прежних результатов.
 - [Docker-профили](../docker/README.md) — образы `api`, `hf` и `vllm`.

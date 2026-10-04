@@ -1,0 +1,37 @@
+{
+  "version": "rulegalner_manual_legal_v1",
+  "source_repo": "https://github.com/Bishop-Y/Bachelor_Thesis",
+  "original_corpus": "https://github.com/zeino8/RuLegalNER",
+  "access_date": "2026-10-04",
+  "files": {
+    "train": {
+      "filename": "train_annotated.jsonl",
+      "file_id": "170vi01xtXJTgIqzS1r2-wW-OiKuZsC7K",
+      "sha256": "13c45850fdce05c84e8e3fa1bf8082751fac98e38d434288b0215bc880f45006",
+      "rows": 1000
+    },
+    "val": {
+      "filename": "val_annotated.jsonl",
+      "file_id": "1PxcWJ89RChLgGyV1gfycwBOmRGTlTdzc",
+      "sha256": "01d591dfcff68d261529e76fd5f5143ea133c54845640e32d9036b404345cf92",
+      "rows": 134
+    },
+    "test": {
+      "filename": "test_annotated.jsonl",
+      "file_id": "1oGGnsHToJ6HIW9kE9PtVxt0rlE2I_YCR",
+      "sha256": "00d79e238a95892e4dc03a0a9c71046998fc0a8e7cbef63df335a8df9a94a13d",
+      "rows": 201
+    }
+  },
+  "demonstration_ids": [
+    1105,
+    291,
+    516,
+    546,
+    985
+  ],
+  "demonstration_policy": "fixed_train_ids_distinct_documents_prefix_k_0_to_5",
+  "evaluation_policy": "all_201_upstream_test_rows_including_empty",
+  "annotation_policy": "unmodified_upstream_single_annotator_not_expert_validated",
+  "data_license": "not_explicitly_verified; upstream model card declares CC BY-NC 4.0; no data redistributed"
+}

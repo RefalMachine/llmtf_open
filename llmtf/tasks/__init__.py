@@ -356,3 +356,19 @@ for _mode in ('closed', 'grounded', 'distractor', 'temporal', 'upstream_all_zero
             'params': {'mode': _mode, 'selection': _selection},
             'include_in_all': False,
         }
+
+from .rutar import RuTaR
+
+TASK_REGISTRY['rutar/closed'] = {
+    'class': RuTaR,
+    'params': {},
+    'include_in_all': False,
+}
+
+from .rulegalner_manual import RuLegalNERManual
+
+TASK_REGISTRY['rulegalner_manual/legal'] = {
+    'class': RuLegalNERManual,
+    'params': {},
+    'include_in_all': False,
+}

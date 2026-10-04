@@ -20,7 +20,8 @@
 runner оставляет CLI default. Например, Shlepa в основных Instruct YAML
 теперь получает реальные 5-shot; для zero-shot задайте `few_shot_count: 0`.
 Правила выбора и исключения демонстраций зависят от задачи, см.
-[Shlepa](shlepa.md) и [LegalBench-RU](legalbench_ru.md).
+[Shlepa](shlepa.md), [LegalBench-RU](legalbench_ru.md), [RuTaR](rutar.md) и
+[ручной RuLegalNER](legal_benchmark.md#ручной-rulegalner).
 
 CLI options, которые пользователь передал явно, имеют приоритет над
 одноимёнными полями `backend_kwargs`. Не переданные CLI defaults не затирают

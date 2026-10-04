@@ -304,9 +304,4 @@ class Collection3InPlace(Collection3Abc, NerInPlaceAbc):
         return join_tokens(new_tokens)
 
     def check_text(self, sample, gen_pred: str):
-        text_pred = re.sub(r"<\w+>|</\w+>", "", gen_pred)
-        tokens_pred = re.findall(r"\d+.\d+|[\w]+|\.{3}|[.,!?:;()\[\]«»]", text_pred)
-        for token_gold, token_pred in zip(sample["tokens"], tokens_pred):
-            if token_gold != token_pred:
-                return False
-        return True
+        return super().check_text(sample, gen_pred)

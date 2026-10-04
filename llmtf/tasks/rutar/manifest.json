@@ -1,0 +1,29 @@
+{
+  "repository": "https://github.com/rutar-anonymous/RuTaR",
+  "revision": "76c6ef0cafe89fe1b400b673478066108b0493ac",
+  "filename": "rutar.xlsx",
+  "sha256": "5ce0824ea3d806c2475ac2d1880cfd1795a34ff1ac31a65b94a14d75cd136dc7",
+  "raw_row_count": 209,
+  "excluded_missing_question_ids": [
+    "119"
+  ],
+  "excluded_duplicate_question_ids": [
+    "117"
+  ],
+  "demonstration_ids": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+  ],
+  "evaluation_row_count": 202,
+  "protocol_version": "rutar_closed_binary_v1",
+  "split_version": "fixed_five_demonstrations_v1",
+  "scorer_version": "binary_probability_argmax_v1",
+  "dataset_repo": "RefalMachine/RuTaR",
+  "dataset_revision": "fdcc020429120cd81945b1b8060f5aa6a9840a18",
+  "dataset_filename": "data/test.parquet",
+  "dataset_sha256": "da6cf232b3b513ef37284b6c5f7f807e6e77e643235a4006d62cb3ee25b4de8e",
+  "mirror_format_version": "rutar_lossless_parquet_v1"
+}

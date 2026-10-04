@@ -1,0 +1,409 @@
+{
+  "date": "2026-10-04",
+  "task": "rulegalner_manual/legal",
+  "protocol": "rulegalner_manual_legal_v1",
+  "scope": "8 upstream test fragments per cell; 0/5-shot; thinking off; generate only. No full v4 matrix or general backend parity claim.",
+  "artifact_sets": 12,
+  "sample_count": 96,
+  "images": {
+    "api": "sha256:d10c2abd2015f960ff251f0eb984ddbab08abb86292adc874cef96d2eb8d7f8f",
+    "hf": "sha256:2146b9f44aa2964ebda2be52463da49936ec1d6b338baa826125016191611915",
+    "vllm": "sha256:d32605e9216b680faa60a510628cbc385d4ae58507125e9ea499697f03ec4722"
+  },
+  "runtime": {
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "torch": "2.11.0+cu129",
+    "cuda": "12.9",
+    "transformers": "5.9.0",
+    "vllm": "0.21.0+cu129"
+  },
+  "checks": {
+    "shared_ner_regressions": 12,
+    "manual_task_tests_including_full_snapshot": 8,
+    "legal_config_integration_tests": 7,
+    "dependency_free_refactor_tests": 40,
+    "pytest": "not installed on host or API profile",
+    "cpu_only_api_import": true,
+    "upstream_download_and_cache": true,
+    "gold_json_roundtrip_all_201": true,
+    "all_runtime_params_totals_and_samples_replayed": true
+  },
+  "commands": {
+    "working_directory": "/var/mtikhomi/work_folder/projects/devel/llmtf_open",
+    "docker_mounts": [
+      "/var/mtikhomi/work_folder/projects/devel/llmtf_open:/workdir",
+      "/home/mtikhomi/.cache/huggingface:/root/.cache/huggingface",
+      "/tmp:/audit"
+    ],
+    "docker_environment": {
+      "PYTHONPATH": "/workdir",
+      "HF_HUB_OFFLINE": "1",
+      "CUDA_VISIBLE_DEVICES": "0"
+    },
+    "local_docker_flags": [
+      "--rm",
+      "--gpus",
+      "all",
+      "--ipc=host",
+      "-w",
+      "/workdir"
+    ],
+    "api_client_docker_note": "llmtf:api, --network host; only source and /tmp mounts; no GPU or torch/vLLM dependency.",
+    "model_snapshots": {
+      "instruct": "/root/.cache/huggingface/hub/models--Qwen--Qwen3.5-2B/snapshots/15852e8c16360a2fea060d615a32b45270f8a8fc",
+      "base": "/root/.cache/huggingface/hub/models--Qwen--Qwen3.5-2B-Base/snapshots/b1485b2fa6dfa1287294f269f5fb618e03d52d7c"
+    },
+    "validator_template": "python -m dev.tools.validate_rulegalner_manual --backend {hf|vllm|api} --model {snapshot_path_or_api_served_name} [--base] --data-dir /audit/rulegalner-manual-data --output /audit/rulegalner-validation-final/{backend}/{instruct|base}",
+    "validator_overrides": "HF explicitly used --batch-size 8. Other cells used default batch size 8. Both shots 0 and 5, limit 8. HF ran before explicit num_return_sequences=1 was added to the driver; its effective default was 1.",
+    "api_server_template": "python -m vllm.entrypoints.openai.api_server --model {snapshot_path} --served-model-name {Qwen/Qwen3.5-2B|Qwen/Qwen3.5-2B-Base} --host 127.0.0.1 --port 18765 --max-model-len 16000 --gpu-memory-utilization .75 --language-model-only --enforce-eager --no-enable-log-requests --disable-uvicorn-access-log --disable-log-stats [--chat-template /audit/rulegalner-base-template.jinja]",
+    "base_api_template": "json_to_jinja of conversation_configs/default_foundational.json; SHA256 c1d5d75f32de8b8b98db47803150b2c60dff0b5de42b28cd5de484232ddb4447"
+  },
+  "data_manifest": {
+    "version": "rulegalner_manual_legal_v1",
+    "source_repo": "https://github.com/Bishop-Y/Bachelor_Thesis",
+    "original_corpus": "https://github.com/zeino8/RuLegalNER",
+    "access_date": "2026-10-04",
+    "files": {
+      "train": {
+        "filename": "train_annotated.jsonl",
+        "file_id": "170vi01xtXJTgIqzS1r2-wW-OiKuZsC7K",
+        "sha256": "13c45850fdce05c84e8e3fa1bf8082751fac98e38d434288b0215bc880f45006",
+        "rows": 1000
+      },
+      "val": {
+        "filename": "val_annotated.jsonl",
+        "file_id": "1PxcWJ89RChLgGyV1gfycwBOmRGTlTdzc",
+        "sha256": "01d591dfcff68d261529e76fd5f5143ea133c54845640e32d9036b404345cf92",
+        "rows": 134
+      },
+      "test": {
+        "filename": "test_annotated.jsonl",
+        "file_id": "1oGGnsHToJ6HIW9kE9PtVxt0rlE2I_YCR",
+        "sha256": "00d79e238a95892e4dc03a0a9c71046998fc0a8e7cbef63df335a8df9a94a13d",
+        "rows": 201
+      }
+    },
+    "demonstration_ids": [
+      1105,
+      291,
+      516,
+      546,
+      985
+    ],
+    "demonstration_policy": "fixed_train_ids_distinct_documents_prefix_k_0_to_5",
+    "evaluation_policy": "all_201_upstream_test_rows_including_empty",
+    "annotation_policy": "unmodified_upstream_single_annotator_not_expert_validated",
+    "data_license": "not_explicitly_verified; upstream model card declares CC BY-NC 4.0; no data redistributed"
+  },
+  "cells": [
+    {
+      "backend": "api",
+      "model_kind": "base",
+      "shots": 0,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.10833333333333334,
+        "format_valid": 1.0,
+        "exact_match": 0.0
+      },
+      "runtime_shared_scorer_sha256": "87d35e7512c66c61094678414ac5a760911a15a78fc99b17d58f1afc1f5a9391",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "ebf9a831794372ff788c793849f68511eccf118ede689cb5399125d02d558fa7",
+      "artifact_total": "/tmp/rulegalner-validation-final/api/base/0shot/rulegalner_manual_legal_0shot_total.jsonl"
+    },
+    {
+      "backend": "api",
+      "model_kind": "base",
+      "shots": 5,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.5761904761904763,
+        "format_valid": 0.875,
+        "exact_match": 0.0
+      },
+      "runtime_shared_scorer_sha256": "87d35e7512c66c61094678414ac5a760911a15a78fc99b17d58f1afc1f5a9391",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "92b636c6ef0eb4852ed09a44ce595c6cfe14499b0e82a6b6bef4d55b178bde2c",
+      "artifact_total": "/tmp/rulegalner-validation-final/api/base/5shot/rulegalner_manual_legal_5shot_total.jsonl"
+    },
+    {
+      "backend": "api",
+      "model_kind": "instruct",
+      "shots": 0,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.3277777777777778,
+        "format_valid": 1.0,
+        "exact_match": 0.375
+      },
+      "runtime_shared_scorer_sha256": "87d35e7512c66c61094678414ac5a760911a15a78fc99b17d58f1afc1f5a9391",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "2c2a5e19b072f401b7f42bffd66436cd0c28bfad94e413db14c6cf78c24877ae",
+      "artifact_total": "/tmp/rulegalner-validation-final/api/instruct/0shot/rulegalner_manual_legal_0shot_total.jsonl"
+    },
+    {
+      "backend": "api",
+      "model_kind": "instruct",
+      "shots": 5,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.41005291005291006,
+        "format_valid": 1.0,
+        "exact_match": 0.5
+      },
+      "runtime_shared_scorer_sha256": "87d35e7512c66c61094678414ac5a760911a15a78fc99b17d58f1afc1f5a9391",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "72216fc3a43eca80520e33b9cbd0e2564268030cb73bc698fbaca0226ae55f28",
+      "artifact_total": "/tmp/rulegalner-validation-final/api/instruct/5shot/rulegalner_manual_legal_5shot_total.jsonl"
+    },
+    {
+      "backend": "hf",
+      "model_kind": "base",
+      "shots": 0,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.0,
+        "format_valid": 0.0,
+        "exact_match": 0.0
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "7efa9651035414001e161238068a72b5f4dce304df49f61e44a5229b13173486",
+      "artifact_total": "/tmp/rulegalner-validation-final/hf/base/0shot/rulegalner_manual_legal_0shot_total.jsonl"
+    },
+    {
+      "backend": "hf",
+      "model_kind": "base",
+      "shots": 5,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.5761904761904763,
+        "format_valid": 0.875,
+        "exact_match": 0.0
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "5eee282c6ca058e4db04feef61c0a3b068d2c8d2d61223840cb439f05e9fee88",
+      "artifact_total": "/tmp/rulegalner-validation-final/hf/base/5shot/rulegalner_manual_legal_5shot_total.jsonl"
+    },
+    {
+      "backend": "hf",
+      "model_kind": "instruct",
+      "shots": 0,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.3277777777777778,
+        "format_valid": 1.0,
+        "exact_match": 0.375
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "9898886643422c8a0b9e13c17fae7e42b8a6b48c055b5d985f6e902c24765766",
+      "artifact_total": "/tmp/rulegalner-validation-final/hf/instruct/0shot/rulegalner_manual_legal_0shot_total.jsonl"
+    },
+    {
+      "backend": "hf",
+      "model_kind": "instruct",
+      "shots": 5,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.4057239057239057,
+        "format_valid": 1.0,
+        "exact_match": 0.5
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "cd1e50797899bbcb2813f2e6e483ead554493b473275e7e514fd6af4a7702110",
+      "artifact_total": "/tmp/rulegalner-validation-final/hf/instruct/5shot/rulegalner_manual_legal_5shot_total.jsonl"
+    },
+    {
+      "backend": "vllm",
+      "model_kind": "base",
+      "shots": 0,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.10833333333333334,
+        "format_valid": 1.0,
+        "exact_match": 0.0
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "ab6b44755b2f112f448c3b3521c0e39c0df2a4662ef7cbf9cc729785459ff5b6",
+      "artifact_total": "/tmp/rulegalner-validation-final/vllm/base/0shot/rulegalner_manual_legal_0shot_total.jsonl"
+    },
+    {
+      "backend": "vllm",
+      "model_kind": "base",
+      "shots": 5,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.5761904761904763,
+        "format_valid": 0.875,
+        "exact_match": 0.0
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "484284331c3c07d0536c40710994357501407b69d482ce305d91e90beb86a6dd",
+      "artifact_total": "/tmp/rulegalner-validation-final/vllm/base/5shot/rulegalner_manual_legal_5shot_total.jsonl"
+    },
+    {
+      "backend": "vllm",
+      "model_kind": "instruct",
+      "shots": 0,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.3277777777777778,
+        "format_valid": 1.0,
+        "exact_match": 0.375
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "a4b05b7e14ee57597a652847551ced10b252128e5366908a98e45ef18273ed0a",
+      "artifact_total": "/tmp/rulegalner-validation-final/vllm/instruct/0shot/rulegalner_manual_legal_0shot_total.jsonl"
+    },
+    {
+      "backend": "vllm",
+      "model_kind": "instruct",
+      "shots": 5,
+      "samples": 8,
+      "batch_size": 8,
+      "results": {
+        "f1-macro": 0.4057239057239057,
+        "format_valid": 1.0,
+        "exact_match": 0.5
+      },
+      "runtime_shared_scorer_sha256": "fbe38ce681795c14cfe3c91368b9a3ce9f28812d56181232f4b1eae0604c61b6",
+      "sample_ids": [
+        1325,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029,
+        1030
+      ],
+      "fingerprint": "a6e0320c557940a2dc48970c5e1f00edea205c96a4c2d86d290b18e5bf9fdf5c",
+      "artifact_total": "/tmp/rulegalner-validation-final/vllm/instruct/5shot/rulegalner_manual_legal_5shot_total.jsonl"
+    }
+  ],
+  "replay_shared_scorer_sha256": "87d35e7512c66c61094678414ac5a760911a15a78fc99b17d58f1afc1f5a9391",
+  "source_revision_note": "HF/local-vLLM ran before the final in-place-only punctuation check fix. JSON parsing and scoring were unchanged. API ran after that fix. Every raw prediction is replayed with the final scorer; original artifact fingerprints are preserved.",
+  "limitations": [
+    "Single annotator; upstream labels unmodified and not expert validated.",
+    "Model scores are smoke diagnostics, not full-test quality estimates.",
+    "Strict JSON failures remain empty predictions with separate format_valid/exact_match diagnostics.",
+    "Original automatic RuLegalNER labels are not used.",
+    "No PPL, probability, thinking-on or legacy controls in this task-specific validation."
+  ]
+}

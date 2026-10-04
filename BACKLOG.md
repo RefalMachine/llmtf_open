@@ -5,12 +5,14 @@
 хранятся в `dev/`; реализованные пункты следует переносить из этого файла в
 соответствующую документацию и тесты.
 
-Интеграция экспериментального LegalBench-RU, общие legal-конфиги и
-исправление few-shot для Shlepa уже реализованы в рабочем дереве и не являются
-незавершёнными пунктами этого backlog. Актуальное поведение описано в
+Интеграции LegalBench-RU, RuTaR и ручного RuLegalNER, общие legal-конфиги,
+исправления NER-скоринга и few-shot для Shlepa уже реализованы в рабочем дереве
+и не являются незавершёнными пунктами этого backlog. Актуальное поведение описано в
 [юридическом бенчмарке](docs/legal_benchmark.md) и [протоколе Shlepa](docs/shlepa.md);
 фактические проверки — в
-[LegalBench-RU report](dev/LEGALBENCH_RU_VALIDATION_REPORT.md) и
+[LegalBench-RU report](dev/LEGALBENCH_RU_VALIDATION_REPORT.md),
+[RuTaR report](dev/RUTAR_VALIDATION_REPORT.md),
+[RuLegalNER results](dev/RULEGALNER_MANUAL_VALIDATION_RESULTS.json) и
 [Shlepa fix report](dev/SHLEPA_FEW_SHOT_FIX_REPORT.md). Архитектурные планы
 task/eval v2 ниже остаются отдельной будущей работой.
 

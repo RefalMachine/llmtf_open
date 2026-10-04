@@ -59,10 +59,10 @@ Thinking-on использует assistant continuation внутри общег�
 `--probe_api_prefill`; такой запуск не подтверждает точную local/API parity.
 
 Общие YAML: `benchmark/llmtf_legal_instruct.yaml` (0-shot) и
-`benchmark/llmtf_legal_foundational.yaml` (5-shot). Каждый включает LawMC и
-все четыре режима LegalBench-RU, результаты которых сохраняются в один каталог
-модели под разными именами. `show_results.py` выводит отдельное значение
-каждого режима без категорий и парных сравнений. Standard `Mean` не является
+`benchmark/llmtf_legal_foundational.yaml` (5-shot). Каждый включает LawMC,
+все четыре режима LegalBench-RU, RuTaR и ручной RuLegalNER. Семь результатов
+сохраняются в один каталог модели под разными именами. `show_results.py` выводит
+отдельное значение каждого компонента без категорий и парных сравнений. Standard `Mean` не является
 согласованным итоговым баллом юридического бенчмарка.
 
 Параметры общих конфигов соответствуют основным LLMTF пресетам: в частности,

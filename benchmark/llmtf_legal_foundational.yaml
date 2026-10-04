@@ -28,3 +28,15 @@ tasks:
       - legalbench_ru/temporal
     few_shot_count: 5
     name_suffix: 5shot
+
+  - name: rutar
+    datasets:
+      - rutar/closed
+    few_shot_count: 5
+    name_suffix: 5shot
+
+  - name: rulegalner_manual
+    datasets:
+      - rulegalner_manual/legal
+    few_shot_count: 5
+    name_suffix: 5shot
