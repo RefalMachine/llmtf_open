@@ -31,7 +31,6 @@ tasks:
       - legalbench_ru/temporal
     few_shot_count: 0
     name_suffix: 0shot
-    max_sample_per_dataset: 200
 
   - name: rutar
     datasets:
