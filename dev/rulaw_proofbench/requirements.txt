@@ -1,0 +1,3 @@
+# Construction, validation, analysis: Python standard library only.
+# Tested with CPython 3.10.12 on the host; Python >=3.10 required.
+# Model execution uses the repository's existing Docker profiles, not this file.

@@ -1,0 +1,262 @@
+[
+  {
+    "id": "amendment-2017-139",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102437322&rdk=0",
+    "raw_path": "sources/amendment-2017-139.mht",
+    "text_path": "sources/amendment-2017-139.txt",
+    "sha256": "b5538197ea7581f1df8b21fcf58506550292bb1e0f072d8135a65680320da924",
+    "text_sha256": "9c8e6d88a175b9e441bc2bae42b030e591724223a10ee738a5ad1c6cfc0da855",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2017-125",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102435732&rdk=0",
+    "raw_path": "sources/amendment-2017-125.mht",
+    "text_path": "sources/amendment-2017-125.txt",
+    "sha256": "e167a4c72a1698f34d2cd845dd579852208cb2b01ae2b640fa713a5902ef0737",
+    "text_sha256": "44697c36eadbae3bc8201abf6276280a2bcecd0a3beaa3660c7d4304c8c3f59e",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2013-185",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102166739&rdk=0",
+    "raw_path": "sources/amendment-2013-185.mht",
+    "text_path": "sources/amendment-2013-185.txt",
+    "sha256": "915c17eeb3d7ab4c78556309c42ad7f30138d3e37764440bbb9886e16333900d",
+    "text_sha256": "6732a22ba892438f3ce38a4a0623aad78b9f0b2cb90ff736fed2014a4305fdc1",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2020-127",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102722391&rdk=0",
+    "raw_path": "sources/amendment-2020-127.mht",
+    "text_path": "sources/amendment-2020-127.txt",
+    "sha256": "09b4247be40fca237e218bb9f0b606930caf8517ff474baf14b16db4dd84cfc4",
+    "text_sha256": "23d8fb208ace539b4ef19344477f3b75571aef7c685faf2bc478ed5b24b89ec5",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2008-49",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102121402&rdk=0",
+    "raw_path": "sources/amendment-2008-49.mht",
+    "text_path": "sources/amendment-2008-49.txt",
+    "sha256": "d9029f8206e540c2fe4270a2dffdc00b385b7f9fbcf134351f73e07db4d15c4c",
+    "text_sha256": "dd70ec4c0697aef5ec7f440e323a53ce2ed273ea5f134f36974d979b16d8852c",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2012-302",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102162486&rdk=0",
+    "raw_path": "sources/amendment-2012-302.mht",
+    "text_path": "sources/amendment-2012-302.txt",
+    "sha256": "dff8676518be80205cbb0614607945e3b73c07f6637012d2233c77d0151bfefd",
+    "text_sha256": "0f2b1dac2ece4a0b7833bbd0ddd3cbd36257dff557c8edb4ba8cd826549e1b1d",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2013-100",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102165201&rdk=0",
+    "raw_path": "sources/amendment-2013-100.mht",
+    "text_path": "sources/amendment-2013-100.txt",
+    "sha256": "cbd6ebd79072af77d21cde5708d6813e478b52af9954d44241194b7e748a4001",
+    "text_sha256": "d5eaeed4980613ca6d0b323868eb3aa8c6eca9a825254593cfbcfcf480098d96",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2014-357",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102362473&rdk=0",
+    "raw_path": "sources/amendment-2014-357.mht",
+    "text_path": "sources/amendment-2014-357.txt",
+    "sha256": "b182ee448cc3fc4524b8efd69b8bd77019ae108e664dba63619a5f4987741d1b",
+    "text_sha256": "d39e59d4b26eec32c1b6d47978dce497c2d474e348fcc8f682a4107d49b227c6",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2013-182",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102166365&rdk=0",
+    "raw_path": "sources/amendment-2013-182.mht",
+    "text_path": "sources/amendment-2013-182.txt",
+    "sha256": "870871a0402f474c55962d9ab0657cf1d17d83f0e36192e02de81d5fdbfd9f70",
+    "text_sha256": "3620931e4dcade0e94f8eb79dbfe1a07d6958aa3109c5281a628e377855e927e",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2018-528",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102500789&rdk=0",
+    "raw_path": "sources/amendment-2018-528.mht",
+    "text_path": "sources/amendment-2018-528.txt",
+    "sha256": "916f7fb923df0a68e848a76db1881742e5ee2bd8f544bf61e1eaf3f56cacd6d5",
+    "text_sha256": "34aa2f9f6fccbc1c973dc30293fb39fba2fa12a2ce34b2d9b759f7173da1fe7e",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2023-480",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=605772018&rdk=0",
+    "raw_path": "sources/amendment-2023-480.mht",
+    "text_path": "sources/amendment-2023-480.txt",
+    "sha256": "2c166864f9d83757e1096630a6460051c3bf7fb6ec183864e16b50fd9a27da19",
+    "text_sha256": "0ff0501cfbd53bb96524308ef7d601fcaac81f543954f5e98b727148f6a0e53b",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2024-498",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=608103570&rdk=0",
+    "raw_path": "sources/amendment-2024-498.mht",
+    "text_path": "sources/amendment-2024-498.txt",
+    "sha256": "d6c862cac5f329a0bdf93d17ac4ac81e563ca92343814d5d63ae4e11e7568bbc",
+    "text_sha256": "6fc905e283beaddb288ec0e51104a8a1fb1ed75bef6dbb54cbef857909ae10ce",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2024-405",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=607920359&rdk=0",
+    "raw_path": "sources/amendment-2024-405.mht",
+    "text_path": "sources/amendment-2024-405.txt",
+    "sha256": "1180e9a8bc23e701115cf445c7a0016a74dad5e97f43a307838a2324968cfb60",
+    "text_sha256": "6e604c4095c8e0860f84a2acebbb6763eb926d43ae8c0224e479830525bef530",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "amendment-2024-547",
+    "kind": "amendment_original",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=608103494&rdk=0",
+    "raw_path": "sources/amendment-2024-547.mht",
+    "text_path": "sources/amendment-2024-547.txt",
+    "sha256": "f9d41456fc5916cb40297e0aeaa5bbc5cd428e94d21bb883bf4bc7837b719a44",
+    "text_sha256": "a2d3c4654264abc2b5f866c3b6d93a78cfa20d7be6d891e68b6f1ecaa3ed8f49",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "tk-comparison",
+    "kind": "later_consolidated_comparison",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102074279&rdk=182",
+    "raw_path": "sources/tk-comparison.mht",
+    "text_path": "sources/tk-comparison.txt",
+    "sha256": "6472678a129a047380b95c1bc19c3275a8f2f46ed1cdef41d2bda9cc6c831231",
+    "text_sha256": "4b75db1b28923f5f72c967e9be06b681f68c9f3ca3f44ec1dacb640714af11c7",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "tk-metadata",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102074279&rdk=177",
+    "raw_path": "sources/tk-metadata.html",
+    "text_path": "sources/tk-metadata.txt",
+    "sha256": "b7d046990cd9424cc54ec7d834adefe2661cd4fb981f5ed5d6a1ce41acaa7a8c",
+    "text_sha256": "63d701eb8f73729976ffaf0510b5446474db5c4e01b445d8f3a30d8ff6ae81dd",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "tk-editions",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&page=all",
+    "raw_path": "sources/tk-editions.html",
+    "text_path": "sources/tk-editions.txt",
+    "sha256": "c7dc4900e466c24f36738d93ea4cbe362d60d234e25b30c7ce2b34051037023e",
+    "text_sha256": "4fcc28d0a2b463fc5c59da0fe7c02b83fe341881f75acc04f6397f6c2f3b31ad",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "sk-comparison",
+    "kind": "later_consolidated_comparison",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102038925&rdk=53",
+    "raw_path": "sources/sk-comparison.mht",
+    "text_path": "sources/sk-comparison.txt",
+    "sha256": "54c12c284a76d9a9d736ff4d742107ea0ca0bb6dcb4bf8665e045c58c9802e49",
+    "text_sha256": "f830dd446f3aff3a9140d8f3313eb103e8f08e1e4beb3d26930b1265a327a256",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "sk-metadata",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102038925&rdk=52",
+    "raw_path": "sources/sk-metadata.html",
+    "text_path": "sources/sk-metadata.txt",
+    "sha256": "363d4c5072f731b0fb9a24b6bd32ba307624ee8153a11dda0ee89be02a7e5b87",
+    "text_sha256": "bbf28133de9c529b4cf9f24167282362cfba8e0faca07a06fc31211725bd6ba6",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "sk-editions",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&page=all",
+    "raw_path": "sources/sk-editions.html",
+    "text_path": "sources/sk-editions.txt",
+    "sha256": "eba4ba84f113c43b6c00ef851d9e3d7646427bda0dcadfe0eb9c575efe2222d0",
+    "text_sha256": "5f8cdc42478d6fc51e9b6a47ff498aeb4ae29732c1b1684ad6c434242466224a",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "gk-comparison",
+    "kind": "later_consolidated_comparison",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102033239&rdk=141",
+    "raw_path": "sources/gk-comparison.mht",
+    "text_path": "sources/gk-comparison.txt",
+    "sha256": "05f75d93e02f0ac8f561df97f3dec32cd783fcc40272a8323700eba44d4e4bc0",
+    "text_sha256": "52a0f11c4a23603230c732e0836eac03775a071e8ff93a1e07fabd1108e39f97",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "gk-metadata",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102033239&rdk=140",
+    "raw_path": "sources/gk-metadata.html",
+    "text_path": "sources/gk-metadata.txt",
+    "sha256": "60f00ebd3be24a9cb74a3372ea71fda83a2d17913acd862aeb12832ec3837b09",
+    "text_sha256": "d4e71b3c092548bdcc766c599eb5f7184277d18ab18e6ec0cc3ee3564e618e9d",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "gk-editions",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&page=all",
+    "raw_path": "sources/gk-editions.html",
+    "text_path": "sources/gk-editions.txt",
+    "sha256": "e75cf0a49109747150e1dbca7fdbe95445bd71574ef31f814d129edb1a72270d",
+    "text_sha256": "3fd629318cc559d4630ac233e7fd80cc3046ba1e3138e8266b680756d88f0521",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "59-comparison",
+    "kind": "later_consolidated_comparison",
+    "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102106413&rdk=10",
+    "raw_path": "sources/59-comparison.mht",
+    "text_path": "sources/59-comparison.txt",
+    "sha256": "cd01aae6e2efb1714eec446d76e5b547532c09587edf7104569d9d6bb763ee7b",
+    "text_sha256": "a803984a946850d284ff7cbb6bfac6c029ee9269c40e487b9d255d810333016e",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "59-metadata",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102106413&rdk=9",
+    "raw_path": "sources/59-metadata.html",
+    "text_path": "sources/59-metadata.txt",
+    "sha256": "30d12c5cdb00c997fbbd3d600d2781968263510ea241b79169665016370ddc56",
+    "text_sha256": "4619a7e75a8e55335b79732c02af9dcf21a5e170fa6465887eda3701c4060897",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "id": "59-editions",
+    "kind": "portal_metadata",
+    "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&page=all",
+    "raw_path": "sources/59-editions.html",
+    "text_path": "sources/59-editions.txt",
+    "sha256": "9c7cea94c52707046abc2783fa481ee10d4f2bbe8abe55f5abcbfa4e0a5e774e",
+    "text_sha256": "9124a292452820fcfa861418cbed9e51166f915b61389f44229d30fa4941c69f",
+    "retrieved_at": "2026-10-04"
+  }
+]

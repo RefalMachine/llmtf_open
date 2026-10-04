@@ -5,7 +5,7 @@
 хранятся в `dev/`; реализованные пункты следует переносить из этого файла в
 соответствующую документацию и тесты.
 
-Интеграции LegalBench-RU, RuTaR и ручного RuLegalNER, общие legal-конфиги,
+Интеграции LegalBench-RU, RuTaR, ручного RuLegalNER и RuLaw-ProofBench, общие legal-конфиги,
 исправления NER-скоринга и few-shot для Shlepa уже реализованы в рабочем дереве
 и не являются незавершёнными пунктами этого backlog. Актуальное поведение описано в
 [юридическом бенчмарке](docs/legal_benchmark.md) и [протоколе Shlepa](docs/shlepa.md);
@@ -15,6 +15,13 @@
 [RuLegalNER results](dev/RULEGALNER_MANUAL_VALIDATION_RESULTS.json) и
 [Shlepa fix report](dev/SHLEPA_FEW_SHOT_FIX_REPORT.md). Архитектурные планы
 task/eval v2 ниже остаются отдельной будущей работой.
+
+RuLaw-ProofBench опубликован на HF: 300 test + 5 train, открытый ответ и MCQ.
+Общие legal-конфиги включают closed/open-book, MCQ 5-shot для Foundational
+и оба формата zero-shot для Instruct. Полный сравнительный прогон моделей
+на расширенных 300 вопросах остаётся следующим экспериментом; пилотные
+результаты на 150 вопросах не заменяют его. Методика и границы надёжности:
+[RuLaw-ProofBench](dev/rulaw_proofbench/paper_methods.md).
 
 ## Высокий приоритет: task layer и внешние задачи
 

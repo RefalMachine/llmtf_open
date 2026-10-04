@@ -1,0 +1,112 @@
+{
+  "method": "casefold/ё normalization; exact comparison and word 5-gram Jaccard on question text",
+  "upstream": "AlsKozlov/legalbench-ru",
+  "revision": "d6e21bfee9a2842ea3eb5b2e97a5c8f1186d41f1",
+  "sha256": "4c63ca94fb87787e98f46f2ed013e41cef0c455c73943d4f850127062d3bca2a",
+  "upstream_questions": 846,
+  "synthetic_questions": 150,
+  "exact_matches": [],
+  "top_20_nearest": [
+    {
+      "id": "59_8-3dcffdac95c1",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "59_11-9930d5bb733c",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "gk_186-37c9fb21b7e8",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "tk_94-d7f954d2a149",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "tk_94-f228d8e88e27",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "sk_19-b1dae09b755f",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "gk_37-282634921384",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "sk_81-5716089e3045",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "59_12-8c54996f4258",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "tk_92-a5ade0731b24",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "tk_92-29ec10117328",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "sk_57-8bacfe03fa58",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "tk_173-fc17e46de3e5",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "59_12-259079bb689e",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "sk_19-27d29db65171",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "tk_93-aaf25305a053",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "59_8-c2b7d3579caa",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "sk_19-68fce3c0f2d4",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "sk_57-0138db8c3361",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    },
+    {
+      "id": "sk_19-86189432eae5",
+      "upstream_id": "koap-appeal-postanovlenie-term",
+      "word_5gram_jaccard": 0.0
+    }
+  ],
+  "limitations": "Lexical screening of this pinned public benchmark only. Shared norms and semantic overlap remain possible; not a proof against model contamination."
+}

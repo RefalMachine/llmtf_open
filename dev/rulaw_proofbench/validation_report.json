@@ -1,0 +1,119 @@
+{
+  "validator_version": "rulaw_validator_v1",
+  "as_of": "2025-01-01",
+  "seed": 555,
+  "release_status": "construction_validated",
+  "measurement_status": "pending_multimodel_cluster_evaluation",
+  "expert_review": false,
+  "human_audit": false,
+  "guarantees": "Finite formalization consistency and archived-source traceability; not exhaustive legal correctness.",
+  "failures": [],
+  "record_errors": {},
+  "details": {
+    "faults": {
+      "wrong_gold": 10,
+      "wrong_clause": 10,
+      "wrong_date": 10,
+      "wrong_source": 10,
+      "scope_attack": 10,
+      "condition_inversion": 10,
+      "missing_negation": 10,
+      "omitted_exception": 10,
+      "boundary_error": 10
+    },
+    "records": 150,
+    "articles": 15,
+    "acts": 4,
+    "domains": 4,
+    "article_counts": {
+      "59:8": 10,
+      "59:11": 10,
+      "gk:186": 10,
+      "tk:94": 10,
+      "sk:19": 10,
+      "gk:37": 10,
+      "sk:81": 11,
+      "59:12": 9,
+      "tk:92": 10,
+      "sk:57": 10,
+      "tk:173": 10,
+      "tk:93": 10,
+      "gk:26": 10,
+      "tk:128": 10,
+      "gk:28": 10
+    },
+    "answer_counts": {
+      "не следует из указанной нормы": 13,
+      "нет": 39,
+      "ничтожна": 5,
+      "5": 6,
+      "недостаточно данных": 27,
+      "30": 5,
+      "12": 2,
+      "да": 20,
+      "50": 3,
+      "7": 3,
+      "35": 3,
+      "24": 2,
+      "40": 4,
+      "4": 3,
+      "2.5": 2,
+      "17.5": 2,
+      "1 год": 3,
+      "1/2": 2,
+      "до отмены": 1,
+      "1/3": 1,
+      "14": 1,
+      "20": 1,
+      "60": 1,
+      "1/4": 1
+    },
+    "question_types": {
+      "branch": 62,
+      "boundary": 61,
+      "insufficient": 27
+    },
+    "unknown_but_determinate": 17,
+    "minimal_pairs": 101,
+    "complete_world_comparisons": 158,
+    "partial_world_comparisons": 403,
+    "candidate_articles": 29,
+    "article_rejections": {
+      "OPEN_EXTERNAL_EXCEPTIONS": 1,
+      "MULTIPLE_TEMPORAL_DEPENDENCIES": 1,
+      "REGIONAL_VARIATION": 1,
+      "TEMPORAL_EDGE_INTERPRETATION": 1,
+      "TOO_FEW_DISTINCT_VECTORS": 1,
+      "WIDE_DEPENDENCY_GRAPH": 1,
+      "OPEN_EVALUATIVE_CONDITIONS": 3,
+      "DEPENDENCY_ONLY": 2,
+      "CALENDAR_CALCULATION_OUT_OF_SCOPE": 1,
+      "SPECIAL_TRANSITION_REGIMES": 1,
+      "LOW_BRANCH_DIVERSITY": 1
+    },
+    "false_positives": 0,
+    "mcq": {
+      "version": "rulaw_mcq_v1",
+      "records": 150,
+      "choice_counts": {
+        "4": 80,
+        "3": 70
+      },
+      "gold_positions": {
+        "4": {
+          "C": 20,
+          "B": 20,
+          "A": 20,
+          "D": 20
+        },
+        "3": {
+          "B": 23,
+          "C": 23,
+          "A": 24
+        }
+      },
+      "random_choice_micro_accuracy": 0.288888888888889,
+      "semantic_distractor_validation": "Canonical consequences are mutually exclusive under the parent unanimity semantics; branch outcomes, the documented extension confusion, and explicitly marked numeric perturbations where needed. Synthetic distractors are not legal branches."
+    }
+  }
+}

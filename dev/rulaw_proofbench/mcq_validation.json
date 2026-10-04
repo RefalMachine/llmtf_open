@@ -1,0 +1,23 @@
+{
+  "version": "rulaw_mcq_v1",
+  "records": 150,
+  "choice_counts": {
+    "4": 80,
+    "3": 70
+  },
+  "gold_positions": {
+    "4": {
+      "C": 20,
+      "B": 20,
+      "A": 20,
+      "D": 20
+    },
+    "3": {
+      "B": 23,
+      "C": 23,
+      "A": 24
+    }
+  },
+  "random_choice_micro_accuracy": 0.288888888888889,
+  "semantic_distractor_validation": "Canonical consequences are mutually exclusive under the parent unanimity semantics; branch values plus one documented extension confusion."
+}

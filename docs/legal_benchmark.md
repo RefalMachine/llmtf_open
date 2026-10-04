@@ -22,6 +22,8 @@
 | `legalbench_ru/temporal` | 5-shot, temperature 0, 8 записей | 0-shot, temperature 0.3, 8 записей |
 | `rutar/closed` | 5-shot, все 202 вопроса | 0-shot, все 202 вопроса |
 | `rulegalner_manual/legal` | 5-shot, все 201 фрагмент | 0-shot, все 201 фрагмент |
+| RuLaw-ProofBench, закрытая книга | `rulaw_proofbench/mcq_closed`, 5-shot | `rulaw_proofbench/closed` и `rulaw_proofbench/mcq_closed`, 0-shot |
+| RuLaw-ProofBench, открытая книга | `rulaw_proofbench/mcq_grounded`, 5-shot | `rulaw_proofbench/grounded` и `rulaw_proofbench/mcq_grounded`, 0-shot |
 
 Для LawMC сохранён generation override группы Shlepa исходного Instruct Fast.
 Foundational использует настоящие пять demonstrations; Instruct — zero-shot.
@@ -49,6 +51,35 @@ RuTaR — бинарные налоговые вопросы с оценкой �
 строкам и типам с учётом повторов; порядок и координаты упоминаний не оцениваются.
 Данные исходного автоматического RuLegalNER не используются как gold.
 Лимит 200 группы LegalBench-RU к этой задаче не применяется.
+
+`rulaw_proofbench/closed` — отдельный синтетический набор знания и локального
+применения 30 статей четырёх актов на 01.01.2025. Данные и README опубликованы в
+[RefalMachine/RuLaw-ProofBench](https://huggingface.co/datasets/RefalMachine/RuLaw-ProofBench);
+загрузчик проверяет закреплённый коммит и SHA-256. Основной показатель — macro
+accuracy по статьям. Instruct генерирует краткие открытые ответы: основной
+scorer — [normalized exact match](../dev/rulaw_proofbench/SCORING.md) без предложений-алиасов;
+дополнительная `llm_judge_accuracy` включается через
+те же `LLMAAJ_API_BASE`, `LLMAAJ_API_KEY`, `LLMAAJ_MODEL_NAME`, что и RAG.
+Судья проверяет эквивалентность неизменному gold и не заменяет юридическую валидацию.
+Foundational использует дополняющую MCQ-версию тех же случаев: 3 варианта в
+бинарных задачах (да/нет/недостаточно данных), 4 в остальных, выбор по вероятности.
+Foundational использует ровно 5 демонстраций из отдельного `train` по статьям,
+которых нет в тесте или его зависимостях; Instruct использует zero-shot.
+Все 300 тестовых ID сохраняются при любом k от 0 до 5. Переполнение контекста — ошибка,
+демонстрации не сокращаются. Оба YAML включают closed-book (`closed`, без текста
+нормы) и open-book (`grounded`, с текстом нормы). Instruct дополнительно включает
+zero-shot MCQ для обоих режимов; вероятность вариантов оценивается так же, как
+в Foundational. Все постановки RuLaw используют 300 вопросов и temperature 0.
+Открытый формат ответа и открытая книга — разные признаки: например,
+`mcq_grounded` означает выбор варианта с предоставленным текстом нормы.
+Пакет содержит первоисточники, правила, независимую
+автоматическую реконструкцию и воспроизводимые проверки; юридической экспертной
+разметки нет, различение моделей требует дальнейшего эксперимента.
+См. [пакет и команды](../dev/rulaw_proofbench/README.md).
+
+Итого Foundational создаёт 9 отдельных результатов, Instruct — 11.
+Для открытых ответов RuLaw прямой скоринг и опциональный LLM-судья записываются
+как метрики одного результата; MCQ использует только точность выбора варианта.
 
 Thinking выключен в обоих конфигах. Foundational использует контекст 16 000 и
 `probe_api_prefill: true`. Instruct наследует
@@ -110,11 +141,12 @@ python show_results.py \
 ```
 
 Отчёт содержит LawMC и отдельные значения closed, grounded, distractor,
-temporal, accuracy RuTaR и macro-F1 ручного RuLegalNER. Парные сравнения не нужны для его формирования.
+temporal, accuracy RuTaR, macro-F1 ручного RuLegalNER и отдельные closed/open-book
+результаты RuLaw для включённых форматов ответа. Парные сравнения не нужны для его формирования.
 Стандартный `Mean`
 остаётся обычным средним показанных задач; методология итогового балла
 юридического бенчмарка пока не определена. Не считайте такой `Mean`
-согласованным общим legal score. Проверяйте наличие всех семи totals:
+согласованным общим legal score. Проверяйте наличие всех 9 Foundational или 11 Instruct totals:
 стандартный отчёт может отображать результаты неполного запуска.
 
 `dev/tools/legalbench_ru_report.py` — дополнительная maintainer-утилита для
@@ -227,3 +259,30 @@ python -m dev.tools.validate_rulegalner_manual \
 режима 0/5-shot с лимитом 8. Для повторного запуска после изменения скорера
 используйте новый каталог результатов; обычные CLI также поддерживают
 `--force_recalc`.
+
+## Проверка расширенного RuLaw-ProofBench от 2026-10-04
+
+Ревизия HF `cae70d59bdd44bd28e3fbd411b0c8acf7427ef98` содержит по 300 test
+и 5 train в конфигурациях `open` и `mcq`. Анонимное чтение всех четырёх Parquet
+и проверка SHA-256 прошли в API-образе без torch и vLLM. Прошли 13 тестов
+RuLaw, 7 тестов общей legal-интеграции и dependency-free regressions.
+
+Реальный запуск Qwen3.5-2B-Base в `llmtf:vllm-cu129` проверил 8 вопросов
+MCQ closed: во всех запросах сохранены те же 5 демонстраций, thinking выключен,
+вероятности корректны. Проверены `_params.jsonl`, `_total.jsonl` и записи
+каждого примера. Micro-accuracy — 4/8, macro по 7 представленным статьям —
+3/7; это проверка исполнения, не оценка качества на полном наборе.
+
+Команда внутри контейнера с GPU и смонтированными репозиторием, модельным
+кэшем и `/tmp` в `/audit`:
+
+```bash
+python -m dev.tools.validate_rulaw_proofbench \
+  --backend vllm \
+  --model /root/.cache/huggingface/hub/models--Qwen--Qwen3.5-2B-Base/snapshots/b1485b2fa6dfa1287294f269f5fb618e03d52d7c \
+  --base --mcq --few-shot-count 5 --modes closed --limit 8 \
+  --output /audit/rulaw-release-runtime/base-mcq-5shot
+```
+
+Артефакты проверки находятся в `/tmp/rulaw-release-runtime/base-mcq-5shot`;
+нового сравнительного прогона моделей на всех 300 вопросах ещё нет.

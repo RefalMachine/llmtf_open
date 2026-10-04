@@ -1,0 +1,2357 @@
+{
+  "schema_version": "independent_expansion_source_review_v1",
+  "role": "isolated same-model reconstruction; not expert legal validation",
+  "isolation": {
+    "read_only_sources": [
+      "sources/*.txt",
+      "source_tools.py"
+    ],
+    "did_not_read": [
+      "new expansion rule cards",
+      "new expansion generator",
+      "new expansion gold",
+      "new primary implementation"
+    ],
+    "own_code_sha256": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9"
+  },
+  "requested_as_of": "2025-01-01",
+  "source_snapshots": {
+    "tk": {
+      "primary_path": "dev/rulaw_proofbench/sources/tk.txt",
+      "primary_sha256": "c761bf3efc1c65daeeb4bd87da303fb929b269f36153ce9692e43c4df2e67ce6",
+      "comparison_path": "dev/rulaw_proofbench/sources/tk-comparison.txt",
+      "comparison_sha256": "4b75db1b28923f5f72c967e9be06b681f68c9f3ca3f44ec1dacb640714af11c7"
+    },
+    "sk": {
+      "primary_path": "dev/rulaw_proofbench/sources/sk.txt",
+      "primary_sha256": "289ef5c5ff047f0f6d52941cf96721636d44399e969484c43171e4130a0d7d02",
+      "comparison_path": "dev/rulaw_proofbench/sources/sk-comparison.txt",
+      "comparison_sha256": "f830dd446f3aff3a9140d8f3313eb103e8f08e1e4beb3d26930b1265a327a256"
+    },
+    "gk": {
+      "primary_path": "dev/rulaw_proofbench/sources/gk.txt",
+      "primary_sha256": "6a27042073205250e587439ac6d96c85db4c86813adb6e645c2d93ed667fadd7",
+      "comparison_path": "dev/rulaw_proofbench/sources/gk-comparison.txt",
+      "comparison_sha256": "52a0f11c4a23603230c732e0836eac03775a071e8ff93a1e07fabd1108e39f97"
+    },
+    "59": {
+      "primary_path": "dev/rulaw_proofbench/sources/59.txt",
+      "primary_sha256": "d8a6712b783d70cc6aef11ad2e1eb7484b0648bc0aefda2816215a87f4ac24cd",
+      "comparison_path": "dev/rulaw_proofbench/sources/59-comparison.txt",
+      "comparison_sha256": "a803984a946850d284ff7cbb6bfac6c029ee9269c40e487b9d255d810333016e"
+    }
+  },
+  "date_audit": {
+    "status": "selected_fragments_audited_as_of_2025_01_01",
+    "full_articles_equal": 18,
+    "selected_fragment_texts_equal": 20,
+    "dated_amendment_review": [
+      {
+        "act": "30.12.2012 №302-ФЗ",
+        "affected_selected_rule": "gk:33 paragraph1",
+        "checked_provision": "article1 point16(a)",
+        "effective_date_for_selected_change": "2013-03-01",
+        "evidence": [
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2012-302.txt",
+            "sha256": "0f2b1dac2ece4a0b7833bbd0ddd3cbd36257dff557c8edb4ba8cd826549e1b1d",
+            "matching_lines": [
+              "\"1. Попечительство устанавливается над несовершеннолетними в возрасте от четырнадцати до восемнадцати лет, а также над гражданами, ограниченными судом в дееспособности.\";"
+            ]
+          },
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2012-302.txt",
+            "sha256": "0f2b1dac2ece4a0b7833bbd0ddd3cbd36257dff557c8edb4ba8cd826549e1b1d",
+            "matching_lines": [
+              "1. Настоящий Федеральный закон вступает в силу с 1 марта 2013 года, за исключением положений, для которых настоящей статьей установлены иные сроки вступления их в силу."
+            ]
+          },
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2012-302.txt",
+            "sha256": "0f2b1dac2ece4a0b7833bbd0ddd3cbd36257dff557c8edb4ba8cd826549e1b1d",
+            "matching_lines": [
+              "3. Пункт 14, подпункты \"б\" и \"в\" пункта 15, подпункт \"б\" пункта 16, пункт 17, подпункт \"в\" пункта 18 статьи 1 настоящего Федерального закона вступают в силу по истечении двух лет после дня вступления в силу настоящего Федерального закона."
+            ]
+          }
+        ],
+        "reason": "The delayed two-year rule names16(b), not16(a), so the selected paragraph1 change uses the general date. This checks this amendment, not the entire subsequent legal history."
+      },
+      {
+        "act": "04.08.2023 №480-ФЗ",
+        "affected_selected_rule": "59:7 paragraph1",
+        "effective_date_for_selected_change": "2023-09-01",
+        "evidence": [
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2023-480.txt",
+            "sha256": "0ff0501cfbd53bb96524308ef7d601fcaac81f543954f5e98b727148f6a0e53b",
+            "matching_lines": [
+              "а) в части 1 слова \"письменном обращении\" заменить словами \"обращении в письменной форме\", слова \"письменное обращение\" заменить словами \"обращение в письменной форме\";"
+            ]
+          },
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2023-480.txt",
+            "sha256": "0ff0501cfbd53bb96524308ef7d601fcaac81f543954f5e98b727148f6a0e53b",
+            "matching_lines": [
+              "1. Настоящий Федеральный закон вступает в силу с 1 сентября 2023 года."
+            ]
+          }
+        ],
+        "reason": "The part1 terminology change is explicit. The later2025 implementation deadline concerns portal capabilities, not a delayed paper-appeal requisite change."
+      },
+      {
+        "act": "28.12.2024 №547-ФЗ",
+        "affected_selected_rule": "No change to59:6 paragraph2 or59:7 paragraph1",
+        "effective_date": "2025-03-30",
+        "evidence": [
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2024-547.txt",
+            "sha256": "a2d3c4654264abc2b5f866c3b6d93a78cfa20d7be6d891e68b6f1ecaa3ed8f49",
+            "matching_lines": [
+              "2) статью 6 дополнить частью 3 следующего содержания:"
+            ]
+          },
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2024-547.txt",
+            "sha256": "a2d3c4654264abc2b5f866c3b6d93a78cfa20d7be6d891e68b6f1ecaa3ed8f49",
+            "matching_lines": [
+              "3) часть 3 статьи 7 после слов \"Едином портале\" дополнить словами \"или в иной информационной системе государственного органа или органа местного самоуправления, обеспечивающей идентификацию и (или) аутентификацию гражданина\";"
+            ]
+          },
+          {
+            "path": "dev/rulaw_proofbench/sources/amendment-2024-547.txt",
+            "sha256": "a2d3c4654264abc2b5f866c3b6d93a78cfa20d7be6d891e68b6f1ecaa3ed8f49",
+            "matching_lines": [
+              "Настоящий Федеральный закон вступает в силу с 30 марта 2025 года."
+            ]
+          }
+        ],
+        "reason": "Explains the full-article primary/comparison differences. Selected paragraphs are identical; this later amendment is not effective on2025-01-01."
+      }
+    ],
+    "amendment_texts_not_available_when_checked": [
+      {
+        "act": "30.06.2006 №90-ФЗ",
+        "rules": [
+          "tk:67",
+          "tk:79",
+          "tk:122",
+          "tk:124",
+          "tk:126"
+        ]
+      },
+      {
+        "act": "28.12.2013 №421-ФЗ",
+        "rules": [
+          "tk:67",
+          "tk:126"
+        ]
+      },
+      {
+        "act": "14.07.2022 №273-ФЗ",
+        "rules": [
+          "tk:124",
+          "tk:126"
+        ]
+      },
+      {
+        "act": "29.12.2015 №391-ФЗ",
+        "rules": [
+          "sk:35"
+        ]
+      },
+      {
+        "act": "14.07.2022 №310-ФЗ",
+        "rules": [
+          "sk:35 neighboring sentence"
+        ]
+      },
+      {
+        "act": "30.12.2015 №457-ФЗ",
+        "rules": [
+          "sk:62"
+        ]
+      },
+      {
+        "act": "16.12.2019 №430-ФЗ",
+        "rules": [
+          "gk:234"
+        ]
+      },
+      {
+        "act": "08.08.2024 №268-ФЗ",
+        "rules": [
+          "tk:115 neighboring part3"
+        ]
+      },
+      {
+        "act": "07.02.2011 №4-ФЗ",
+        "rules": [
+          "gk:227 neighboring notification/storage paragraphs"
+        ]
+      }
+    ],
+    "blocking_for_full_certification": "No listed commencement blocker remains for the selected fragments at2025-01-01. Equality alone was not the basis: direct amendment provisions, exception/transition clauses and publication bounds are retained. No whole-statute or maximal-interval certification is made.",
+    "notes": [
+      "No listed amendment annotation is itself proof of entry into force.",
+      "An edition list is not a complete dated effective-law chain; it includes entries out of chronological order.",
+      "Whole-article differences may be outside the selected sentence and must be assessed by locator.",
+      "No network source retrieval or missing-amendment reconstruction was performed in this pass."
+    ],
+    "followup_amendment_review": [
+      {
+        "act_key": "2006-90",
+        "raw_path": "/tmp/rulaw-amend-2006-90.mht",
+        "raw_sha256": "c8525023da9f6d176423874f5589c36438744971636c5124dba5545599d64381",
+        "extracted_text_sha256": "6d70b20198d4c7f33990ea93ad4101695d5e28d377b95185d0b553946ef75c6f",
+        "extracted_line_count": 1759,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "TK67 part2: formulation not executed in writing; working-day insertion concerns next sentence.",
+            "TK79 part1 replaced: three calendar days and replacement exception.",
+            "TK126 replaced: excess over28, written request, separate annual portions, pregnancy/minor bans.",
+            "TK122 amendment affects parts2/4, not selected part3.",
+            "TK124 amendment affects parts1–3, not selected final prohibition."
+          ],
+          "effective_rule": "Selected change in force no later than 2006-10-06; conservative bound from recognized RG publication and applicable commencement rule. Exact first effective date is not claimed.",
+          "exceptions": "The final Article3 gives one90-day rule. Embedded rules on local acts/agreements entering force are not this law’s commencement.",
+          "remaining": "No remaining listed commencement gap for2025-01-01. See publication_bound_review for source hashes, publication evidence, exception checks and limits."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 408,
+            "text": "66) в статье 67:\nчасть первую дополнить предложением следующего содержания: \"Получение работником экземпляра трудового договора должно подтверждаться подписью работника на экземпляре трудового договора, хранящемся у работодателя.\";\nв части второй слова \"надлежащим образом\" заменить словами \"в письменной форме\", после слова \"трех\" дополнить словом \"рабочих\";\nв части третьей слова \"законами и иными нормативными правовыми актами\" заменить словами \"трудовым законодательством и иными нормативными правовыми актами, содержащими нормы трудового права,\";"
+          },
+          {
+            "first_extracted_line": 496,
+            "text": "79) в статье 79:\nв наименовании слово \"Расторжение\" заменить словом \"Прекращение\";\nчасть первую изложить в следующей редакции:\n\"Срочный трудовой договор прекращается с истечением срока его действия. О прекращении трудового договора в связи с истечением срока его действия работник должен быть предупрежден в письменной форме не менее чем за три календарных дня до увольнения, за исключением случаев, когда истекает срок действия срочного трудового договора, заключенного на время исполнения обязанностей отсутствующего работника.\";\nв частях второй и третьей слово \"расторгается\" заменить словом \"прекращается\";\nчасть четвертую изложить в следующей редакции:"
+          },
+          {
+            "first_extracted_line": 674,
+            "text": "115) в частях второй и четвертой статьи 122 слова \"в данной организации\" заменить словами \"у данного работодателя\";"
+          },
+          {
+            "first_extracted_line": 679,
+            "text": "117) в статье 124:\nв части первой:\nабзац первый после слов \"должен быть продлен\" дополнить словами \"или перенесен на другой срок, определяемый работодателем с учетом пожеланий работника,\";\nв абзаце третьем слово \"законом\" заменить словами \"трудовым законодательством\";\nв абзаце четвертом слово \"законами\" заменить словами \"трудовым законодательством\", слово \"организации\" исключить;\nчасть вторую изложить в следующей редакции:\n\"Если работнику своевременно не была произведена оплата за время ежегодного оплачиваемого отпуска либо работник был предупрежден о времени начала этого отпуска позднее чем за две недели до его начала, то работодатель по письменному заявлению работника обязан перенести ежегодный оплачиваемый отпуск на другой срок, согласованный с работником.\";\nчасть третью после слова \"организации,\" дополнить словами \"индивидуального предпринимателя,\";"
+          },
+          {
+            "first_extracted_line": 687,
+            "text": "118) статью 126 изложить в следующей редакции:\n\"Статья 126. Замена ежегодного оплачиваемого отпуска денежной компенсацией\nЧасть ежегодного оплачиваемого отпуска, превышающая 28 календарных дней, по письменному заявлению работника может быть заменена денежной компенсацией.\nПри суммировании ежегодных оплачиваемых отпусков или перенесении ежегодного оплачиваемого отпуска на следующий рабочий год денежной компенсацией могут быть заменены часть каждого ежегодного оплачиваемого отпуска, превышающая 28 календарных дней, или любое количество дней из этой части.\nНе допускается замена денежной компенсацией ежегодного основного оплачиваемого отпуска и ежегодных дополнительных оплачиваемых отпусков беременным женщинам и работникам в возрасте до восемнадцати лет, а также ежегодного дополнительного оплачиваемого отпуска работникам, занятым на работах с вредными и (или) опасными условиями труда, за работу в соответствующих условиях (за исключением выплаты денежной компенсации за неиспользованный отпуск при увольнении).\";"
+          },
+          {
+            "first_extracted_line": 1754,
+            "text": "Статья 3\nНастоящий Федеральный закон вступает в силу по истечении 90 дней после дня его официального опубликования."
+          }
+        ],
+        "not_whole_history_certification": true,
+        "prior_publication_limited_assessment": {
+          "affected": [
+            "TK67 part2: formulation not executed in writing; working-day insertion concerns next sentence.",
+            "TK79 part1 replaced: three calendar days and replacement exception.",
+            "TK126 replaced: excess over28, written request, separate annual portions, pregnancy/minor bans.",
+            "TK122 amendment affects parts2/4, not selected part3.",
+            "TK124 amendment affects parts1–3, not selected final prohibition."
+          ],
+          "effective_rule": "90 days after official publication; exact calendar date NOT independently verified.",
+          "exceptions": "The final Article3 gives one90-day rule. Embedded rules on local acts/agreements entering force are not this law’s commencement.",
+          "remaining": "Authenticate official publication date and90-day computation; signature30.06.2006 does not establish publication."
+        },
+        "commencement_resolution_reference": "date_audit.publication_bound_review.acts[2006-90]"
+      },
+      {
+        "act_key": "2013-421",
+        "raw_path": "/tmp/rulaw-amend-2013-421.mht",
+        "raw_sha256": "699484ac90277ddaad1f7175214201582fc19fe671d98ec18b9df6d92327a2f5",
+        "extracted_text_sha256": "84442a41fddb15957b7afb69c38f99edb2269b4cb6533d193d242b7f83fcc519",
+        "extracted_line_count": 351,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "Article12 point11: TK67 authorized-representative condition and separate civil-contract conversion sentence.",
+            "Article12 point17: TK126 part3 Code exceptions."
+          ],
+          "effective_rule": "2014-01-01 for selected Article12 points11/17.",
+          "exceptions": "Article15(2) delays only Article9 point4 and Article11 to2015-01-01. Selected changes are not among them.",
+          "transitional": "Article15(3) preserves existing harmful/dangerous-work compensatory measures while working conditions persist. The selected basic-leave compensation card excludes harmful-work additional leave and special exceptions.",
+          "remaining": "This establishes the identified amendments, not absence of all later changes."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 162,
+            "text": "Статья 12"
+          },
+          {
+            "first_extracted_line": 199,
+            "text": "11) в части второй статьи 67 слова \"его представителя\" заменить словами \"его уполномоченного на это представителя\", дополнить словами \", а если отношения, связанные с использованием личного труда, возникли на основании гражданско-правового договора, но впоследствии были признаны трудовыми отношениями, - не позднее трех рабочих дней со дня признания этих отношений трудовыми отношениями, если иное не установлено судом\";"
+          },
+          {
+            "first_extracted_line": 223,
+            "text": "17) часть третью статьи 126 после слов \"при увольнении\" дополнить словами \", а также случаев, установленных настоящим Кодексом\";"
+          },
+          {
+            "first_extracted_line": 342,
+            "text": "Статья 15\n1. Настоящий Федеральный закон вступает в силу с 1 января 2014 года, за исключением пункта 4 статьи 9 и статьи 11 настоящего Федерального закона.\n2. Пункт 4 статьи 9 и статья 11 настоящего Федерального закона вступают в силу с 1 января 2015 года.\n3. При реализации в соответствии с положениями Трудового кодекса Российской Федерации (в редакции настоящего Федерального закона) в отношении работников, занятых на работах с вредными и (или) опасными условиями труда, компенсационных мер, направленных на ослабление негативного воздействия на их здоровье вредных и (или) опасных факторов производственной среды и трудового процесса (сокращенная продолжительность рабочего времени, ежегодный дополнительный оплачиваемый отпуск либо денежная компенсация за них, а также повышенная оплата труда), порядок и условия осуществления таких мер не могут быть ухудшены, а размеры снижены по сравнению с порядком, условиями и размерами фактически реализуемых в отношении указанных работников компенсационных мер по состоянию на день вступления в силу настоящего Федерального закона при условии сохранения соответствующих условий труда на рабочем месте, явившихся основанием для назначения реализуемых компенсационных мер."
+          }
+        ],
+        "not_whole_history_certification": true
+      },
+      {
+        "act_key": "2022-273",
+        "raw_path": "/tmp/rulaw-amend-2022-273.mht",
+        "raw_sha256": "4ca9cda7898c31b679e1153203ba601b4c8315ee80a44795d74813f54f35074c",
+        "extracted_text_sha256": "5a0edad8e64a7a1ae73e6588ed257306105d788424212806fa1abbe0fa964eea",
+        "extracted_line_count": 25,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "Point5 amends TK124 part3, not selected final paragraph.",
+            "Point7 adds Code-exception reservation to TK126 part1.",
+            "Point9 adds TK252 special labor-regulation authority during special economic measures."
+          ],
+          "effective_rule": "Selected change in force no later than 2022-07-31; conservative bound from recognized RG publication and applicable commencement rule. Exact first effective date is not claimed.",
+          "exceptions": "Special Code-based regulation is expressly reserved and excluded by the narrow compensation scope.",
+          "remaining": "No remaining listed commencement gap for2025-01-01. See publication_bound_review for source hashes, publication evidence, exception checks and limits."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 16,
+            "text": "5) часть третью статьи 124 после слов \"рабочий год\" дополнить словами \", если иное не предусмотрено настоящим Кодексом\";"
+          },
+          {
+            "first_extracted_line": 18,
+            "text": "7) часть первую статьи 126 дополнить словами \", если иное не предусмотрено настоящим Кодексом\";"
+          },
+          {
+            "first_extracted_line": 20,
+            "text": "9) статью 252 дополнить частью второй следующего содержания:\n\"При введении специальных мер в сфере экономики Правительство Российской Федерации вправе устанавливать особенности правового регулирования трудовых отношений в отдельных организациях, их структурных подразделениях и на отдельных производственных объектах, в том числе порядок и условия привлечения к работе за пределами установленной продолжительности рабочего времени, в ночное время, выходные и нерабочие праздничные дни, предоставления ежегодных оплачиваемых отпусков.\"."
+          },
+          {
+            "first_extracted_line": 22,
+            "text": "Президент Российской Федерации В.Путин\nМосква, Кремль\n14 июля 2022 года\n№ 273-ФЗ"
+          }
+        ],
+        "not_whole_history_certification": true,
+        "prior_publication_limited_assessment": {
+          "affected": [
+            "Point5 amends TK124 part3, not selected final paragraph.",
+            "Point7 adds Code-exception reservation to TK126 part1.",
+            "Point9 adds TK252 special labor-regulation authority during special economic measures."
+          ],
+          "effective_rule": "No own commencement clause in the complete act; exact date NOT independently verified.",
+          "exceptions": "Special Code-based regulation is expressly reserved and excluded by the narrow compensation scope.",
+          "remaining": "Need applicable general commencement statute and authenticated first publication; signature14.07.2022 is not an effective date."
+        },
+        "commencement_resolution_reference": "date_audit.publication_bound_review.acts[2022-273]"
+      },
+      {
+        "act_key": "2015-391",
+        "raw_path": "/tmp/rulaw-amend-2015-391.mht",
+        "raw_sha256": "450279a16c33380b03312ef91080f4a6e8393c985104098c1b84ab6f324da068",
+        "extracted_text_sha256": "ff22f0c9c39c018b384d94d3a053df7a9f9d3132112fac23fce5ebe6b582f10e",
+        "extracted_line_count": 520,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "Article2 point1 replaces SK35 paragraph3 first paragraph with all three separate consent triggers."
+          ],
+          "effective_rule": "Selected change in force no later than 2015-12-31; conservative bound from recognized RG publication and applicable commencement rule. Exact first effective date is not claimed.",
+          "exceptions": "Article23(2)–(5) lists later dates for other articles/items, not Article2. Later transitional paragraphs concern other subject areas; no selected-Article2 delayed rule found.",
+          "remaining": "No remaining listed commencement gap for2025-01-01. See publication_bound_review for source hashes, publication evidence, exception checks and limits."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 159,
+            "text": "Статья 2\nВнести в Семейный кодекс Российской Федерации (Собрание законодательства Российской Федерации, 1996, № 1, ст. 16) следующие изменения:\n1) абзац первый пункта 3 статьи 35 изложить в следующей редакции:\n\"3. Для заключения одним из супругов сделки по распоряжению имуществом, права на которое подлежат государственной регистрации, сделки, для которой законом установлена обязательная нотариальная форма, или сделки, подлежащей обязательной государственной регистрации, необходимо получить нотариально удостоверенное согласие другого супруга.\";\n2) в пункте 2 статьи 38 второе предложение изложить в следующей редакции: \"Соглашение о разделе общего имущества, нажитого супругами в период брака, должно быть нотариально удостоверено.\"."
+          },
+          {
+            "first_extracted_line": 491,
+            "text": "Статья 23\n1. Настоящий Федеральный закон вступает в силу со дня его официального опубликования, за исключением положений, для которых настоящей статьей установлены иные сроки вступления их в силу.\n2. Статья 20 настоящего Федерального закона вступает в силу с 1 января 2016 года.\n3. Статья 4 настоящего Федерального закона вступает в силу с 15 января 2016 года.\n4. Пункт 16 статьи 1, статьи 5, 6, 7, пункт 4 и абзац второй подпункта \"а\" пункта 6 статьи 9, статья 18 и пункт 6 статьи 22 настоящего Федерального закона вступают в силу с 1 июля 2016 года.\n5. Пункт 5, подпункт \"в\" пункта 6, пункты 8 и 33 статьи 1, пункт 4 и абзацы седьмой и пятнадцатый пункта 13 статьи 12 и пункт 1 статьи 20 настоящего Федерального закона вступают в силу с 1 января 2017 года."
+          }
+        ],
+        "not_whole_history_certification": true,
+        "prior_publication_limited_assessment": {
+          "affected": [
+            "Article2 point1 replaces SK35 paragraph3 first paragraph with all three separate consent triggers."
+          ],
+          "effective_rule": "Day of official publication for selected Article2; publication date NOT independently verified.",
+          "exceptions": "Article23(2)–(5) lists later dates for other articles/items, not Article2. Later transitional paragraphs concern other subject areas; no selected-Article2 delayed rule found.",
+          "remaining": "Authenticate official publication date; signature29.12.2015 is not automatically that evidence."
+        },
+        "commencement_resolution_reference": "date_audit.publication_bound_review.acts[2015-391]"
+      },
+      {
+        "act_key": "2022-310",
+        "raw_path": "/tmp/rulaw-amend-2022-310.mht",
+        "raw_sha256": "dc3810ac540c3591de8bda263af6da053dcdb9aa843e98ff85073f3a542724bb",
+        "extracted_text_sha256": "72f1e628aaf142b91e257daa70fd263f08c31942f470b15193831cd035b74747",
+        "extracted_line_count": 23,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "Article1 point1 supplements only SK35 paragraph3 second paragraph with reference to GK173.1. Selected first-paragraph consent trigger is unchanged."
+          ],
+          "effective_rule": "2022-09-01, Article4(1).",
+          "exceptions": "No delayed exception to the stated date.",
+          "transitional": "Article4(2) applies Family Code amendments to relations arising after commencement. Do not apply the added remedy reference indiscriminately to older relations.",
+          "remaining": "Neighboring-provision evidence; not a change to the selected consent trigger."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 9,
+            "text": "1) абзац второй пункта 3 статьи 35 дополнить словами \", по правилам статьи 1731 Гражданского кодекса Российской Федерации\";"
+          },
+          {
+            "first_extracted_line": 16,
+            "text": "Статья 4\n1. Настоящий Федеральный закон вступает в силу с 1 сентября 2022 года.\n2. Положения Семейного кодекса Российской Федерации (в редакции настоящего Федерального закона) применяются к отношениям, возникшим после дня вступления в силу настоящего Федерального закона.\n3. Положения Жилищного кодекса Российской Федерации (в редакции настоящего Федерального закона) применяются к отношениям, возникшим после дня вступления в силу настоящего Федерального закона."
+          }
+        ],
+        "not_whole_history_certification": true
+      },
+      {
+        "act_key": "2015-457",
+        "raw_path": "/tmp/rulaw-amend-2015-457.mht",
+        "raw_sha256": "072025c16db5f998d59e59a9378eaff3e46805a4f448bcfff9fa45d4b8512521",
+        "extracted_text_sha256": "ea029bc9ea4d37d520c21737a47b394d34158e5297dd5f93c78c746196b78b6b",
+        "extracted_line_count": 44,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "Article1 point6 replaces SK62 paragraph2, including selected first sentence on unmarried status, childbirth, established parentage and age16."
+          ],
+          "effective_rule": "Selected change in force no later than 2016-01-23; conservative bound from recognized RG publication and applicable commencement rule. Exact first effective date is not claimed.",
+          "exceptions": "The act ends after Article2 and signature without a commencement provision.",
+          "remaining": "No remaining listed commencement gap for2025-01-01. See publication_bound_review for source hashes, publication evidence, exception checks and limits."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 16,
+            "text": "6) пункт 2 статьи 62 изложить в следующей редакции:\n\"2. Несовершеннолетние родители, не состоящие в браке, в случае рождения у них ребенка и при установлении их материнства и (или) отцовства вправе самостоятельно осуществлять родительские права по достижении ими возраста шестнадцати лет. До достижения несовершеннолетними родителями возраста шестнадцати лет их ребенку назначается опекун, который осуществляет его воспитание совместно с несовершеннолетними родителями ребенка. Разногласия, возникающие между опекуном ребенка и несовершеннолетними родителями, разрешаются органом опеки и попечительства.\";"
+          },
+          {
+            "first_extracted_line": 39,
+            "text": "Статья 2\nАбзац третий пункта 2 статьи 256 части первой Гражданского кодекса Российской Федерации (Собрание законодательства Российской Федерации, 1994, № 32, ст. 3301; 2006, № 52, ст. 5497; 2008, № 17, ст. 1756) после слов \"может быть признано\" дополнить словом \"судом\".\nПрезидент Российской Федерации В.Путин\nМосква, Кремль\n30 декабря 2015 года\n№ 457-ФЗ"
+          }
+        ],
+        "not_whole_history_certification": true,
+        "prior_publication_limited_assessment": {
+          "affected": [
+            "Article1 point6 replaces SK62 paragraph2, including selected first sentence on unmarried status, childbirth, established parentage and age16."
+          ],
+          "effective_rule": "No own commencement clause in the complete act; exact date NOT independently verified.",
+          "exceptions": "The act ends after Article2 and signature without a commencement provision.",
+          "remaining": "Need general commencement statute and publication evidence; signature30.12.2015 is not an effective-date proof."
+        },
+        "commencement_resolution_reference": "date_audit.publication_bound_review.acts[2015-457]"
+      },
+      {
+        "act_key": "2019-430",
+        "raw_path": "/tmp/rulaw-amend-2019-430.mht",
+        "raw_sha256": "53f84bb8ff5dc280fc45276b86b0b39b451e1352b6361a7d5971dd5730e88ac7",
+        "extracted_text_sha256": "1383965b0295f9e202077ea32d6eac3abf5f3a0a577ac6f7a2911e53e29a6440",
+        "extracted_line_count": 25,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "Article1 point3(a) adds the special-period reservation to GK234 paragraph1 first sentence.",
+            "Article1 point3(b) replaces paragraph4 on start of possession period."
+          ],
+          "effective_rule": "2020-01-01, final Article2.",
+          "exceptions": "Article2 contains one date with no delayed exception.",
+          "transitional": "No separate transition clause identified. The independent function assumes legally countable time and a correctly established start; it does not compute historical possession periods.",
+          "remaining": "Identified amendment verified; no entire subsequent legal-history certification."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 14,
+            "text": "3) в статье 234:\nа) абзац первый пункта 1 после слов \"недвижимым имуществом\" дополнить словами \", если иные срок и условия приобретения не предусмотрены настоящей статьей,\";\nб) пункт 4 изложить в следующей редакции:\n\"4. Течение срока приобретательной давности в отношении вещей, находящихся у лица, из владения которого они могли быть истребованы в соответствии со статьями 301 и 305 настоящего Кодекса, начинается со дня поступления вещи в открытое владение добросовестного приобретателя, а в случае, если было зарегистрировано право собственности добросовестного приобретателя недвижимой вещи, которой он владеет открыто, - не позднее момента государственной регистрации права собственности такого приобретателя.\";\n4) статью 302 дополнить пунктом 4 следующего содержания:"
+          },
+          {
+            "first_extracted_line": 20,
+            "text": "Статья 2\nНастоящий Федеральный закон вступает в силу с 1 января 2020 года."
+          }
+        ],
+        "not_whole_history_certification": true
+      },
+      {
+        "act_key": "2024-268",
+        "raw_path": "/tmp/rulaw-amend-2024-268.mht",
+        "raw_sha256": "4c961edda2abb745af64d02dbd0dcaf84b503b2d7366dc52f1ca61369c69f208",
+        "extracted_text_sha256": "99d7523625a12b87816fcb8f4f90a6ad6da68027f6ef56f3a5609bbcde0dc229",
+        "extracted_line_count": 35,
+        "extraction": "source_tools.extract",
+        "assessment": {
+          "affected": [
+            "Article1 point2 adds the working-disabled minimum30-day paragraph to TK115; selected ordinary28-day first paragraph is unchanged."
+          ],
+          "effective_rule": "2024-09-01 for Article1 point2.",
+          "exceptions": "Article2(2) delays only Article1 points1 and3 to2025-03-01; point2 is not delayed.",
+          "remaining": "Do not call the disabled-leave paragraph future law on2025-01-01. Demo expressly excludes disability."
+        },
+        "exact_evidence": [
+          {
+            "first_extracted_line": 14,
+            "text": "2) статью 115 дополнить частью следующего содержания:\n\"Ежегодный основной оплачиваемый отпуск предоставляется работающим инвалидам продолжительностью не менее 30 календарных дней.\";"
+          },
+          {
+            "first_extracted_line": 29,
+            "text": "Статья 2\n1. Настоящий Федеральный закон вступает в силу с 1 сентября 2024 года, за исключением пунктов 1 и 3 статьи 1 настоящего Федерального закона.\n2. Пункты 1 и 3 статьи 1 настоящего Федерального закона вступают в силу с 1 марта 2025 года."
+          }
+        ],
+        "not_whole_history_certification": true
+      }
+    ],
+    "followup_status": "listed_commencement_concerns_closed_for_selected2025_point; exact-first-publication dates not required or claimed",
+    "historical_missing_list_notice": "The earlier amendment_texts_not_available_when_checked list is preserved as history. Eight listed acts were later supplied and are reviewed above; the2011 neighboring notification amendment was not supplied in this follow-up.",
+    "followup_unresolved": [],
+    "date_audit_history": [
+      {
+        "status": "partial_evidence_only_not_complete_point_in_time_verification",
+        "followup_status": "eight_original_amendment_texts_inspected; explicit_dates_and_exceptions_checked; publication-dependent_dates_remain_partial",
+        "blocking_for_full_certification": "Do not mark all new norms independently point-in-time verified solely because18 complete articles and all20 selected fragments match. Direct date/effective-rule evidence or a separately justified official historical snapshot audit is still required.",
+        "followup_unresolved": [
+          "2006-90: official publication date plus90-day computation.",
+          "2015-391: official publication date; selected Article2 is not in delayed lists.",
+          "2022-273 and2015-457: general commencement statute plus publication evidence.",
+          "A complete2025-01-01 audit also requires a justified edition chain and relevant original/unchanged provisions; no whole-history certification is made.",
+          "Supplied raw files are staged under/tmp; preserve authenticated bytes in the release archive for durable provenance."
+        ],
+        "explanation": "This partial snapshot predates the supplied general commencement act and publication metadata."
+      }
+    ],
+    "publication_bound_review": {
+      "general_commencement_source": {
+        "path": "/tmp/rulaw-amend-1994-5.mht",
+        "raw_sha256": "2b90d3ac7e369dac9fbe9677adfef275290111ac908748d6395210fd0c197b87",
+        "extracted_text_sha256": "d0112d3e6422844486ed3db601a435389f299a9df3f298f074459e0fe398f32d",
+        "edition_observation": "The supplied document is the original1994 text; Article4 does not yet name the internet portal. This review therefore uses the metadata-confirmed Rossiyskaya Gazeta publications for conservative bounds, not the portal as an independently established statutory publication channel under this edition.",
+        "exact_quotes": [
+          {
+            "line": 13,
+            "text": "Статья 4. Официальным опубликованием федерального конституционного закона, федерального закона, акта палаты Федерального Собрания считается первая публикация его полного текста в \"Российской газете\" или \"Собрании законодательства Российской Федерации\"."
+          },
+          {
+            "line": 17,
+            "text": "Статья 6. Федеральные конституционные законы, федеральные законы, акты палат Федерального Собрания вступают в силу одновременно на всей территории Российской Федерации по истечении десяти дней после дня их официального опубликования, если самими законами или актами палат не установлен другой порядок вступления их в силу."
+          }
+        ],
+        "used_rule": "Article6: ten days after the day of official publication unless the act provides another commencement rule; Article4 recognizes Rossiyskaya Gazeta."
+      },
+      "acts": [
+        {
+          "act_key": "2006-90",
+          "metadata_path": "/tmp/rulaw-amend-2006-90-metadata.html",
+          "metadata_raw_sha256": "452de09373be421d6f04334de129dfcda6f52a7fe37a749fd59d1c827e2091e6",
+          "metadata_extracted_text_sha256": "8e467d7ea906c69f5b2586c53ce530d766ee866598eb57ddc2355732d600d818",
+          "document_identification_lines": [
+            "О внесении изменений в Трудовой кодекс Российской Федерации, признании не действующими на территории Российской Федерации некоторых нормативных правовых актов СССР и утратившими силу некоторых законодательных актов (положений законодательных актов) Российской Федерации",
+            "Действует с изменениями",
+            "Федеральный закон от 30.06.2006 № 90-ФЗ",
+            "О внесении изменений в Трудовой кодекс Российской Федерации, признании не действующими на территории Российской Федерации некоторых нормативных правовых актов СССР и утратившими силу некоторых законодательных актов (положений законодательных актов) Российской Федерации",
+            "Подпись:"
+          ],
+          "publication_evidence": {
+            "line": 8,
+            "exact_text": "\"Российская газета\" от 7.7.2006 г. , N 146 Собрание законодательства Российской Федерации от 2006 г. , N 27 , ст. 2878 \"Парламентская газета\" от 13.7.2006 г. , N 114"
+          },
+          "relied_on_publication": {
+            "channel": "Российская газета",
+            "date": "2006-07-07"
+          },
+          "applicable_commencement_rule": "1994-5 article4 and2006-90 article3",
+          "wait_days_after_publication_day": 90,
+          "safe_latest_effective_date": "2006-10-06",
+          "calculation": "Same day for immediate publication rule; otherwise publication date plus wait_days plus one day, after the complete waiting period.",
+          "in_force_by_target_point": true,
+          "target_as_of": "2025-01-01",
+          "reason_for_bound_not_exact_date": "Special90-day rule; the RG publication gives a safe latest bound without proving physical issue date of the Sobranie issue.",
+          "portal_publication_listed_in_same_official_metadata": false,
+          "exact_first_effective_date_claimed": false
+        },
+        {
+          "act_key": "2022-273",
+          "metadata_path": "/tmp/rulaw-amend-2022-273-metadata.html",
+          "metadata_raw_sha256": "8a682df48f4317124152aa62f20b984de3fa8376fe8e5ed00ab3e9f69c22dfab",
+          "metadata_extracted_text_sha256": "165ab214ecc16a5fc16a1b833b21e62eeebff73dfb65a3dec32c0bb56f977856",
+          "document_identification_lines": [
+            "О внесении изменений в Трудовой кодекс Российской Федерации",
+            "Действует без изменений",
+            "Федеральный закон от 14.07.2022 № 273-ФЗ",
+            "О внесении изменений в Трудовой кодекс Российской Федерации",
+            "Подпись:"
+          ],
+          "publication_evidence": {
+            "line": 8,
+            "exact_text": "Официальный интернет-портал правовой информации (www.pravo.gov.ru) от 14.7.2022 г. , ст. 0001202207140052 \"Российская газета\" от 20.7.2022 г. Собрание законодательства Российской Федерации от 2022 г. , N 29 , ст. 5240 (Часть III)"
+          },
+          "relied_on_publication": {
+            "channel": "Российская газета",
+            "date": "2022-07-20"
+          },
+          "applicable_commencement_rule": "1994-5 articles4/6; no own commencement clause",
+          "wait_days_after_publication_day": 10,
+          "safe_latest_effective_date": "2022-07-31",
+          "calculation": "Same day for immediate publication rule; otherwise publication date plus wait_days plus one day, after the complete waiting period.",
+          "in_force_by_target_point": true,
+          "target_as_of": "2025-01-01",
+          "reason_for_bound_not_exact_date": "RG is later than listed portal publication; the deliberately later bound suffices for the selected2025 point.",
+          "portal_publication_listed_in_same_official_metadata": true,
+          "exact_first_effective_date_claimed": false
+        },
+        {
+          "act_key": "2015-457",
+          "metadata_path": "/tmp/rulaw-amend-2015-457-metadata.html",
+          "metadata_raw_sha256": "7d5db1da88da7fd2c76a5713faed29d66eb64bc27e24621c4ebdeaf201a18b93",
+          "metadata_extracted_text_sha256": "2b86b5e8d3da76aac3061e3204b8d0217a111ee8140b87846df4f5713631d9d0",
+          "document_identification_lines": [
+            "О внесении изменений в Семейный кодекс Российской Федерации и статью 256 части первой Гражданского кодекса Российской Федерации",
+            "Действует без изменений",
+            "Федеральный закон от 30.12.2015 № 457-ФЗ",
+            "О внесении изменений в Семейный кодекс Российской Федерации и статью 256 части первой Гражданского кодекса Российской Федерации",
+            "Подпись:"
+          ],
+          "publication_evidence": {
+            "line": 8,
+            "exact_text": "Официальный интернет-портал правовой информации (www.pravo.gov.ru) от 30.12.2015 г. , ст. 0001201512300099 \"Российская газета\" от 12.1.2016 г. Собрание законодательства Российской Федерации от 2016 г. , N 1 , ст. 77 (Часть I)"
+          },
+          "relied_on_publication": {
+            "channel": "Российская газета",
+            "date": "2016-01-12"
+          },
+          "applicable_commencement_rule": "1994-5 articles4/6; no own commencement clause",
+          "wait_days_after_publication_day": 10,
+          "safe_latest_effective_date": "2016-01-23",
+          "calculation": "Same day for immediate publication rule; otherwise publication date plus wait_days plus one day, after the complete waiting period.",
+          "in_force_by_target_point": true,
+          "target_as_of": "2025-01-01",
+          "reason_for_bound_not_exact_date": "RG is later than listed portal publication; the later bound still precedes the selected2025 point.",
+          "portal_publication_listed_in_same_official_metadata": true,
+          "exact_first_effective_date_claimed": false
+        },
+        {
+          "act_key": "2015-391",
+          "metadata_path": "/tmp/rulaw-amend-2015-391-metadata.html",
+          "metadata_raw_sha256": "339a601f1f7a0304eb3f203c17ec1c97bb08b8c73231248c4e52bcd50793a304",
+          "metadata_extracted_text_sha256": "e2bc893bda2811c487eac394831fd25b109bfbd5c8077b6d7fc256f621b7a3c2",
+          "document_identification_lines": [
+            "О внесении изменений в отдельные законодательные акты Российской Федерации",
+            "Действует с изменениями",
+            "Федеральный закон от 29.12.2015 № 391-ФЗ",
+            "О внесении изменений в отдельные законодательные акты Российской Федерации",
+            "Подпись:"
+          ],
+          "publication_evidence": {
+            "line": 8,
+            "exact_text": "Официальный интернет-портал правовой информации (www.pravo.gov.ru) от 29.12.2015 г. , ст. 0001201512290062 \"Российская газета\" от 31.12.2015 г. Собрание законодательства Российской Федерации от 2016 г. , N 1 , ст. 11 (Часть I)"
+          },
+          "relied_on_publication": {
+            "channel": "Российская газета",
+            "date": "2015-12-31"
+          },
+          "applicable_commencement_rule": "1994-5 article4 and2015-391 article23(1), selected Article2 outside delayed lists",
+          "wait_days_after_publication_day": 0,
+          "safe_latest_effective_date": "2015-12-31",
+          "calculation": "Same day for immediate publication rule; otherwise publication date plus wait_days plus one day, after the complete waiting period.",
+          "in_force_by_target_point": true,
+          "target_as_of": "2025-01-01",
+          "reason_for_bound_not_exact_date": "Selected consent-trigger change takes effect on official publication; using the later RG listing gives a safe bound without identifying the first publication.",
+          "portal_publication_listed_in_same_official_metadata": true,
+          "exact_first_effective_date_claimed": false
+        }
+      ],
+      "method": "Use a documented recognized official publication to establish an upper bound on commencement. An earlier qualifying publication could only make commencement earlier. Exact first publication, maximal validity intervals and a whole-act effective date are not claimed.",
+      "all_four_listed_commencement_gaps_closed_for_target_point": true
+    },
+    "scope_of_status": "The selected20 new test/demo fragments and their stated narrow consequences have passed this source-based applicability audit for2025-01-01. The specifically listed commencement concerns are closed using original amendment text, exception checks, recognized official-publication bounds, and primary/comparison selected-fragment equality. This is neither external legal expertise nor certification of whole statutes or maximal validity intervals.",
+    "listed_blocking_date_concerns_remaining": [],
+    "remaining_limits": [
+      "No claim to the first physical publication date of every amendment or the exact earliest effective date when a conservative bound is used.",
+      "No claim to the maximal validity interval of any selected norm or a uniform effective date for an entire multi-provision amendment.",
+      "The original1994 Article4 omits the portal; conservative RG-based bounds avoid silently applying a later portal-recognition amendment without its source.",
+      "Special delayed provisions and transition rules apply according to their locators; the audit does not generalize a selected article’s date to other provisions.",
+      "No expert legal validation of scenario annotations or whole-case outcomes.",
+      "Raw supplemental files remain staged under/tmp in these evidence records; the release must retain the authenticated bytes for durable provenance."
+    ]
+  },
+  "rules": [
+    {
+      "rule_id": "tk:67",
+      "split": "test",
+      "independent_function": "tk67_contract_deemed_concluded",
+      "signature": "(*, actually_started_work: bool, employer_knew_or_directed: bool, authorized_representative_knew_or_directed: bool) -> bool",
+      "scope": "Only the first sentence of part2: employment contract not executed in writing; actual commencement with employer or authorized representative knowledge/instruction.",
+      "representative_domains_for_internal_check": {
+        "actually_started_work": [
+          false,
+          true
+        ],
+        "employer_knew_or_directed": [
+          false,
+          true
+        ],
+        "authorized_representative_knew_or_directed": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "67",
+          "line": 727,
+          "text": "Трудовой договор, не оформленный в письменной форме, считается заключенным, если работник приступил к работе с ведома или по поручению работодателя или его уполномоченного на это представителя. При фактическом допущении работника к работе работодатель обязан оформить с ним трудовой договор в письменной форме не позднее трех рабочих дней со дня фактического допущения работника к работе, а если отношения, связанные с использованием личного труда, возникли на основании гражданско-правового договора, но впоследствии были признаны трудовыми отношениями, - не позднее трех рабочих дней со дня признания этих отношений трудовыми отношениями, если иное не установлено судом. (В редакции федеральных законов от 30.06.2006 № 90-ФЗ; от 28.12.2013 № 421-ФЗ)",
+          "sha256": "c62f3339b3850b3f2635ba36305872a6fdee48a937895fa10426046a04437902"
+        }
+      ],
+      "dependencies": [
+        "ТК67.1: consequences of admission by an unauthorized person; separate payment duty may remain."
+      ],
+      "limits": [
+        "Authorization must concern admission to work, not just a supervisory title.",
+        "Employer knowledge OR direction suffices; knowledge need not be formalized as an order.",
+        "No inference that lack of a written contract prevents all employment rights.",
+        "Three working days for documentation is a separate sentence and is not this target."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A colleague without authority admits a person and the employer does not know or direct it: work alone does not fulfill this sentence; payment duties under67.1 remain separate.",
+      "internal_checks": {
+        "complete_representative_inputs": 8,
+        "compatible_inputs": 8,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "actually_started_work": false,
+              "employer_knew_or_directed": false,
+              "authorized_representative_knew_or_directed": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "actually_started_work": true,
+              "employer_knew_or_directed": false,
+              "authorized_representative_knew_or_directed": true
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "4808bdcdadd7a5c6c7dfec0c935d46b5eb98c35afc38acf5277b4b523d2a26a3",
+        "comparison_article_sha256": "4808bdcdadd7a5c6c7dfec0c935d46b5eb98c35afc38acf5277b4b523d2a26a3",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "28.12.2013 № 421-ФЗ",
+          "30.06.2006 № 90-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "tk:79",
+      "split": "test",
+      "independent_function": "tk79_minimum_written_notice_days",
+      "signature": "(*, fixed_term_replaces_absent_employee: bool) -> int | str",
+      "scope": "Expiry termination of a fixed-term employment contract; minimum written warning under part1.",
+      "representative_domains_for_internal_check": {
+        "fixed_term_replaces_absent_employee": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "79",
+          "line": 836,
+          "text": "Срочный трудовой договор прекращается с истечением срока его действия. О прекращении трудового договора в связи с истечением срока его действия работник должен быть предупрежден в письменной форме не менее чем за три календарных дня до увольнения, за исключением случаев, когда истекает срок действия срочного трудового договора, заключенного на время исполнения обязанностей отсутствующего работника. (В редакции Федерального закона от 30.06.2006 № 90-ФЗ)",
+          "sha256": "8bc423523047187d42114a395fe81063d270457b61f9c313e4f000deb2568230"
+        }
+      ],
+      "dependencies": [
+        "ТК79 later parts: expiry trigger differs for specific work, replacement and seasonal contracts."
+      ],
+      "limits": [
+        "Three calendar days, not working days.",
+        "At least three: a warning four days beforehand does not breach this minimum.",
+        "Replacement exception removes this specific warning requirement; it does not create a zero-day general notice norm or establish lawful termination."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Contract runs until the absent employee returns: do not impose the ordinary three-day warning from part1.",
+      "internal_checks": {
+        "complete_representative_inputs": 2,
+        "compatible_inputs": 2,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "fixed_term_replaces_absent_employee": false
+            },
+            "outcome": 3
+          },
+          {
+            "facts": {
+              "fixed_term_replaces_absent_employee": true
+            },
+            "outcome": "requirement_not_established_by_selected_provision"
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "c24b6391426b895332e6fd6c41854848e34c6e6f644d94b75ebd2097f1692e2a",
+        "comparison_article_sha256": "c24b6391426b895332e6fd6c41854848e34c6e6f644d94b75ebd2097f1692e2a",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "30.06.2006 № 90-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "tk:122",
+      "split": "test",
+      "independent_function": "tk122_mandatory_early_leave",
+      "signature": "(*, employee_applied: bool, employee_age_years: int, woman_before_maternity_leave: bool, woman_immediately_after_maternity_leave: bool, qualifying_adoption_of_child_under_three_months: bool) -> bool",
+      "scope": "Before six months continuous employment in the first working year; only the three listed grounds and employee application, all other statutory early-leave grounds excluded.",
+      "representative_domains_for_internal_check": {
+        "employee_applied": [
+          false,
+          true
+        ],
+        "employee_age_years": [
+          17,
+          18,
+          19
+        ],
+        "woman_before_maternity_leave": [
+          false,
+          true
+        ],
+        "woman_immediately_after_maternity_leave": [
+          false,
+          true
+        ],
+        "qualifying_adoption_of_child_under_three_months": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "122",
+          "line": 1143,
+          "text": "До истечения шести месяцев непрерывной работы оплачиваемый отпуск по заявлению работника должен быть предоставлен:",
+          "sha256": "38b08a93a73a0e4b443837cce3e9dd07b3fd0230668153a39bdf3b09b5c32337"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "122",
+          "line": 1144,
+          "text": "женщинам - перед отпуском по беременности и родам или непосредственно после него;",
+          "sha256": "bac7367e1d2a576de67b6482440341eb1b7499326c7f873da8bded0ac72bbc82"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "122",
+          "line": 1145,
+          "text": "работникам в возрасте до восемнадцати лет;",
+          "sha256": "d2065a2fdaf5009f0052e5fe4c90a81ede1a023a836cf4609ccc1cbd2736dadd"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "122",
+          "line": 1146,
+          "text": "работникам, усыновившим ребенка (детей) в возрасте до трех месяцев;",
+          "sha256": "b849dc1dec221d10e2da3e4090c89becdbfcd47a82bb648572b1f6218975e632"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/sk.txt",
+          "article": "127",
+          "line": 625,
+          "text": "1. Усыновителями могут быть совершеннолетние лица обоего пола, за исключением:",
+          "sha256": "edb7c9a56df116ab1559a807d66358ed4835def5c90ee49c603cfbec9443666a"
+        }
+      ],
+      "dependencies": [
+        "ТК122 part2: early leave by agreement can exist without mandatory ground.",
+        "СК127(1): adopter must be adult."
+      ],
+      "limits": [
+        "Application is required; this paragraph does not explicitly require written form.",
+        "Maternity timing is relative to the same particular maternity leave.",
+        "Minor/adopter and both before/immediately-after that same maternity leave are invalid combinations.",
+        "No statement that every pregnant woman qualifies regardless of requested leave timing."
+      ],
+      "ambiguities": [
+        "The short phrase about adoption of a child under three months should not be converted into a permanent entitlement based on the child age at an adoption years ago. Use an explicitly qualifying current adoption situation or retain that fact as a supplied legal qualification."
+      ],
+      "broad_counterexample": "Adult woman requests early annual leave at an unrelated time, with no qualifying adoption: pregnancy alone is not the listed before/immediately-after ground.",
+      "internal_checks": {
+        "complete_representative_inputs": 48,
+        "compatible_inputs": 30,
+        "invalid_inputs": 18,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "employee_applied": false,
+              "employee_age_years": 17,
+              "woman_before_maternity_leave": false,
+              "woman_immediately_after_maternity_leave": false,
+              "qualifying_adoption_of_child_under_three_months": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "employee_applied": true,
+              "employee_age_years": 17,
+              "woman_before_maternity_leave": false,
+              "woman_immediately_after_maternity_leave": false,
+              "qualifying_adoption_of_child_under_three_months": false
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "2f5afb866ccbfe15ce7c9fb3afbb324cc1518badd883173f14b8143fee57c4ec",
+        "comparison_article_sha256": "2f5afb866ccbfe15ce7c9fb3afbb324cc1518badd883173f14b8143fee57c4ec",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "30.06.2006 № 90-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "tk:124",
+      "split": "test",
+      "independent_function": "tk124_nonprovision_expressly_prohibited",
+      "signature": "(*, consecutive_years_without_annual_leave: int, employee_age_years: int, works_in_harmful_or_dangerous_conditions: bool) -> bool",
+      "scope": "Express prohibitions in the last paragraph; annual paid leave would be/has been withheld for at least the current working year.",
+      "representative_domains_for_internal_check": {
+        "consecutive_years_without_annual_leave": [
+          1,
+          2,
+          3
+        ],
+        "employee_age_years": [
+          17,
+          18,
+          19
+        ],
+        "works_in_harmful_or_dangerous_conditions": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "124",
+          "line": 1161,
+          "text": "Запрещается непредоставление ежегодного оплачиваемого отпуска в течение двух лет подряд, а также непредоставление ежегодного оплачиваемого отпуска работникам в возрасте до восемнадцати лет и работникам, занятым на работах с вредными и (или) опасными условиями труда.",
+          "sha256": "59e2f960c3d919c184eff11715c1bb58a20613c60e02a65cf4ae1b489b065c7f"
+        }
+      ],
+      "dependencies": [
+        "Earlier paragraphs of124 govern valid postponement and timing;122 requires annual paid leave."
+      ],
+      "limits": [
+        "Two consecutive years is one independent prohibition, not a condition on the minor/hazardous categories.",
+        "A negative result says only that this paragraph does not expressly prohibit on these facts; it does not authorize arbitrary denial for one year.",
+        "Year counts are legally identified working years, not a calendar-date computation."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A17-year-old receives no annual leave for only one year: the minor-specific prohibition already applies; waiting for two years is wrong.",
+      "internal_checks": {
+        "complete_representative_inputs": 18,
+        "compatible_inputs": 18,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "consecutive_years_without_annual_leave": 1,
+              "employee_age_years": 17,
+              "works_in_harmful_or_dangerous_conditions": false
+            },
+            "outcome": true
+          },
+          {
+            "facts": {
+              "consecutive_years_without_annual_leave": 1,
+              "employee_age_years": 18,
+              "works_in_harmful_or_dangerous_conditions": false
+            },
+            "outcome": false
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "24e852e82c8cbe18a62a4804fd9e53b4e0852b5682999179d04c13cab6843513",
+        "comparison_article_sha256": "24e852e82c8cbe18a62a4804fd9e53b4e0852b5682999179d04c13cab6843513",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "14.07.2022 № 273-ФЗ",
+          "30.06.2006 № 90-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "tk:126",
+      "split": "test",
+      "independent_function": "tk126_basic_leave_cash_substitution_permitted",
+      "signature": "(*, basic_leave_days_for_one_working_year: int, days_proposed_for_cash_substitution: int, employee_written_request: bool, pregnant: bool, employee_age_years: int) -> bool",
+      "scope": "Permission to replace a positive portion of one year of annual BASIC paid leave by money; dismissal, harmful-work additional leave and special Code exceptions excluded.",
+      "representative_domains_for_internal_check": {
+        "basic_leave_days_for_one_working_year": [
+          28,
+          29,
+          31,
+          35
+        ],
+        "days_proposed_for_cash_substitution": [
+          1,
+          3,
+          7,
+          8
+        ],
+        "employee_written_request": [
+          false,
+          true
+        ],
+        "pregnant": [
+          false,
+          true
+        ],
+        "employee_age_years": [
+          17,
+          18,
+          19
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "126",
+          "line": 1167,
+          "text": "Часть ежегодного оплачиваемого отпуска, превышающая 28 календарных дней, по письменному заявлению работника может быть заменена денежной компенсацией, если иное не предусмотрено настоящим Кодексом. (В редакции Федерального закона от 14.07.2022 № 273-ФЗ)",
+          "sha256": "587289eee54267b7c2020ad5e26cc80db73a360b5a0d6f2a245a9d220b07e876"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "126",
+          "line": 1168,
+          "text": "При суммировании ежегодных оплачиваемых отпусков или перенесении ежегодного оплачиваемого отпуска на следующий рабочий год денежной компенсацией могут быть заменены часть каждого ежегодного оплачиваемого отпуска, превышающая 28 календарных дней, или любое количество дней из этой части.",
+          "sha256": "582f31f40631aef7077e8a39a62b7b2bd37b6b4d56cc6a4d563d28564d9c3c81"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "126",
+          "line": 1169,
+          "text": "Не допускается замена денежной компенсацией ежегодного основного оплачиваемого отпуска и ежегодных дополнительных оплачиваемых отпусков беременным женщинам и работникам в возрасте до восемнадцати лет, а также ежегодного дополнительного оплачиваемого отпуска работникам, занятым на работах с вредными и (или) опасными условиями труда, за работу в соответствующих условиях (за исключением выплаты денежной компенсации за неиспользованный отпуск при увольнении, а также случаев, установленных настоящим Кодексом). (В редакции Федерального закона от 28.12.2013 № 421-ФЗ)",
+          "sha256": "dd8d4848b8f7447b47a9a0b5d29127d0cc662eeac7e2b206347489ccede4cf14"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "267",
+          "line": 2310,
+          "text": "Ежегодный основной оплачиваемый отпуск работникам в возрасте до восемнадцати лет предоставляется продолжительностью 31 календарный день в удобное для них время.",
+          "sha256": "b1acdfb2a399fe45f0cd762092713ac9f453486b8c69e60e0e7dc01178c16719"
+        }
+      ],
+      "dependencies": [
+        "ТК126 part2: apply excess over28 to each working year separately.",
+        "ТК127: unused leave compensation upon dismissal is a separate exception.",
+        "ТК267: minor basic annual leave is31, so shorter annual entitlements contradict the declared facts."
+      ],
+      "limits": [
+        "May be replaced is permission, not an employer obligation to pay upon request.",
+        "Pregnancy and age under18 bar this substitution under the declared scope.",
+        "The ban for harmful conditions specifically names additional leave for those conditions; do not automatically prohibit substitution of all basic leave of a hazardous worker.",
+        "Two accumulated ordinary28-day entitlements do not create28 compensable excess days."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Adult has28 unused days from each of two years:56 total is not a single56-day annual entitlement with28 cash-substitutable excess.",
+      "internal_checks": {
+        "complete_representative_inputs": 192,
+        "compatible_inputs": 160,
+        "invalid_inputs": 32,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "basic_leave_days_for_one_working_year": 28,
+              "days_proposed_for_cash_substitution": 1,
+              "employee_written_request": false,
+              "pregnant": false,
+              "employee_age_years": 18
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "basic_leave_days_for_one_working_year": 29,
+              "days_proposed_for_cash_substitution": 1,
+              "employee_written_request": true,
+              "pregnant": false,
+              "employee_age_years": 18
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "c7b93c78156eb90df88b79fc3e363cfbd29f3eb467b7d13dd995943a09776a1e",
+        "comparison_article_sha256": "c7b93c78156eb90df88b79fc3e363cfbd29f3eb467b7d13dd995943a09776a1e",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "14.07.2022 № 273-ФЗ",
+          "28.12.2013 № 421-ФЗ",
+          "30.06.2006 № 90-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "sk:35",
+      "split": "test",
+      "independent_function": "sk35_notarized_spousal_consent_required",
+      "signature": "(*, disposed_property_rights_require_state_registration: bool, transaction_has_mandatory_notarial_form: bool, transaction_requires_state_registration: bool) -> bool",
+      "scope": "One spouse disposes of current spouses’ common property; only necessity of notarized consent under paragraph3 first sentence.",
+      "representative_domains_for_internal_check": {
+        "disposed_property_rights_require_state_registration": [
+          false,
+          true
+        ],
+        "transaction_has_mandatory_notarial_form": [
+          false,
+          true
+        ],
+        "transaction_requires_state_registration": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/sk.txt",
+          "article": "35",
+          "line": 163,
+          "text": "1. Владение, пользование и распоряжение общим имуществом супругов осуществляются по обоюдному согласию супругов.",
+          "sha256": "bb081137b93891f5e9b4d82ec8a383fa2f1f064ecf715749ef431eb90c51924e"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/sk.txt",
+          "article": "35",
+          "line": 166,
+          "text": "3. Для заключения одним из супругов сделки по распоряжению имуществом, права на которое подлежат государственной регистрации, сделки, для которой законом установлена обязательная нотариальная форма, или сделки, подлежащей обязательной государственной регистрации, необходимо получить нотариально удостоверенное согласие другого супруга. (В редакции Федерального закона от 29.12.2015 № 391-ФЗ)",
+          "sha256": "b5aef5f425ee81e5dfe8be7741fc1c37a7f04cc97dfad204184cb73fb5194eec"
+        }
+      ],
+      "dependencies": [
+        "СК35 parts1–2: common property and ordinary agreement/presumption.",
+        "СК36: individually owned property is a different scope."
+      ],
+      "limits": [
+        "State registration of a right is distinct from state registration of the transaction.",
+        "Any of the three triggers suffices.",
+        "Voluntary notarization is not a statutory mandatory notarial form.",
+        "A negative result does not erase ordinary consent rules or establish transaction validity."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Disposition concerns a registrable property right even though the transaction itself is not registrable and needs no mandatory notarial form: notarized spousal consent is still required.",
+      "internal_checks": {
+        "complete_representative_inputs": 8,
+        "compatible_inputs": 8,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "disposed_property_rights_require_state_registration": false,
+              "transaction_has_mandatory_notarial_form": false,
+              "transaction_requires_state_registration": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "disposed_property_rights_require_state_registration": false,
+              "transaction_has_mandatory_notarial_form": false,
+              "transaction_requires_state_registration": true
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "1136904b75c09fe8e8257789e08963a7058a57db2bc72969ce0d04c8e495bf3b",
+        "comparison_article_sha256": "1136904b75c09fe8e8257789e08963a7058a57db2bc72969ce0d04c8e495bf3b",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "14.07.2022 № 310-ФЗ",
+          "29.12.2015 № 391-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "sk:62",
+      "split": "test",
+      "independent_function": "sk62_independent_parental_rights",
+      "signature": "(*, parent_age_years: int, parent_is_unmarried: bool, child_born: bool, this_parents_maternity_or_paternity_established: bool) -> bool | str",
+      "scope": "Unmarried minor parent, independent exercise under paragraph2 first sentence; childbirth and established maternity/paternity are separate prerequisites.",
+      "representative_domains_for_internal_check": {
+        "parent_age_years": [
+          15,
+          16,
+          17,
+          18
+        ],
+        "parent_is_unmarried": [
+          false,
+          true
+        ],
+        "child_born": [
+          false,
+          true
+        ],
+        "this_parents_maternity_or_paternity_established": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/sk.txt",
+          "article": "62",
+          "line": 300,
+          "text": "1. Несовершеннолетние родители имеют права на совместное проживание с ребенком и участие в его воспитании.",
+          "sha256": "12db4eb5d44995a2fe9ac14f0212494936c1d05155bdf3bcc75564c671126d63"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/sk.txt",
+          "article": "62",
+          "line": 301,
+          "text": "2. Несовершеннолетние родители, не состоящие в браке, в случае рождения у них ребенка и при установлении их материнства и (или) отцовства вправе самостоятельно осуществлять родительские права по достижении ими возраста шестнадцати лет. До достижения несовершеннолетними родителями возраста шестнадцати лет их ребенку назначается опекун, который осуществляет его воспитание совместно с несовершеннолетними родителями ребенка. Разногласия, возникающие между опекуном ребенка и несовершеннолетними родителями, разрешаются органом опеки и попечительства. (В редакции Федерального закона от 30.12.2015 № 457-ФЗ)",
+          "sha256": "c0542c51a7eaacc1d278a4ffab837eed21ef28d12e1424ba3dc35b5afcb52a16"
+        }
+      ],
+      "dependencies": [
+        "СК62 part1: cohabitation/participation exist independently of the16-year threshold.",
+        "СК62 part3: recognition/contestation of parentage and court establishment have different rules."
+      ],
+      "limits": [
+        "At16 the threshold is met, but only for this parent whose parentage is established.",
+        "Married minors and adults are outside the selected sentence; do not infer no parental rights.",
+        "No independent exercise under this sentence is not no right to participate in upbringing."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Unmarried15-year-old mother with established maternity participates in upbringing under part1; a negative independent-exercise answer does not erase that right.",
+      "internal_checks": {
+        "complete_representative_inputs": 32,
+        "compatible_inputs": 29,
+        "invalid_inputs": 3,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "parent_age_years": 15,
+              "parent_is_unmarried": false,
+              "child_born": false,
+              "this_parents_maternity_or_paternity_established": false
+            },
+            "outcome": "outside_declared_scope"
+          },
+          {
+            "facts": {
+              "parent_age_years": 15,
+              "parent_is_unmarried": true,
+              "child_born": false,
+              "this_parents_maternity_or_paternity_established": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "parent_age_years": 16,
+              "parent_is_unmarried": true,
+              "child_born": true,
+              "this_parents_maternity_or_paternity_established": true
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "2bdfd50ad2c0ee2dac380b4548210eec6bf0a6e2cef9282cd329e44298d5355f",
+        "comparison_article_sha256": "2bdfd50ad2c0ee2dac380b4548210eec6bf0a6e2cef9282cd329e44298d5355f",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "30.12.2015 № 457-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "gk:211",
+      "split": "test",
+      "independent_function": "gk211_accidental_loss_risk_bearer",
+      "signature": "(*, different_statutory_rule_applies: bool, different_contractual_rule_applies: bool) -> str",
+      "scope": "Risk of accidental loss or accidental damage; owner identity is established.",
+      "representative_domains_for_internal_check": {
+        "different_statutory_rule_applies": [
+          false,
+          true
+        ],
+        "different_contractual_rule_applies": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "211",
+          "line": 1948,
+          "text": "Риск случайной гибели или случайного повреждения имущества несет его собственник, если иное не предусмотрено законом или договором.",
+          "sha256": "e83c69169a3c564abe772afb3b63b131e9ae30ffada852e6db0b5992c0451bcb"
+        }
+      ],
+      "dependencies": [],
+      "limits": [
+        "A different statutory/contractual rule requires inspection of that rule; it does not identify the bearer by itself.",
+        "Risk allocation is not fault-based damages liability.",
+        "Possession or storage by a non-owner alone does not transfer risk."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Contract expressly reallocates accidental loss risk to a party: default ownership rule cannot determine the bearer without reading that contract.",
+      "internal_checks": {
+        "complete_representative_inputs": 4,
+        "compatible_inputs": 4,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "different_statutory_rule_applies": false,
+              "different_contractual_rule_applies": false
+            },
+            "outcome": "owner"
+          },
+          {
+            "facts": {
+              "different_statutory_rule_applies": false,
+              "different_contractual_rule_applies": true
+            },
+            "outcome": "other_risk_rule_must_be_examined"
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "59bfe15ab4332635bb2d950f9b6e6d2803da1b6f0c08af11ab5b0ceaf1226254",
+        "comparison_article_sha256": "59bfe15ab4332635bb2d950f9b6e6d2803da1b6f0c08af11ab5b0ceaf1226254",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "gk:214",
+      "split": "test",
+      "independent_function": "gk214_state_ownership_from_paragraph2",
+      "signature": "(*, land_or_other_natural_resource: bool, owned_by_citizens: bool, owned_by_legal_entities: bool, owned_by_municipality: bool) -> bool | str",
+      "scope": "Land or another natural resource and absence of citizens’, legal persons’ and municipal ownership; broad state-ownership category only.",
+      "representative_domains_for_internal_check": {
+        "land_or_other_natural_resource": [
+          false,
+          true
+        ],
+        "owned_by_citizens": [
+          false,
+          true
+        ],
+        "owned_by_legal_entities": [
+          false,
+          true
+        ],
+        "owned_by_municipality": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "214",
+          "line": 1962,
+          "text": "2. Земля и другие природные ресурсы, не находящиеся в собственности граждан, юридических лиц либо муниципальных образований, являются государственной собственностью.",
+          "sha256": "5af4dc96b78c8f5b5208d357fbee159b660ac48dc71153cc78c21ef3dcda3f20"
+        }
+      ],
+      "dependencies": [
+        "ГК214 part1 and5: federal versus regional ownership is separate."
+      ],
+      "limits": [
+        "Unknown owner is not proof of absence of private/municipal ownership.",
+        "No inference that all unowned physical objects are state-owned: only land/natural resources here.",
+        "A state-controlled legal entity owning the asset is not the same as direct state ownership of that asset."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Municipally owned land is not state-owned under214(2), despite both categories being public property.",
+      "internal_checks": {
+        "complete_representative_inputs": 16,
+        "compatible_inputs": 16,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "land_or_other_natural_resource": false,
+              "owned_by_citizens": false,
+              "owned_by_legal_entities": false,
+              "owned_by_municipality": false
+            },
+            "outcome": "outside_declared_scope"
+          },
+          {
+            "facts": {
+              "land_or_other_natural_resource": true,
+              "owned_by_citizens": false,
+              "owned_by_legal_entities": false,
+              "owned_by_municipality": false
+            },
+            "outcome": true
+          },
+          {
+            "facts": {
+              "land_or_other_natural_resource": true,
+              "owned_by_citizens": false,
+              "owned_by_legal_entities": false,
+              "owned_by_municipality": true
+            },
+            "outcome": false
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "ef05a8e5f3e10d81344a7e72f55a422d31b651143a3262e97ecf5b5db5ed1638",
+        "comparison_article_sha256": "ef05a8e5f3e10d81344a7e72f55a422d31b651143a3262e97ecf5b5db5ed1638",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "gk:227",
+      "split": "test",
+      "independent_function": "gk227_finder_sale_meets_selected_conditions",
+      "signature": "(*, perishable: bool, storage_cost_disproportionate_to_value: bool, sale_includes_obtaining_written_proceeds_evidence: bool) -> bool",
+      "scope": "Finder’s sale of a perishable finding or one with disproportionately large storage costs, including written evidence of proceeds obtained with sale; other notice/return duties are assumed satisfied.",
+      "representative_domains_for_internal_check": {
+        "perishable": [
+          false,
+          true
+        ],
+        "storage_cost_disproportionate_to_value": [
+          false,
+          true
+        ],
+        "sale_includes_obtaining_written_proceeds_evidence": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "227",
+          "line": 2058,
+          "text": "Скоропортящаяся вещь или вещь, издержки по хранению которой несоизмеримо велики по сравнению с ее стоимостью, может быть реализована нашедшим вещь с получением письменных доказательств, удостоверяющих сумму выручки. Деньги, вырученные от продажи найденной вещи, подлежат возврату лицу, управомоченному на ее получение.",
+          "sha256": "a332aff7d9c497ed4f4e5e4565c29f16a0d57ddc7b6d4799394a43668234eba1"
+        }
+      ],
+      "dependencies": [
+        "ГК227 parts1–2: return and reporting obligations; proceeds must be returned to entitled recipient under next sentence."
+      ],
+      "limits": [
+        "The two physical/economic grounds are alternatives.",
+        "High absolute storage cost is not enough; the ratio to the thing’s value must be legally qualified as disproportionate.",
+        "Written proceeds evidence is obtained with sale, not a pre-existing prerequisite receipt.",
+        "Permission is not a duty to sell, and proceeds are not the finder’s unrestricted property."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A valuable, durable item has a storage bill that is large in absolute currency but proportionate to its value: that fact alone does not establish the sale ground.",
+      "internal_checks": {
+        "complete_representative_inputs": 8,
+        "compatible_inputs": 8,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "perishable": false,
+              "storage_cost_disproportionate_to_value": false,
+              "sale_includes_obtaining_written_proceeds_evidence": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "perishable": false,
+              "storage_cost_disproportionate_to_value": true,
+              "sale_includes_obtaining_written_proceeds_evidence": true
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "d0e3d07341704356c380c92cab3855d53ceae32b825501fe1cd42a8f0e34c5ec",
+        "comparison_article_sha256": "d0e3d07341704356c380c92cab3855d53ceae32b825501fe1cd42a8f0e34c5ec",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "07.02.2011 № 4-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "gk:229",
+      "split": "test",
+      "independent_function": "gk229_reward_upper_percentage",
+      "signature": "(*, finding_reported: bool, attempted_concealment: bool, valuable_only_to_entitled_recipient: bool) -> int | str",
+      "scope": "Statutory maximum percentage claim for finding under paragraph2, including personal-value and misconduct exceptions; not an award of the maximum.",
+      "representative_domains_for_internal_check": {
+        "finding_reported": [
+          false,
+          true
+        ],
+        "attempted_concealment": [
+          false,
+          true
+        ],
+        "valuable_only_to_entitled_recipient": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "229",
+          "line": 2065,
+          "text": "2. Нашедший вещь вправе потребовать от лица, управомоченного на получение вещи, вознаграждение за находку в размере до двадцати процентов стоимости вещи. Если найденная вещь представляет ценность только для лица, управомоченного на ее получение, размер вознаграждения определяется по соглашению с этим лицом.",
+          "sha256": "8f28feff26517b7007f4823892d29de9eb648f6193c5f6a172fc5d5b429699e1"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "229",
+          "line": 2066,
+          "text": "Право на вознаграждение не возникает, если нашедший вещь не заявил о находке или пытался ее утаить.",
+          "sha256": "f704f647cd4f07f4d094f842ad1e33cadfe60580b88982ce9f24a331b4ed8a33"
+        }
+      ],
+      "dependencies": [
+        "ГК227: proper reporting may be to a known entitled person; not always exclusively to police.",
+        "ГК229 part1: necessary expenses are separate from reward."
+      ],
+      "limits": [
+        "20 percent is an upper bound, not automatically due at the maximum.",
+        "Failure to report OR attempted concealment defeats the reward right.",
+        "A thing valuable only to the entitled recipient uses agreement, not an asserted20-percent ceiling.",
+        "Unknown agreement terms cannot be turned into a numeric reward."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A family memento has value only to the rightful recipient: the rule directs the parties to agreement, not an automatic20-percent payment.",
+      "internal_checks": {
+        "complete_representative_inputs": 8,
+        "compatible_inputs": 8,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "finding_reported": false,
+              "attempted_concealment": false,
+              "valuable_only_to_entitled_recipient": false
+            },
+            "outcome": "no_reward_right_under_article_229"
+          },
+          {
+            "facts": {
+              "finding_reported": true,
+              "attempted_concealment": false,
+              "valuable_only_to_entitled_recipient": false
+            },
+            "outcome": 20
+          },
+          {
+            "facts": {
+              "finding_reported": true,
+              "attempted_concealment": false,
+              "valuable_only_to_entitled_recipient": true
+            },
+            "outcome": "reward_amount_requires_agreement"
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "07b9e6d6ca5bbbd817054701e6e756bb14200a7dfe1af1bbcaf4880224acff98",
+        "comparison_article_sha256": "07b9e6d6ca5bbbd817054701e6e756bb14200a7dfe1af1bbcaf4880224acff98",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "gk:234",
+      "split": "test",
+      "independent_function": "gk234_minimum_prescription_period_reached",
+      "signature": "(*, immovable_property: bool, qualifying_completed_possession_years: int) -> bool",
+      "scope": "Only whether the general minimum qualifying possession period has elapsed; non-owner, good faith, openness, continuity, possession as one’s own and legal start date are stipulated, special rules excluded.",
+      "representative_domains_for_internal_check": {
+        "immovable_property": [
+          false,
+          true
+        ],
+        "qualifying_completed_possession_years": [
+          4,
+          5,
+          6,
+          14,
+          15,
+          16
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "234",
+          "line": 2085,
+          "text": "1. Лицо - гражданин или юридическое лицо, - не являющееся собственником имущества, но добросовестно, открыто и непрерывно владеющее как своим собственным недвижимым имуществом, если иные срок и условия приобретения не предусмотрены настоящей статьей, в течение пятнадцати лет либо иным имуществом в течение пяти лет, приобретает право собственности на это имущество (приобретательная давность). (В редакции Федерального закона от 16.12.2019 № 430-ФЗ)",
+          "sha256": "e4a6ca15df469cee483f53bbc91a34e1a5b172de548825bc344da564d0aa9fa5"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "234",
+          "line": 2086,
+          "text": "Право собственности на недвижимое и иное имущество, подлежащее государственной регистрации, возникает у лица, приобретшего это имущество в силу приобретательной давности, с момента такой регистрации.",
+          "sha256": "a2a60728ea23153a5d9cb93aeba40e119bff529c415e412025fbfba2946e446e"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "234",
+          "line": 2088,
+          "text": "3. Лицо, ссылающееся на давность владения, может присоединить ко времени своего владения все время, в течение которого этим имуществом владел тот, чьим правопреемником это лицо является.",
+          "sha256": "d49d4b83316f798d948a9cf3487fd6255c3b2bb98e3e8dbd9861290995fab087"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "234",
+          "line": 2089,
+          "text": "4. Течение срока приобретательной давности в отношении вещей, находящихся у лица, из владения которого они могли быть истребованы в соответствии со статьями 301 и 305 настоящего Кодекса, начинается со дня поступления вещи в открытое владение добросовестного приобретателя, а в случае, если было зарегистрировано право собственности добросовестного приобретателя недвижимой вещи, которой он владеет открыто, - не позднее момента государственной регистрации права собственности такого приобретателя. (В редакции Федерального закона от 16.12.2019 № 430-ФЗ)",
+          "sha256": "1013ef608837cb38ad198625e9d4c443be9ba416f09f8cb577a5a29bd949a0d0"
+        }
+      ],
+      "dependencies": [
+        "ГК234 paragraphs1 second sentence,3 and4: registration, predecessor possession, period start."
+      ],
+      "limits": [
+        "At least15 for immovable property; at least5 for other property.",
+        "Elapsed calendar time from physical acquisition is not necessarily legally qualifying possession time.",
+        "Threshold satisfaction does not itself establish registered title or whole-case ownership."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "15 qualifying years of possession of immovable property satisfy the period test but do not alone demonstrate the legally required registration of ownership.",
+      "internal_checks": {
+        "complete_representative_inputs": 12,
+        "compatible_inputs": 12,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "immovable_property": false,
+              "qualifying_completed_possession_years": 4
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "immovable_property": false,
+              "qualifying_completed_possession_years": 5
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "d8adc5d75139f192c389a4d4a73125d3a2768bacf6933254dddd21a1976ce17c",
+        "comparison_article_sha256": "d8adc5d75139f192c389a4d4a73125d3a2768bacf6933254dddd21a1976ce17c",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "16.12.2019 № 430-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "59:5",
+      "split": "test",
+      "independent_function": "fz5_material_inspection_right",
+      "signature": "(*, related_to_consideration_of_this_appeal: bool, affects_others_rights: bool, contains_protected_secret: bool) -> bool",
+      "scope": "Citizen inspecting materials concerning consideration of this appeal under59-ФЗ; only paragraph2.",
+      "representative_domains_for_internal_check": {
+        "related_to_consideration_of_this_appeal": [
+          false,
+          true
+        ],
+        "affects_others_rights": [
+          false,
+          true
+        ],
+        "contains_protected_secret": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/59.txt",
+          "article": "5",
+          "line": 31,
+          "text": "2) знакомиться с документами и материалами, касающимися рассмотрения обращения, если это не затрагивает права, свободы и законные интересы других лиц и если в указанных документах и материалах не содержатся сведения, составляющие государственную или иную охраняемую федеральным законом тайну;",
+          "sha256": "e038f069e264cc0aacbf80ad4b7a02f5fe4c3fe9d981ad6698bf1dfd31d024d5"
+        }
+      ],
+      "dependencies": [],
+      "limits": [
+        "Both absence of effects on others’ protected rights and absence of protected secrets are required.",
+        "A negative result does not decide redacted access or access on another legal basis.",
+        "Relation to this appeal is required."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A relevant document contains federally protected secret information: relevance alone does not provide the unrestricted inspection right under5(2).",
+      "internal_checks": {
+        "complete_representative_inputs": 8,
+        "compatible_inputs": 8,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "related_to_consideration_of_this_appeal": false,
+              "affects_others_rights": false,
+              "contains_protected_secret": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "related_to_consideration_of_this_appeal": true,
+              "affects_others_rights": false,
+              "contains_protected_secret": false
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "9d85b0e8c8bd543fec649f3ff13371bf9ef113d1a1871469de8435b7854cfbf0",
+        "comparison_article_sha256": "9d85b0e8c8bd543fec649f3ff13371bf9ef113d1a1871469de8435b7854cfbf0",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "27.07.2010 № 227-ФЗ",
+          "27.11.2017 № 355-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "59:6",
+      "split": "test",
+      "independent_function": "fz6_disclosure_barred_by_part2",
+      "signature": "(*, citizen_consented: bool, written_appeal_forwarded_to_competent_recipient: bool) -> bool",
+      "scope": "Information contained in an appeal being considered under59-ФЗ; ask whether the part2 no-consent prohibition applies to the stated release or forwarding.",
+      "representative_domains_for_internal_check": {
+        "citizen_consented": [
+          false,
+          true
+        ],
+        "written_appeal_forwarded_to_competent_recipient": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/59.txt",
+          "article": "6",
+          "line": 37,
+          "text": "2. При рассмотрении обращения не допускается разглашение сведений, содержащихся в обращении, а также сведений, касающихся частной жизни гражданина, без его согласия. Не является разглашением сведений, содержащихся в обращении, направление письменного обращения в государственный орган, орган местного самоуправления или должностному лицу, в компетенцию которых входит решение поставленных в обращении вопросов.",
+          "sha256": "3423676700e7a05e7bd73b5c71578c6a555424d001302f2fc2594a752f3827ee"
+        }
+      ],
+      "dependencies": [
+        "59-ФЗ8: route legality and barred complaint recipients are separate questions."
+      ],
+      "limits": [
+        "Forwarding the written appeal to a competent statutory recipient is not disclosure of its contents under this rule.",
+        "Consent removes this particular no-consent bar, not every other confidentiality restriction.",
+        "Competent routing exception does not cover unrelated private information independently added to the transmitted materials.",
+        "Public website publication is not competent routing."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Posting appeal contents publicly without consent cannot be justified by the competent-forwarding exception.",
+      "internal_checks": {
+        "complete_representative_inputs": 4,
+        "compatible_inputs": 4,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "citizen_consented": false,
+              "written_appeal_forwarded_to_competent_recipient": false
+            },
+            "outcome": true
+          },
+          {
+            "facts": {
+              "citizen_consented": false,
+              "written_appeal_forwarded_to_competent_recipient": true
+            },
+            "outcome": false
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "66178fd17b4bc3870611349a54091be5bf32338296f47c85cff76691df424871",
+        "comparison_article_sha256": "9123b195f9ac6a04df28f22580932f818af0ca3f514340fc6644ce8cc9a2d7b8",
+        "full_article_equal": false,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "59:7",
+      "split": "test",
+      "independent_function": "fz7_paper_appeal_required_details_complete",
+      "signature": "(*, addressee_body_named: bool, addressee_official_full_name: bool, addressee_official_position: bool, sender_surname: bool, sender_given_name: bool, sender_has_patronymic: bool, sender_patronymic_given: bool, postal_reply_address: bool, substance_stated: bool, personal_signature: bool, date_given: bool) -> bool",
+      "scope": "Formal completeness of a paper appeal personally submitted by a citizen, part1; not whether the authority must refuse or answer.",
+      "representative_domains_for_internal_check": {
+        "addressee_body_named": [
+          false,
+          true
+        ],
+        "addressee_official_full_name": [
+          false,
+          true
+        ],
+        "addressee_official_position": [
+          false,
+          true
+        ],
+        "sender_surname": [
+          false,
+          true
+        ],
+        "sender_given_name": [
+          false,
+          true
+        ],
+        "sender_has_patronymic": [
+          false,
+          true
+        ],
+        "sender_patronymic_given": [
+          false,
+          true
+        ],
+        "postal_reply_address": [
+          false,
+          true
+        ],
+        "substance_stated": [
+          false,
+          true
+        ],
+        "personal_signature": [
+          false,
+          true
+        ],
+        "date_given": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/59.txt",
+          "article": "7",
+          "line": 39,
+          "text": "1. Гражданин в своем обращении в письменной форме в обязательном порядке указывает либо наименование государственного органа или органа местного самоуправления, в которые направляет обращение в письменной форме, либо фамилию, имя, отчество соответствующего должностного лица, либо должность соответствующего лица, а также свои фамилию, имя, отчество (последнее - при наличии), почтовый адрес, по которому должны быть направлены ответ, уведомление о переадресации обращения, излагает суть предложения, заявления или жалобы, ставит личную подпись и дату. (В редакции Федерального закона от 04.08.2023 № 480-ФЗ)",
+          "sha256": "f33c6be2633632a42d8bc36d2cf97638f2db33fbc3a61c044aa85464e727299e"
+        }
+      ],
+      "dependencies": [
+        "59-ФЗ11 specifies consequences for certain omissions; do not infer a uniform refusal rule."
+      ],
+      "limits": [
+        "Recipient identity can be body name OR official full name OR official position; all three are not required.",
+        "Sender patronymic is required only if the sender has one.",
+        "Postal address, substance, personal signature and date are all required.",
+        "Email address is not a substitute for postal reply address in this paper-appeal completeness target.",
+        "Presence fields mean adequate statutory details, not arbitrary nonempty strings."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Paper appeal names the official’s position but not their personal name: the alternative addressee requirement can still be satisfied.",
+      "internal_checks": {
+        "complete_representative_inputs": 2048,
+        "compatible_inputs": 1536,
+        "invalid_inputs": 512,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "addressee_body_named": false,
+              "addressee_official_full_name": false,
+              "addressee_official_position": false,
+              "sender_surname": false,
+              "sender_given_name": false,
+              "sender_has_patronymic": false,
+              "sender_patronymic_given": false,
+              "postal_reply_address": false,
+              "substance_stated": false,
+              "personal_signature": false,
+              "date_given": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "addressee_body_named": false,
+              "addressee_official_full_name": false,
+              "addressee_official_position": true,
+              "sender_surname": true,
+              "sender_given_name": true,
+              "sender_has_patronymic": false,
+              "sender_patronymic_given": false,
+              "postal_reply_address": true,
+              "substance_stated": true,
+              "personal_signature": true,
+              "date_given": true
+            },
+            "outcome": true
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "3ed49c308de79406d30c6b985ee4c28da4c405cc81819f449b408277ec00493b",
+        "comparison_article_sha256": "fc6c58a93b5a572057d55ff4f2b258801b434d94a10f4955da5e59bab53e2211",
+        "full_article_equal": false,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "04.08.2023 № 480-ФЗ",
+          "27.11.2017 № 355-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "tk:115",
+      "split": "demo",
+      "independent_function": "demo_tk115_ordinary_basic_leave_days",
+      "signature": "(*, ordinary_unextended_leave: bool) -> int | str",
+      "scope": "Ordinary annual basic leave under part1; no extended basic entitlement or additional leave.",
+      "representative_domains_for_internal_check": {
+        "ordinary_unextended_leave": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "115",
+          "line": 1104,
+          "text": "Ежегодный основной оплачиваемый отпуск предоставляется работникам продолжительностью 28 календарных дней.",
+          "sha256": "a5f063913d94acc1d9fad28c21e6459e333458251cc2f0f90a1ef4ac6011ac7b"
+        }
+      ],
+      "dependencies": [
+        "ТК115 subsequent parts and267: extended entitlements excluded."
+      ],
+      "limits": [
+        "28 calendar days; not a combined total including additional leave.",
+        "Working-disabled minimum30 belongs to a different part."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A minor’s31-day basic entitlement is not ordinary28-day leave.",
+      "internal_checks": {
+        "complete_representative_inputs": 2,
+        "compatible_inputs": 2,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "ordinary_unextended_leave": false
+            },
+            "outcome": "outside_declared_scope"
+          },
+          {
+            "facts": {
+              "ordinary_unextended_leave": true
+            },
+            "outcome": 28
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "f5e3697c9910164210391a6cf5534f61dd56fba254e6348190453f9bb69700b4",
+        "comparison_article_sha256": "f5e3697c9910164210391a6cf5534f61dd56fba254e6348190453f9bb69700b4",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "08.08.2024 № 268-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "tk:267",
+      "split": "demo",
+      "independent_function": "demo_tk267_minor_basic_leave_days",
+      "signature": "(*, employee_age_years: int) -> int | str",
+      "scope": "Annual basic leave for an employee younger than18; task is duration, not hiring legality.",
+      "representative_domains_for_internal_check": {
+        "employee_age_years": [
+          16,
+          17,
+          18
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/tk.txt",
+          "article": "267",
+          "line": 2310,
+          "text": "Ежегодный основной оплачиваемый отпуск работникам в возрасте до восемнадцати лет предоставляется продолжительностью 31 календарный день в удобное для них время.",
+          "sha256": "b1acdfb2a399fe45f0cd762092713ac9f453486b8c69e60e0e7dc01178c16719"
+        }
+      ],
+      "dependencies": [
+        "ТК115: ordinary basic duration differs."
+      ],
+      "limits": [
+        "31 calendar days, at a convenient time; no prorated first-year computation or compensation upon dismissal."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "At18 this article no longer supplies the minor entitlement.",
+      "internal_checks": {
+        "complete_representative_inputs": 3,
+        "compatible_inputs": 3,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "employee_age_years": 16
+            },
+            "outcome": 31
+          },
+          {
+            "facts": {
+              "employee_age_years": 18
+            },
+            "outcome": "outside_declared_scope"
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "7173f41a1fa5cc49e393e5a107ea79d34017620d989da1999947339d43e38d02",
+        "comparison_article_sha256": "7173f41a1fa5cc49e393e5a107ea79d34017620d989da1999947339d43e38d02",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "sk:56",
+      "split": "demo",
+      "independent_function": "demo_sk56_child_may_apply_to_court",
+      "signature": "(*, child_age_years: int, child_rights_or_legal_interests_violated: bool) -> bool | str",
+      "scope": "A child without separately acquired full capacity seeks protection of violated rights/interests; independent court application under paragraph2.",
+      "representative_domains_for_internal_check": {
+        "child_age_years": [
+          13,
+          14,
+          15,
+          17,
+          18
+        ],
+        "child_rights_or_legal_interests_violated": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/sk.txt",
+          "article": "56",
+          "line": 271,
+          "text": "При нарушении прав и законных интересов ребенка, в том числе при невыполнении или при ненадлежащем выполнении родителями (одним из них) обязанностей по воспитанию, образованию ребенка либо при злоупотреблении родительскими правами, ребенок вправе самостоятельно обращаться за их защитой в орган опеки и попечительства, а по достижении возраста четырнадцати лет в суд.",
+          "sha256": "7322cc6ba901445a8d738f8f8d2a800bea081b8a492ae2f184006ed44b334841"
+        },
+        {
+          "source_path": "dev/rulaw_proofbench/sources/sk.txt",
+          "article": "56",
+          "line": 269,
+          "text": "Несовершеннолетний, признанный в соответствии с законом полностью дееспособным до достижения совершеннолетия, имеет право самостоятельно осуществлять свои права и обязанности, в том числе право на защиту.",
+          "sha256": "d0f2391350ab60d7a77b99340754231bbc00f73ba9a9b42a19c9e1313ffb05e0"
+        }
+      ],
+      "dependencies": [
+        "СК56 part1: separately acquired full capacity gives independent protection rights and is excluded."
+      ],
+      "limits": [
+        "Under14 a child may independently approach the guardianship authority; no court right under this sentence is not absence of protection.",
+        "This does not predict success of the claim."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A13-year-old still has the stated route to the guardianship authority; the age14 court threshold does not eliminate all independent protection.",
+      "internal_checks": {
+        "complete_representative_inputs": 10,
+        "compatible_inputs": 10,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "child_age_years": 13,
+              "child_rights_or_legal_interests_violated": false
+            },
+            "outcome": false
+          },
+          {
+            "facts": {
+              "child_age_years": 14,
+              "child_rights_or_legal_interests_violated": true
+            },
+            "outcome": true
+          },
+          {
+            "facts": {
+              "child_age_years": 18,
+              "child_rights_or_legal_interests_violated": false
+            },
+            "outcome": "outside_declared_scope"
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "9c7a78c6ccf77dc93deebb97d9946ab38f999a8f7814c27393e5837f6c9d60a9",
+        "comparison_article_sha256": "9c7a78c6ccf77dc93deebb97d9946ab38f999a8f7814c27393e5837f6c9d60a9",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "gk:32",
+      "split": "demo",
+      "independent_function": "demo_gk32_adult_guardianship",
+      "signature": "(*, adult: bool, court_declared_incapable_due_to_mental_disorder: bool) -> str",
+      "scope": "Adult with a current court declaration of incapacity due to mental disorder; type of protective arrangement under paragraph1.",
+      "representative_domains_for_internal_check": {
+        "adult": [
+          false,
+          true
+        ],
+        "court_declared_incapable_due_to_mental_disorder": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "32",
+          "line": 228,
+          "text": "1. Опека устанавливается над малолетними, а также над гражданами, признанными судом недееспособными вследствие психического расстройства.",
+          "sha256": "ecc3c15e8b63c362f66adf886c26b6ea2b464d775b08dd594b578fd8dde9aca7"
+        }
+      ],
+      "dependencies": [
+        "ГК29: court incapacity, not a medical diagnosis alone."
+      ],
+      "limits": [
+        "Names guardianship, not appointment of a particular guardian or all transactions.",
+        "Minor cases are outside this adult demonstration even though the article also covers them."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "Diagnosis without a court declaration does not by itself establish this adult guardianship ground.",
+      "internal_checks": {
+        "complete_representative_inputs": 4,
+        "compatible_inputs": 4,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "adult": false,
+              "court_declared_incapable_due_to_mental_disorder": false
+            },
+            "outcome": "outside_declared_scope"
+          },
+          {
+            "facts": {
+              "adult": true,
+              "court_declared_incapable_due_to_mental_disorder": false
+            },
+            "outcome": "requirement_not_established_by_selected_provision"
+          },
+          {
+            "facts": {
+              "adult": true,
+              "court_declared_incapable_due_to_mental_disorder": true
+            },
+            "outcome": "guardianship"
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "d5d6a5dd073af50e132e0ec8f1c0845671893f8a492296708ad147e5cad17322",
+        "comparison_article_sha256": "d5d6a5dd073af50e132e0ec8f1c0845671893f8a492296708ad147e5cad17322",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    },
+    {
+      "rule_id": "gk:33",
+      "split": "demo",
+      "independent_function": "demo_gk33_adult_trusteeship",
+      "signature": "(*, adult: bool, court_limited_legal_capacity: bool) -> str",
+      "scope": "Adult with current court-limited legal capacity; type of protective arrangement under paragraph1.",
+      "representative_domains_for_internal_check": {
+        "adult": [
+          false,
+          true
+        ],
+        "court_limited_legal_capacity": [
+          false,
+          true
+        ]
+      },
+      "domain_warning": "These are threshold/branch representatives, not an implicit domain for arbitrary unknown facts. Callers of evaluate_partial must explicitly supply a domain justified by their question scope.",
+      "quotes": [
+        {
+          "source_path": "dev/rulaw_proofbench/sources/gk.txt",
+          "article": "33",
+          "line": 231,
+          "text": "1. Попечительство устанавливается над несовершеннолетними в возрасте от четырнадцати до восемнадцати лет, а также над гражданами, ограниченными судом в дееспособности. (В редакции Федерального закона от 30.12.2012 № 302-ФЗ)",
+          "sha256": "221f288ab2ec07d940ebff4e62e980d2de88944ff5f48eef8a85f89234527f9a"
+        }
+      ],
+      "dependencies": [
+        "ГК30: limited capacity is distinct from incapacity under29."
+      ],
+      "limits": [
+        "Trusteeship, not guardianship.",
+        "Not a statement about every possible limitation of an adult’s rights or income."
+      ],
+      "ambiguities": [],
+      "broad_counterexample": "A fully incapable adult falls under guardianship; the limited-capacity category should not be merged with it.",
+      "internal_checks": {
+        "complete_representative_inputs": 4,
+        "compatible_inputs": 4,
+        "invalid_inputs": 0,
+        "example_per_distinct_outcome": [
+          {
+            "facts": {
+              "adult": false,
+              "court_limited_legal_capacity": false
+            },
+            "outcome": "outside_declared_scope"
+          },
+          {
+            "facts": {
+              "adult": true,
+              "court_limited_legal_capacity": false
+            },
+            "outcome": "requirement_not_established_by_selected_provision"
+          },
+          {
+            "facts": {
+              "adult": true,
+              "court_limited_legal_capacity": true
+            },
+            "outcome": "trusteeship"
+          }
+        ]
+      },
+      "source_comparison": {
+        "primary_article_sha256": "d642c94cdd67a5eff54ecbe5a9f177b7646df1c4e766f5339bd2404de0be31d0",
+        "comparison_article_sha256": "d642c94cdd67a5eff54ecbe5a9f177b7646df1c4e766f5339bd2404de0be31d0",
+        "full_article_equal": true,
+        "selected_quote_texts_equal": true,
+        "amendment_annotations_anywhere_in_article": [
+          "30.12.2012 № 302-ФЗ"
+        ],
+        "point_in_time_status": "not_certified_by_equality; see dated_amendment_review"
+      }
+    }
+  ],
+  "checks": {
+    "test_rules": 15,
+    "demo_rules": 5,
+    "complete_representative_inputs_checked": 2439,
+    "exact_quote_records": 34,
+    "all_quotes_extracted_from_archived_official_text": true,
+    "hand_selected_boundary_and_unknown_assertions_passed": true,
+    "syntax_and_diff_check": "passed"
+  },
+  "output_semantics": {
+    "booleans": "Only whether the selected narrow condition/consequence follows; false is not a whole-case prohibition.",
+    "tk79_integer": "Minimum calendar days for written warning.",
+    "gk229_integer": "Maximum statutory percentage, not an amount promised or adjudicated.",
+    "demo_integers": "Calendar days of annual basic leave.",
+    "string_codes": {
+      "OUTSIDE_SCOPE": "outside_declared_scope",
+      "NO_REQUIREMENT": "requirement_not_established_by_selected_provision",
+      "NO_REWARD_RIGHT": "no_reward_right_under_article_229",
+      "AGREEMENT_REQUIRED": "reward_amount_requires_agreement",
+      "DIFFERENT_RISK_RULE": "other_risk_rule_must_be_examined",
+      "INSUFFICIENT_FACTS": "insufficient_facts",
+      "INCOMPATIBLE_FACTS": "incompatible_facts"
+    }
+  },
+  "followup_role": "Nonblind source-evidence supplements after isolated reconstruction; independent rule functions remain unchanged."
+}

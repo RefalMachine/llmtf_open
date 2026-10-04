@@ -1,0 +1,2 @@
+# Preserve the exact bytes of the archived, hash-verified CSV registries.
+dev/rulaw_proofbench/*.csv -text whitespace=cr-at-eol

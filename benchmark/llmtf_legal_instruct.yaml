@@ -44,3 +44,14 @@ tasks:
       - rulegalner_manual/legal
     few_shot_count: 0
     name_suffix: 0shot
+
+  - name: rulaw_proofbench
+    datasets:
+      - rulaw_proofbench/closed
+      - rulaw_proofbench/grounded
+      - rulaw_proofbench/mcq_closed
+      - rulaw_proofbench/mcq_grounded
+    few_shot_count: 0
+    name_suffix: 0shot
+    generation:
+      temperature: 0.0

@@ -40,3 +40,12 @@ tasks:
       - rulegalner_manual/legal
     few_shot_count: 5
     name_suffix: 5shot
+
+  - name: rulaw_proofbench
+    datasets:
+      - rulaw_proofbench/mcq_closed
+      - rulaw_proofbench/mcq_grounded
+    few_shot_count: 5
+    name_suffix: 5shot
+    generation:
+      temperature: 0.0

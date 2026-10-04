@@ -4,6 +4,7 @@ __pycache__/
 /dump*
 outputs/
 /results/
+/results_foundational/
 benchmark/balanced/
 benchmark/greedy/
 benchmark/balanced_old/

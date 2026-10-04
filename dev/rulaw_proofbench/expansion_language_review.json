@@ -1,0 +1,2539 @@
+{
+  "schema_version": "expansion_language_review_v1",
+  "role": "same-model nonblind adversarial/language and schema-mapping audit after a separately saved isolated reconstruction; not expert legal validation",
+  "reviewed_inputs": "Live expansion.py, build_expansion.py, independent_answer, current official source articles and declared dependencies; no claim based solely on the stored /tmp candidate. Final MCQ follow-up reads live mcq.py and regenerates /tmp/rulaw-expansion; all 305 parent/option links are checked.",
+  "reviewed_files_sha256": {
+    "expansion.py": "9bb413b9be610b333bb433bcfed733318c78c6f1a56bae2e9f3efb4b5b771b83",
+    "build_expansion.py": "19b72955a64ed7a4f7c2e95e181584a47b12d1fa00271b4ae6ded417b5169210",
+    "independent_expansion.py": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9",
+    "mcq.py": "901183254d438d6ce89f6be1011661e1524017b6d9af35c4b00a06eb3f20b262"
+  },
+  "counts": {
+    "all_test": 300,
+    "all_demo": 5,
+    "new_rules": 20
+  },
+  "oracle_agreement": {
+    "complete_worlds": 171,
+    "all_valid_partial_vectors": 483
+  },
+  "oracle_agreement_limit": "Both comparisons reuse worlds() and constraints from the primary card. Agreement checks functional alignment on those worlds; it does not independently validate text-to-fact qualification, compatibility restrictions, or a domain's legal exhaustiveness.",
+  "source_read_scope": [
+    "Full selected20 article texts in sources/tk.txt, sk.txt, gk.txt,59.txt",
+    "Full SK127 and59-ФЗ1 declared dependencies"
+  ],
+  "date_audit_status": "Excluded from this language audit; parent is separately checking edition/effective-date evidence.",
+  "findings": [
+    {
+      "id": "EXP-TK122-TIME",
+      "severity": "blocking",
+      "status": "resolved_in_live_followup",
+      "article_key": "tk:122",
+      "source_quote": "работникам, усыновившим ребенка (детей) в возрасте до трех месяцев;",
+      "problem": "The adoption qualification is inferred from child age now, while the source wording does not resolve age-at-adoption versus age-at-application by that fact alone.",
+      "affected_ids": [
+        "tk_122-09476c0deeeb",
+        "tk_122-6f643f4b3404"
+      ],
+      "remedy": "Conservatively fix adoption and the relevant leave/application time within the same stated age band, explicitly giving the age at adoption as well as now. Do not make a general rule that reaching three months now by itself extinguishes the listed adoption ground.",
+      "independence_limit": "The adapter itself supplies the unverified qualification to the independent function, so oracle equality cannot test this inference.",
+      "resolution": "Scope now establishes the same completed-month age at adoption and at the relevant application, explicitly excluding crossing the age threshold. The adversarial2-months29-days/3-months scenario no longer satisfies scope.",
+      "verified_files_sha256": {
+        "expansion.py": "9bb413b9be610b333bb433bcfed733318c78c6f1a56bae2e9f3efb4b5b771b83",
+        "build_expansion.py": "0a747a30e81038e64b3ad65691f214ea1ed922efc487fd8b5f6cd5af045391d6",
+        "independent_expansion.py": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9"
+      }
+    },
+    {
+      "id": "EXP-TK67-START",
+      "severity": "blocking_language",
+      "status": "resolved_in_live_followup",
+      "article_key": "tk:67",
+      "source_quote": "Трудовой договор, не оформленный в письменной форме, считается заключенным, если работник приступил к работе с ведома или по поручению работодателя или его уполномоченного на это представителя.",
+      "problem": "Started=False is rendered together with positive present-tense «Начало работы происходит...». These descriptions assert incompatible or ambiguous temporal states.",
+      "affected_ids": [
+        "tk_67-1e5b07953b25",
+        "tk_67-b7229f3a0aad",
+        "tk_67-8bd26b5825e9"
+      ],
+      "remedy": "Render employer/representative permission, knowledge or instruction independently of actual commencement; preserve the source alternative of knowledge without requiring a written order.",
+      "resolution": "Positive facts now describe permission/instruction to start and explicitly state that this does not mean work has begun. These facts are sufficient for employer/authorized-representative knowledge/direction when work actually starts; no written order is imposed.",
+      "verified_files_sha256": {
+        "expansion.py": "9bb413b9be610b333bb433bcfed733318c78c6f1a56bae2e9f3efb4b5b771b83",
+        "build_expansion.py": "0a747a30e81038e64b3ad65691f214ea1ed922efc487fd8b5f6cd5af045391d6",
+        "independent_expansion.py": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9"
+      }
+    },
+    {
+      "id": "EXP-FZ6-RECIPIENTS",
+      "severity": "medium_scope_ambiguity",
+      "status": "resolved_in_live_followup",
+      "article_key": "59:6",
+      "source_reference": "sources/59.txt, Article1(4), read together with Article6(2)",
+      "problem": "The competent=False phrase excludes the listed bodies/officials but does not expressly settle recipients that are public-function institutions/organizations covered by Article1(4).",
+      "remedy": "State that recipients are ordinary listed public bodies/officials and competency is about the issues, or explicitly exclude the extra Article1(4) recipient category. Alternatively justify its treatment from primary legal authority.",
+      "qualification": "This finding does not assert a proved wrong outcome for a specific institution; it identifies an unqualified legal category in a general negative branch.",
+      "resolution": "All recipients are now expressly state/municipal bodies or their officials; public-function institutions and other organizations are excluded. Negative competence means the issues are outside the listed recipient’s competence.",
+      "verified_files_sha256": {
+        "expansion.py": "9bb413b9be610b333bb433bcfed733318c78c6f1a56bae2e9f3efb4b5b771b83",
+        "build_expansion.py": "0a747a30e81038e64b3ad65691f214ea1ed922efc487fd8b5f6cd5af045391d6",
+        "independent_expansion.py": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9"
+      }
+    },
+    {
+      "id": "EXP-FZ5-QUALIFIED-UNKNOWN",
+      "severity": "low_wording",
+      "status": "resolved_in_live_followup",
+      "article_key": "59:5",
+      "problem": "Scope says information about other rights/secrecy is legally established while one such fact can be described as unknown.",
+      "remedy": "Qualify the scope as referring to supplied facts, preserving that unreported facts remain unknown.",
+      "resolution": "Scope now says only directly supplied facts are legally established, while unknown facts remain unknown.",
+      "verified_files_sha256": {
+        "expansion.py": "9bb413b9be610b333bb433bcfed733318c78c6f1a56bae2e9f3efb4b5b771b83",
+        "build_expansion.py": "0a747a30e81038e64b3ad65691f214ea1ed922efc487fd8b5f6cd5af045391d6",
+        "independent_expansion.py": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9"
+      }
+    }
+  ],
+  "blocking_findings_count": 0,
+  "unresolved_scope_findings_count": 0,
+  "status": "no_remaining_blocking_language_issue_found_within_revised_scopes",
+  "rules": [
+    {
+      "article_key": "tk:67",
+      "scope": "Трудовой договор не оформлен письменно. Рассматривается обычный работник; случай не связан с признанием гражданско-правовых отношений трудовыми. Указанный представитель, если он участвовал, надлежаще уполномочен допускать к работе.",
+      "target": "Считается ли трудовой договор заключённым именно по указанному предложению? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/tk.txt",
+        "locator": "часть 2, первое предложение",
+        "start_line": 725,
+        "fragment_sha256": "4808bdcdadd7a5c6c7dfec0c935d46b5eb98c35afc38acf5277b4b523d2a26a3"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "tk_67-f3b4732096f8",
+          "facts": {
+            "started": true,
+            "employer": null,
+            "representative": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "55cc484890964ac57e0133d6f7dee6866ff53e980c03a76db1fd5bbc2bb9a76c"
+        },
+        {
+          "id": "tk_67-16995636c23a",
+          "facts": {
+            "started": true,
+            "employer": true,
+            "representative": false
+          },
+          "gold": "да",
+          "sha256": "a859a8a0cfc746adb0da9fcd2920544e497d82892d606fb8d66bb2dfcab18f76"
+        },
+        {
+          "id": "tk_67-43bdd3fa9b40",
+          "facts": {
+            "started": false,
+            "employer": null,
+            "representative": false
+          },
+          "gold": "нет",
+          "sha256": "d347c5605db72e9ec2478f6bbc27071bcb11e253302af3f8e00e3e2140f470a8"
+        },
+        {
+          "id": "tk_67-6c8b6525098e",
+          "facts": {
+            "started": true,
+            "employer": true,
+            "representative": true
+          },
+          "gold": "да",
+          "sha256": "273fe5ce143f86b1482ef9c5860520c687015101463a2a09c23f22c3edef2e2f"
+        },
+        {
+          "id": "tk_67-e20efd41542f",
+          "facts": {
+            "started": false,
+            "employer": false,
+            "representative": false
+          },
+          "gold": "нет",
+          "sha256": "c48a3ffec643fef1367d87d1998a63ddfece6a1357a6e59898fbc0d910440638"
+        },
+        {
+          "id": "tk_67-1e5b07953b25",
+          "facts": {
+            "started": false,
+            "employer": true,
+            "representative": false
+          },
+          "gold": "нет",
+          "sha256": "31a38ea11f2e6cd9c3f0b8c1ba67f5b7e742958f980465e34e2a517491a77217"
+        },
+        {
+          "id": "tk_67-fd0dd1bf9b50",
+          "facts": {
+            "started": true,
+            "employer": false,
+            "representative": false
+          },
+          "gold": "нет",
+          "sha256": "d0ea76c72312e3e4f5de9b556aca6831802bb654cad5f6be37ba0b67078c98b6"
+        },
+        {
+          "id": "tk_67-b7229f3a0aad",
+          "facts": {
+            "started": false,
+            "employer": false,
+            "representative": true
+          },
+          "gold": "нет",
+          "sha256": "72f006f95a1cd67f9dd3907d8259d2b1c9c648ff810b072bffce3a5b8fa9ac5f"
+        },
+        {
+          "id": "tk_67-8bd26b5825e9",
+          "facts": {
+            "started": false,
+            "employer": true,
+            "representative": true
+          },
+          "gold": "нет",
+          "sha256": "9f9713e0600d6975815642bb55e9e45e636561aa79b2a9d167ceaeeb83ca7392"
+        },
+        {
+          "id": "tk_67-701ff0d11607",
+          "facts": {
+            "started": true,
+            "employer": false,
+            "representative": true
+          },
+          "gold": "да",
+          "sha256": "ef097e32b085035761bcae4eb1f09a1f0e9fa31d3240a6f85b6e1e5d322dceba"
+        }
+      ],
+      "verdict": "no_remaining_blocker_in_revised_scope",
+      "mapping": "Permission/instruction is a stated sufficient form of the independently modeled employer/representative knowledge-or-direction condition. Absence of knowledge/direction remains the negative premise; mere source-level knowledge is not prohibited.",
+      "unknowns": "Unknown knowledge/direction spans the independent truth conditions; actual commencement=False still determines нет without a contradictory present-tense commencement statement.",
+      "limits": [
+        "No written contract; ordinary employment rather than reclassification of a civil contract.",
+        "Authorization must concern admission to work.",
+        "No conclusion about payment duties when an unauthorized person admitted the worker."
+      ],
+      "counterexample": {
+        "facts": {
+          "started": false,
+          "employer": true,
+          "representative": false
+        },
+        "issue": "The rendered text says both «ещё не приступил» and «Начало работы происходит». The Boolean oracle silently chooses one proposition while the natural-language premise is contradictory or temporally ambiguous.",
+        "current_scope_treatment": "The old wording is no longer rendered. Permission/instruction and no actual commencement are jointly possible."
+      },
+      "previous_rule_specific_observation": {
+        "verdict": "blocking_render_ambiguity",
+        "mapping": "The independent function tests actual commencement AND employer/authorized-representative knowledge or direction. Field mapping is faithful; wording of positive authorization facts is not independent of commencement.",
+        "unknowns": "started=False determines нет even if authorization is not supplied; that reasoning is sound only when the positive/unknown authorization descriptions do not themselves assert actual commencement.",
+        "counterexample": {
+          "facts": {
+            "started": false,
+            "employer": true,
+            "representative": false
+          },
+          "issue": "The rendered text says both «ещё не приступил» and «Начало работы происходит». The Boolean oracle silently chooses one proposition while the natural-language premise is contradictory or temporally ambiguous."
+        }
+      },
+      "resolution": "Positive facts now describe permission/instruction to start and explicitly state that this does not mean work has begun. These facts are sufficient for employer/authorized-representative knowledge/direction when work actually starts; no written order is imposed."
+    },
+    {
+      "article_key": "tk:79",
+      "scope": "Работника увольняют именно в связи с истечением срока трудового договора. Проверяется соблюдение только требования о письменном предупреждении из этого предложения. Если действует прямо названное исключение, нарушения именно этого требования нет. Интервал до увольнения задан в календарных днях и не требует вычисления по датам.",
+      "target": "Нарушено ли указанное требование о предупреждении? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/tk.txt",
+        "locator": "часть 1, второе предложение",
+        "start_line": 834,
+        "fragment_sha256": "c24b6391426b895332e6fd6c41854848e34c6e6f644d94b75ebd2097f1692e2a"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "tk_79-02dff10b4424",
+          "facts": {
+            "replacement": false,
+            "written_notice": true,
+            "lead_days": 4
+          },
+          "gold": "нет",
+          "sha256": "91e527897e72f80ae40614985f8b61ee7e2af15a852e250fc1d8ada19d70d009"
+        },
+        {
+          "id": "tk_79-d40936044f09",
+          "facts": {
+            "replacement": false,
+            "written_notice": true,
+            "lead_days": 2
+          },
+          "gold": "да",
+          "sha256": "17caa4bcd91eb2769b3089995be712bc2fa5202ddab9b8b1a79a90d99853e5b5"
+        },
+        {
+          "id": "tk_79-a70fa007d965",
+          "facts": {
+            "replacement": true,
+            "written_notice": true,
+            "lead_days": null
+          },
+          "gold": "нет",
+          "sha256": "1ea7d102db06feb4a017bd316166e91ba949fbee5d0edf5443809ccfcfcd78f5"
+        },
+        {
+          "id": "tk_79-a3c463f31afd",
+          "facts": {
+            "replacement": false,
+            "written_notice": true,
+            "lead_days": 3
+          },
+          "gold": "нет",
+          "sha256": "f8b8b5766d67ffc3bf07b0336326db5bdc8610dc9e04072992e8a439316728ae"
+        },
+        {
+          "id": "tk_79-03af9793c629",
+          "facts": {
+            "replacement": null,
+            "written_notice": true,
+            "lead_days": 2
+          },
+          "gold": "недостаточно данных",
+          "sha256": "c7cdbb8ee95dd6d6e663ddb9d3292fca7ca86640c200d6b48a448e557b273787"
+        },
+        {
+          "id": "tk_79-1305084aad7d",
+          "facts": {
+            "replacement": false,
+            "written_notice": true,
+            "lead_days": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "fb18f57a749411f5933727ef40ef0fa799f6266def67ff47d2f3aa6d983b911e"
+        },
+        {
+          "id": "tk_79-258a846e0486",
+          "facts": {
+            "replacement": true,
+            "written_notice": true,
+            "lead_days": 2
+          },
+          "gold": "нет",
+          "sha256": "f74739a0e748c5ed03c08d12bea866688e9638b38acf2ac7a275ce73a4347d0f"
+        },
+        {
+          "id": "tk_79-a7f738c3d99c",
+          "facts": {
+            "replacement": false,
+            "written_notice": false,
+            "lead_days": 3
+          },
+          "gold": "да",
+          "sha256": "2c370bac34a16732af448ff214b3dc2faaac46d91fb342ac8508de8862442da7"
+        },
+        {
+          "id": "tk_79-df29c2129ebd",
+          "facts": {
+            "replacement": true,
+            "written_notice": false,
+            "lead_days": 2
+          },
+          "gold": "нет",
+          "sha256": "9c572b4d2eeae63904b06af1281be9a4d8c2ee5605ae0c7e64f6ae18d023e9f0"
+        },
+        {
+          "id": "tk_79-02edf040bb79",
+          "facts": {
+            "replacement": true,
+            "written_notice": false,
+            "lead_days": 4
+          },
+          "gold": "нет",
+          "sha256": "59f23e3dd48afb9171495d48b55610ee5bb9d45c7d6e242a24a0f91bb3d5a97b"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "independent_answer derives a breach test from the independently reconstructed three-calendar-day minimum, then checks written form and lead time. This is a consequence adaptation, not an independent reconstruction of every breach predicate.",
+      "unknowns": "Unknown lead time covers below/at/above three. A replacement contract makes that time irrelevant to this requirement; unknown replacement status at two days legitimately leaves an unknown answer.",
+      "limits": [
+        "Only expiry termination and the selected warning requirement.",
+        "The replacement exception does not establish overall lawful termination.",
+        "The stated interval is taken as an established number of calendar days."
+      ],
+      "counterexample": {
+        "facts": "Replacement contract ends when the absent employee returns; no written three-day warning.",
+        "broad_claim_refuted": "Every fixed-term expiry requires three days' written notice.",
+        "current_answer": "нет"
+      }
+    },
+    {
+      "article_key": "tk:122",
+      "scope": "Идёт первый год работы; шесть месяцев непрерывной работы у этого работодателя ещё не истекли. Других оснований обязательного раннего отпуска по федеральным законам нет. Если указано усыновление, возраст ребёнка в полных месяцах на момент усыновления и на момент рассматриваемого обращения за отпуском одинаков; временного перехода через возрастной порог между этими событиями нет.",
+      "target": "Должен ли работодатель предоставить оплачиваемый отпуск до истечения шести месяцев по названным основаниям? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/tk.txt",
+        "locator": "часть 3, абзацы 1–4",
+        "start_line": 1140,
+        "fragment_sha256": "2f5afb866ccbfe15ce7c9fb3afbb324cc1518badd883173f14b8143fee57c4ec"
+      },
+      "dependencies": [
+        "sk:127"
+      ],
+      "constraints": [
+        [
+          "any",
+          [
+            "eq",
+            "age",
+            18
+          ],
+          [
+            "eq",
+            "age",
+            19
+          ],
+          [
+            "eq",
+            "ground",
+            "ordinary"
+          ],
+          [
+            "eq",
+            "ground",
+            "before"
+          ],
+          [
+            "eq",
+            "ground",
+            "after"
+          ]
+        ]
+      ],
+      "constraint_changed_unknown_answers": [
+        {
+          "facts": {
+            "age": null,
+            "ground": "adopt_3",
+            "applied": true
+          },
+          "with_constraints": "нет",
+          "without_constraints": "недостаточно данных"
+        },
+        {
+          "facts": {
+            "age": null,
+            "ground": "adopt_3",
+            "applied": null
+          },
+          "with_constraints": "нет",
+          "without_constraints": "недостаточно данных"
+        },
+        {
+          "facts": {
+            "age": null,
+            "ground": "adopt_4",
+            "applied": true
+          },
+          "with_constraints": "нет",
+          "without_constraints": "недостаточно данных"
+        },
+        {
+          "facts": {
+            "age": null,
+            "ground": "adopt_4",
+            "applied": null
+          },
+          "with_constraints": "нет",
+          "without_constraints": "недостаточно данных"
+        }
+      ],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "tk_122-7aa71c32e104",
+          "facts": {
+            "age": 18,
+            "ground": null,
+            "applied": true
+          },
+          "gold": "недостаточно данных",
+          "sha256": "0d4ac05bb2973459da5c411012fa87decf7d47c8232dfdeedff16e0bfe7244f6"
+        },
+        {
+          "id": "tk_122-9a173b5b715e",
+          "facts": {
+            "age": 19,
+            "ground": "after",
+            "applied": true
+          },
+          "gold": "да",
+          "sha256": "f28816552ce20f2f913a05707f36a07828765241f60adcffecc357a5ae807b34"
+        },
+        {
+          "id": "tk_122-09476c0deeeb",
+          "facts": {
+            "age": 19,
+            "ground": "adopt_3",
+            "applied": true
+          },
+          "gold": "нет",
+          "sha256": "9cf8ce062158c21c5ac8822a7624741de4c1818b16678fcd5cb73bd499d142b7"
+        },
+        {
+          "id": "tk_122-e5769fdb075f",
+          "facts": {
+            "age": 17,
+            "ground": "ordinary",
+            "applied": false
+          },
+          "gold": "нет",
+          "sha256": "a0f54f2a5273d6eb81531c4175a949ddccba6d8c019d314de015069eda9db99d"
+        },
+        {
+          "id": "tk_122-577fdd4ad360",
+          "facts": {
+            "age": 17,
+            "ground": "ordinary",
+            "applied": true
+          },
+          "gold": "да",
+          "sha256": "6e6000059791d9c2496273be1b9e29ea20f3b3c936ddebdb7c726a8dfa8a2678"
+        },
+        {
+          "id": "tk_122-913f156a5496",
+          "facts": {
+            "age": 19,
+            "ground": "before",
+            "applied": true
+          },
+          "gold": "да",
+          "sha256": "0d55628b8e2125513e2c162efb60ef844c502912a20fadf2b3dfe216871b7233"
+        },
+        {
+          "id": "tk_122-5380d5e5bb32",
+          "facts": {
+            "age": 17,
+            "ground": null,
+            "applied": true
+          },
+          "gold": "да",
+          "sha256": "54b6c87afff2d46bdbf4d04e3654614f068b12ee6014d72707549bf438a35599"
+        },
+        {
+          "id": "tk_122-6f643f4b3404",
+          "facts": {
+            "age": 19,
+            "ground": "adopt_4",
+            "applied": true
+          },
+          "gold": "нет",
+          "sha256": "9bd0c27d88f02db9c647914d9a2cbf7c08773578b9a6d650a126566f84af8f31"
+        },
+        {
+          "id": "tk_122-8e3c9b2229b9",
+          "facts": {
+            "age": 19,
+            "ground": "adopt_2",
+            "applied": true
+          },
+          "gold": "да",
+          "sha256": "a32f135132fb5da4b15245ec8e18f4aa8970c562c054b6f48075b2a1d8c48e8a"
+        },
+        {
+          "id": "tk_122-180ed68c31ee",
+          "facts": {
+            "age": 18,
+            "ground": "ordinary",
+            "applied": true
+          },
+          "gold": "нет",
+          "sha256": "7e07ac663531872f075b5197d82f9579b090917625143f8dee113d9b816abf23"
+        }
+      ],
+      "verdict": "no_remaining_blocker_in_revised_scope",
+      "mapping": "The revised scope gives equal completed-month age at adoption and application with no threshold crossing. Therefore adopt_2 is a qualifying under-three-month adoption and adopt_3/4 are outside that category; the adapter no longer supplies an unsupported temporal qualification.",
+      "unknowns": "The adult-adopter constraint comes from the citedSK127(1). Four partial outcomes change relative to an unconstrained Cartesian domain; this is legally supported and the adoption-age ambiguity is removed by explicit scope.",
+      "limits": [
+        "First working year before six months; other mandatory early-leave grounds excluded.",
+        "A statutory application is required, but the source does not explicitly require written form here.",
+        "Before/immediately-after grounds refer to the actual maternity leave timing.",
+        "Any adoption, not only an under-three-month adoption, requires adult status."
+      ],
+      "counterexample": {
+        "facts": {
+          "age": 19,
+          "ground": "adopt_3",
+          "applied": true
+        },
+        "issue": "Adoption at two months and29 days, application at exactly three months, is compatible with a recent/current adoption. The text «сейчас3» does not rule that out. The review does not decide the disputed general temporal reading; it requires a scope that eliminates the distinction.",
+        "current_scope_treatment": "Excluded by the explicitly identical completed-month ages and no-threshold-crossing condition."
+      },
+      "previous_rule_specific_observation": {
+        "verdict": "blocking_semantic_qualification_gap",
+        "mapping": "The adapter maps ground=adopt_2 to qualifying_adoption_of_child_under_three_months=True and every other ground to False. The independent predicate was deliberately a supplied legal qualification. Current child age alone does not prove the negative qualification at adoption.",
+        "unknowns": "The adult-adopter constraint legitimately removes age17 for all adoption categories under SK127(1), but this does not cure the unsupported current-age-to-adoption-qualification mapping. Unknown age with adopt_3/4 becomes determinate нет after the constraint, so the temporal premise matters to partial vectors as well.",
+        "counterexample": {
+          "facts": {
+            "age": 19,
+            "ground": "adopt_3",
+            "applied": true
+          },
+          "issue": "Adoption at two months and29 days, application at exactly three months, is compatible with a recent/current adoption. The text «сейчас3» does not rule that out. The review does not decide the disputed general temporal reading; it requires a scope that eliminates the distinction."
+        }
+      },
+      "resolution": "Scope now establishes the same completed-month age at adoption and at the relevant application, explicitly excluding crossing the age threshold. The adversarial2-months29-days/3-months scenario no longer satisfies scope."
+    },
+    {
+      "article_key": "tk:124",
+      "scope": "Рассматривается непредоставление ежегодного оплачиваемого отпуска за текущий рабочий год. Проверяются только прямые запреты в последней части статьи, не разрешённость переноса по другим положениям.",
+      "target": "Запрещено ли такое непредоставление прямо указанной частью? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/tk.txt",
+        "locator": "часть 4",
+        "start_line": 1154,
+        "fragment_sha256": "24e852e82c8cbe18a62a4804fd9e53b4e0852b5682999179d04c13cab6843513"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "tk_124-b2f186c3a408",
+          "facts": {
+            "years": 1,
+            "age": 19,
+            "harmful": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "16e0521867b9c4e723d9a924d765e4d6fb30ad978b8b4b3c1b57091fdeae9b01"
+        },
+        {
+          "id": "tk_124-2e5b9f4fb8fa",
+          "facts": {
+            "years": 2,
+            "age": 18,
+            "harmful": false
+          },
+          "gold": "да",
+          "sha256": "7b0f44c8deb034eb0191cdbad2ed48ba52293813b9cf5a47aee8c3061fa0c1c2"
+        },
+        {
+          "id": "tk_124-295372e2f2e1",
+          "facts": {
+            "years": 1,
+            "age": 18,
+            "harmful": false
+          },
+          "gold": "нет",
+          "sha256": "e7486d4df9378cc1420d019aa8a3c70dcf54b92be6d38e7a9499a4b2e626aed9"
+        },
+        {
+          "id": "tk_124-a9fb36c557a9",
+          "facts": {
+            "years": 1,
+            "age": 19,
+            "harmful": true
+          },
+          "gold": "да",
+          "sha256": "d50118528af416ab41a1388d33a83085e01d0c6e3194b24852ec94e4961a9bba"
+        },
+        {
+          "id": "tk_124-b8a896e82fb5",
+          "facts": {
+            "years": 3,
+            "age": 19,
+            "harmful": false
+          },
+          "gold": "да",
+          "sha256": "67fa5783d4570ec43282c250fb6a9498f4a3d4b31e5248a30707d2899d08883b"
+        },
+        {
+          "id": "tk_124-7140afac5eb7",
+          "facts": {
+            "years": 1,
+            "age": 18,
+            "harmful": true
+          },
+          "gold": "да",
+          "sha256": "83e34190893836138d6b1b1fe15b69321dff69e190e09d6b22c7a066dcf53e60"
+        },
+        {
+          "id": "tk_124-6b952a34f301",
+          "facts": {
+            "years": 1,
+            "age": 17,
+            "harmful": false
+          },
+          "gold": "да",
+          "sha256": "28c94770bd490523b750c64089237dd7e7d8dadf5df9269bee3ee4b2f32fa9a1"
+        },
+        {
+          "id": "tk_124-2e7ad6c1b202",
+          "facts": {
+            "years": 1,
+            "age": null,
+            "harmful": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "897c8d9c1670f7229ba94dd4a318ef7be435225fdc3b4910467d96b912846cad"
+        },
+        {
+          "id": "tk_124-0e5a9c9d6c5d",
+          "facts": {
+            "years": 2,
+            "age": null,
+            "harmful": false
+          },
+          "gold": "да",
+          "sha256": "7da077488d0d6ae75e1a3e323758c5350558f31a0183a62e01e17d4e8bcc6e9a"
+        },
+        {
+          "id": "tk_124-800dd8837227",
+          "facts": {
+            "years": 2,
+            "age": 17,
+            "harmful": true
+          },
+          "gold": "да",
+          "sha256": "aff833692e3a6d58ff5a2a33f996f026e8d9b6c49b14061cb01e4ed9849acaea"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "Years1/2/3 represent one year versus at least two. Minor age and harmful/dangerous employment are independent sufficient conditions, matching the complete final paragraph.",
+      "unknowns": "Unknown years means at least the current year; all omitted values above three remain on the same prohibitory side. Unknown age is expressly17–19, and a known two-year period makes it irrelevant.",
+      "limits": [
+        "A negative result does not authorize denial in all other circumstances.",
+        "No calendar-date or postponed-leave calculation is attempted.",
+        "The final paragraph's special-worker prohibitions apply already for one year."
+      ],
+      "counterexample": {
+        "facts": {
+          "years": 1,
+          "age": 17,
+          "harmful": false
+        },
+        "broad_claim_refuted": "No express prohibition exists until two years have elapsed.",
+        "current_answer": "да"
+      }
+    },
+    {
+      "article_key": "tk:126",
+      "scope": "Совершеннолетняя работница просит заменить денежной компенсацией 3 дня ежегодного ОСНОВНОГО оплачиваемого отпуска за один рабочий год. Установленная ей продолжительность основного отпуска законна. Суммирование отпусков за разные годы, дополнительные отпуска, увольнение и специальные исключения Кодекса не рассматриваются. При наличии достаточного превышения предлагаемые 3 дня целиком берутся из этой превышающей части.",
+      "target": "Допускают ли названные части такую замену в рамках общего правила? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/tk.txt",
+        "locator": "части 1 и 3",
+        "start_line": 1166,
+        "fragment_sha256": "c7b93c78156eb90df88b79fc3e363cfbd29f3eb467b7d13dd995943a09776a1e"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "tk_126-e8e70c5a714b",
+          "facts": {
+            "days": 28,
+            "written": true,
+            "pregnant": false
+          },
+          "gold": "нет",
+          "sha256": "b4ef9ca791af41e484e07a8c6c6361fef1236865f32cb237ebec762f3adb0172"
+        },
+        {
+          "id": "tk_126-5598b4633926",
+          "facts": {
+            "days": 31,
+            "written": true,
+            "pregnant": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "4332b24da00bdd3a54bab010ccdb352a9da4ac268f744e76917ea603a7f4edc8"
+        },
+        {
+          "id": "tk_126-b2af54213227",
+          "facts": {
+            "days": 30,
+            "written": true,
+            "pregnant": false
+          },
+          "gold": "нет",
+          "sha256": "8ac7d07f4a2c3e86ebeeb5ecc5dbfc2096ac385877025a5639ca6fac22f36151"
+        },
+        {
+          "id": "tk_126-dd77bca5cc9c",
+          "facts": {
+            "days": 31,
+            "written": false,
+            "pregnant": false
+          },
+          "gold": "нет",
+          "sha256": "ca7b501790638174be5a348b5013b124ac74e1cf5e231305869998d04b1e04e9"
+        },
+        {
+          "id": "tk_126-1476c6ab5e00",
+          "facts": {
+            "days": 28,
+            "written": false,
+            "pregnant": true
+          },
+          "gold": "нет",
+          "sha256": "96cf627cfd5e69b842d36e2650a16f5bc44319e286f191d4ba541ab0f76bb2e9"
+        },
+        {
+          "id": "tk_126-62f198560d6d",
+          "facts": {
+            "days": 28,
+            "written": null,
+            "pregnant": false
+          },
+          "gold": "нет",
+          "sha256": "8f3e669412bd815db2743b6f2ac74ee8e303ea58b5a11e3372dec1263dbc5d35"
+        },
+        {
+          "id": "tk_126-494af91460b2",
+          "facts": {
+            "days": 31,
+            "written": true,
+            "pregnant": false
+          },
+          "gold": "да",
+          "sha256": "21e66c2fd3749a5f06ba58a7d390083e8534598b1a1bc560b8d8bed2c49d5711"
+        },
+        {
+          "id": "tk_126-4a50c3017e8c",
+          "facts": {
+            "days": 30,
+            "written": true,
+            "pregnant": true
+          },
+          "gold": "нет",
+          "sha256": "6dcef576e435084aece743c1f1fd751fbaa7398f00b108c53f31d83ba904625a"
+        },
+        {
+          "id": "tk_126-e3d35953f34e",
+          "facts": {
+            "days": 31,
+            "written": true,
+            "pregnant": true
+          },
+          "gold": "нет",
+          "sha256": "18096ac44e490a5672d20bed0262505bf0effee54d34545f461b28d1f2980229"
+        },
+        {
+          "id": "tk_126-66f07aa49957",
+          "facts": {
+            "days": 31,
+            "written": null,
+            "pregnant": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "7626b87cba9b6e99385153691d60136ecc0d5968d49f2d4529c95b8e4a181983"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "The fixed three-day requested substitution and adult age are sound reductions of the independent function. Choosing age30 in the adapter represents the stated adult category; no age-sensitive hidden fact changes the selected rule.",
+      "unknowns": "The unknown wording allows28–31 while the numeric domain omits29. This omission does not produce a false determinate answer:29, like28/30, has less than three excess days. All determinate/unknown outcomes are preserved.",
+      "limits": [
+        "Exactly three days of one working year's basic annual leave.",
+        "Lawful annual entitlement is expressly stipulated; this is not a test of who gets31 basic days.",
+        "Adult woman permits a meaningful pregnancy condition.",
+        "Permission is not an employer obligation to pay.",
+        "No accumulated leave, dismissal, additional harmful-work leave, or special statutory exceptions."
+      ],
+      "counterexample": {
+        "facts": {
+          "days": 30,
+          "written": true,
+          "pregnant": false
+        },
+        "broad_claim_refuted": "Any excess over28 permits replacing all three requested days.",
+        "current_answer": "нет",
+        "reason": "Only two excess days exist. With31 and no pregnancy/written-request defect the selected three-day substitution is permitted."
+      }
+    },
+    {
+      "article_key": "sk:35",
+      "scope": "Один супруг заключает сделку по распоряжению общим имуществом супругов. Все указанные требования регистрации и формы являются юридически установленными фактами.",
+      "target": "Необходимо ли нотариально удостоверенное согласие другого супруга именно по этому предложению? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/sk.txt",
+        "locator": "пункт 3, первое предложение",
+        "start_line": 162,
+        "fragment_sha256": "1136904b75c09fe8e8257789e08963a7058a57db2bc72969ce0d04c8e495bf3b"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "sk_35-7c1b222d1674",
+          "facts": {
+            "rights_registration": true,
+            "notarial_form": true,
+            "transaction_registration": true
+          },
+          "gold": "да",
+          "sha256": "591bbd910938ccc7a7257dd18478b2c103a94375fc27c0b15d28844d39d84de0"
+        },
+        {
+          "id": "sk_35-2f6acbfba48d",
+          "facts": {
+            "rights_registration": false,
+            "notarial_form": true,
+            "transaction_registration": true
+          },
+          "gold": "да",
+          "sha256": "bb3a532da034e01948c515d557d8161d1fe71d0235162bf131772085e59f83d9"
+        },
+        {
+          "id": "sk_35-fbbb72888bf6",
+          "facts": {
+            "rights_registration": false,
+            "notarial_form": false,
+            "transaction_registration": false
+          },
+          "gold": "нет",
+          "sha256": "055afe952c88e82b13388454ef3d14573006228e8c7c457f4d8cc1aa59499061"
+        },
+        {
+          "id": "sk_35-e332d6e943dc",
+          "facts": {
+            "rights_registration": true,
+            "notarial_form": false,
+            "transaction_registration": true
+          },
+          "gold": "да",
+          "sha256": "a49558c60ed846d1fc1aaa1dc76e110bfb2d05a147bb51929a1050aff8dacd83"
+        },
+        {
+          "id": "sk_35-cb4918d7c28c",
+          "facts": {
+            "rights_registration": true,
+            "notarial_form": null,
+            "transaction_registration": false
+          },
+          "gold": "да",
+          "sha256": "a3950e22c0dc8edb2f04ad1e4d74a37826c897162ebb01deb5f241d22412f4d4"
+        },
+        {
+          "id": "sk_35-6594b17b7973",
+          "facts": {
+            "rights_registration": false,
+            "notarial_form": true,
+            "transaction_registration": false
+          },
+          "gold": "да",
+          "sha256": "53e79826e2bb265da4976d29429330fae4a8b17661fbc464127d006baf884d15"
+        },
+        {
+          "id": "sk_35-8859e7602f0d",
+          "facts": {
+            "rights_registration": false,
+            "notarial_form": null,
+            "transaction_registration": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "3e2203394a2d9b6bacd9d972d2a2027a8efa4052d101405bb19d13f0f8d8fcc1"
+        },
+        {
+          "id": "sk_35-950003f366f9",
+          "facts": {
+            "rights_registration": false,
+            "notarial_form": false,
+            "transaction_registration": true
+          },
+          "gold": "да",
+          "sha256": "a055167b9969a89f2b8779a9e551b3ee4870cb7e07969070e36fd2a60a778dff"
+        },
+        {
+          "id": "sk_35-82e4e5db3ba7",
+          "facts": {
+            "rights_registration": true,
+            "notarial_form": false,
+            "transaction_registration": false
+          },
+          "gold": "да",
+          "sha256": "bec293e19e4c316bc20665d60ece923a28acf35050472112dff1171cca0e7878"
+        },
+        {
+          "id": "sk_35-44c02df324f1",
+          "facts": {
+            "rights_registration": true,
+            "notarial_form": true,
+            "transaction_registration": false
+          },
+          "gold": "да",
+          "sha256": "5da71b60681a3265f81dc326c610a15d5b74c8ae53d9d3dd9d5762f4b78394d7"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "The three independent Boolean triggers preserve the distinction between registration of the property right and registration of the transaction. The adapter is a direct renaming.",
+      "unknowns": "A known trigger suffices despite another missing trigger; with no known trigger a missing one changes the answer.",
+      "limits": [
+        "Common property is fixed; individual property is excluded.",
+        "Mandatory legal notarial form, not voluntary notarization.",
+        "No prediction of invalidity, its challenge period, or the ordinary presumption of consent."
+      ],
+      "counterexample": {
+        "facts": {
+          "rights_registration": true,
+          "notarial_form": false,
+          "transaction_registration": false
+        },
+        "broad_claim_refuted": "Only state registration of the transaction triggers notarized consent.",
+        "current_answer": "да"
+      }
+    },
+    {
+      "article_key": "sk:62",
+      "scope": "У несовершеннолетнего, не состоящего в браке, родился ребёнок. Запрашивается только право из первого предложения пункта 2; другие права родителей не оцениваются.",
+      "target": "Вправе ли этот несовершеннолетний самостоятельно осуществлять родительские права по названному предложению? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/sk.txt",
+        "locator": "пункт 2, первое предложение",
+        "start_line": 299,
+        "fragment_sha256": "2bdfd50ad2c0ee2dac380b4548210eec6bf0a6e2cef9282cd329e44298d5355f"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "sk_62-c2f6147f43e3",
+          "facts": {
+            "age": 16,
+            "parentage": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "68dc12d3efabe13dc1868419e7c03eb92c27c80cf71735a19e73e20fcd9cdc6e"
+        },
+        {
+          "id": "sk_62-cc76e7858f97",
+          "facts": {
+            "age": 15,
+            "parentage": null
+          },
+          "gold": "нет",
+          "sha256": "dccd1e0a4d4d0b78421f2cfa5563b80d4e39e74187103bb227319abd66ffa170"
+        },
+        {
+          "id": "sk_62-548bfa3c33db",
+          "facts": {
+            "age": null,
+            "parentage": false
+          },
+          "gold": "нет",
+          "sha256": "4dd617980bfd56bcb350278f56aac6d40f3c225fcc3fedb55659b0928b8a8e83"
+        },
+        {
+          "id": "sk_62-411fe5f46513",
+          "facts": {
+            "age": 17,
+            "parentage": false
+          },
+          "gold": "нет",
+          "sha256": "be4d23276f9044b8896ede9d0b183af357867ab2a34d2586a43e74380ccb743c"
+        },
+        {
+          "id": "sk_62-af6dfb7660f8",
+          "facts": {
+            "age": 16,
+            "parentage": true
+          },
+          "gold": "да",
+          "sha256": "f7ddeecb43ab124ccf6120b17e67d5a49614af97a5fdf4832d00a95a4d707763"
+        },
+        {
+          "id": "sk_62-9fbec05b08c8",
+          "facts": {
+            "age": 15,
+            "parentage": true
+          },
+          "gold": "нет",
+          "sha256": "0fe6af20aa68dabebaf291273a071f54d8b9c87f51069f27517e20dd382e0baa"
+        },
+        {
+          "id": "sk_62-94e20cfa42db",
+          "facts": {
+            "age": 17,
+            "parentage": true
+          },
+          "gold": "да",
+          "sha256": "8d747b2d14a0f07439c3ca31388b468d17fdfe8163b3fcfc1356262cd53a21b5"
+        },
+        {
+          "id": "sk_62-106b877d2121",
+          "facts": {
+            "age": null,
+            "parentage": true
+          },
+          "gold": "недостаточно данных",
+          "sha256": "0b3379a4603e4701b7c2a68baecf0242ba899047f8907f0249fed20b29baf8a9"
+        },
+        {
+          "id": "sk_62-f5fbc7eeb8ee",
+          "facts": {
+            "age": 16,
+            "parentage": false
+          },
+          "gold": "нет",
+          "sha256": "63ec5f904916693af2a8b7a77d3dadbc3f7b745223bcd27f2d1ec9c7e75ac22e"
+        },
+        {
+          "id": "sk_62-e7824184706b",
+          "facts": {
+            "age": 15,
+            "parentage": false
+          },
+          "gold": "нет",
+          "sha256": "ad1255bf5507afced79d92c593870d934263bc9eb0f11ba7cbab4327c750497b"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "The adapter's fixed unmarried=True and child_born=True are explicitly supplied by scope. Established parentage refers to this particular parent; age threshold16 is preserved.",
+      "unknowns": "Unknown age15–17 covers both sides. Unknown parentage at15 cannot alter the negative answer; at16 it can.",
+      "limits": [
+        "Independent exercise under the first sentence, not all rights of minor parents.",
+        "Biological parenthood can be described even while its legal establishment is absent.",
+        "Marriage, adult status and appointment of a guardian for the child are outside this target."
+      ],
+      "counterexample": {
+        "facts": {
+          "age": 15,
+          "parentage": true
+        },
+        "broad_claim_refuted": "Negative independent-exercise answer means the young parent cannot live with the child or participate in upbringing.",
+        "current_answer": "нет only for the selected independent-exercise rule"
+      }
+    },
+    {
+      "article_key": "gk:211",
+      "scope": "Произошла случайная гибель имущества; виновное причинение вреда не рассматривается. Проверяется только общее возложение риска на собственника по статье 211, а не содержание специальных правил закона или договора.",
+      "target": "Возлагает ли именно общее правило этой статьи риск на указанного гражданина при этих фактах? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/gk.txt",
+        "locator": "единственное предложение",
+        "start_line": 1947,
+        "fragment_sha256": "59bfe15ab4332635bb2d950f9b6e6d2803da1b6f0c08af11ab5b0ceaf1226254"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "gk_211-3e9946bdf9d9",
+          "facts": {
+            "owner": true,
+            "different_law": false,
+            "different_contract": true
+          },
+          "gold": "нет",
+          "sha256": "fd5bdd4448d29d2608ad7120159a76447b9aa1669957322ddba7251ac0830267"
+        },
+        {
+          "id": "gk_211-274483fd7a7a",
+          "facts": {
+            "owner": true,
+            "different_law": null,
+            "different_contract": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "090940306af6533c0bee70d9c88507fc2936dfe4a6f0e8d5696de90f3cc2a19d"
+        },
+        {
+          "id": "gk_211-a64188cbffb2",
+          "facts": {
+            "owner": true,
+            "different_law": true,
+            "different_contract": true
+          },
+          "gold": "нет",
+          "sha256": "64134cfbc72e7b97b4f1261556019146f9afc9ae50446dbedd27ab548b2bf46c"
+        },
+        {
+          "id": "gk_211-209f22a947fa",
+          "facts": {
+            "owner": false,
+            "different_law": null,
+            "different_contract": false
+          },
+          "gold": "нет",
+          "sha256": "5d84c22f143cf5d1331b0568cfdddb99d9bb7aa35d98421b90a7acab1dc7cc06"
+        },
+        {
+          "id": "gk_211-5465edc00e78",
+          "facts": {
+            "owner": false,
+            "different_law": true,
+            "different_contract": false
+          },
+          "gold": "нет",
+          "sha256": "35d96383bd7a0166d3988c414027460a0e83c6c67898107b0efcc666a483874e"
+        },
+        {
+          "id": "gk_211-4d94e9cef64b",
+          "facts": {
+            "owner": false,
+            "different_law": false,
+            "different_contract": false
+          },
+          "gold": "нет",
+          "sha256": "0baa36e3fcd0a493439b00d0223eb8aa5c48a4fc247de97329bd7b0c65dff72f"
+        },
+        {
+          "id": "gk_211-392ca6c8697a",
+          "facts": {
+            "owner": false,
+            "different_law": false,
+            "different_contract": true
+          },
+          "gold": "нет",
+          "sha256": "09e5b553341b39a803d91371eab2f4d245944ae332207b314c8726c512f2f18d"
+        },
+        {
+          "id": "gk_211-22a90ea1723e",
+          "facts": {
+            "owner": true,
+            "different_law": false,
+            "different_contract": false
+          },
+          "gold": "да",
+          "sha256": "70c99b3720e607cc23d437389fbccfc3cc0d280770a7bcb53154a15aca53d559"
+        },
+        {
+          "id": "gk_211-3a0e059081d3",
+          "facts": {
+            "owner": false,
+            "different_law": true,
+            "different_contract": true
+          },
+          "gold": "нет",
+          "sha256": "f58387d8654357fa19f153a5e821570ecf8e2e3112179d28ceb77ec8a545402e"
+        },
+        {
+          "id": "gk_211-c02df94ea25f",
+          "facts": {
+            "owner": true,
+            "different_law": true,
+            "different_contract": false
+          },
+          "gold": "нет",
+          "sha256": "749eedb8683f67014364c9ad7cf739098ea2a2ee554b15d896eed3678bb3b039"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "The independent function identifies the owner as the default bearer only absent a different law/contract rule. Testing whether the named citizen is that owner is a faithful additional referent check.",
+      "unknowns": "owner=False determines нет even when special-risk rules are unknown, because the target explicitly asks whether the general rule itself burdens that citizen. It does not answer whether another rule burdens them.",
+      "limits": [
+        "Accidental loss, not damages for culpable harm.",
+        "The exact special rule is deliberately not evaluated.",
+        "A different risk rule may still burden the named citizen; a negative answer here does not decide that."
+      ],
+      "counterexample": {
+        "facts": "Named citizen is not the owner but is a carrier contractually bearing accidental-loss risk.",
+        "broad_claim_refuted": "Нет means this person bears no risk under any applicable rule.",
+        "current_answer": "нет to the expressly limited general-owner rule"
+      }
+    },
+    {
+      "article_key": "gk:214",
+      "scope": "Объект — земельный участок. Проверяется отнесение всего объекта к государственной собственности именно по пункту 2. Сведения о наличии прав названных категорий собственников даны как установленные факты.",
+      "target": "Следует ли из пункта 2, что объект является государственной собственностью? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/gk.txt",
+        "locator": "пункт 2",
+        "start_line": 1960,
+        "fragment_sha256": "ef05a8e5f3e10d81344a7e72f55a422d31b651143a3262e97ecf5b5db5ed1638"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "gk_214-327df3c8386b",
+          "facts": {
+            "citizen": true,
+            "company": null,
+            "municipal": false
+          },
+          "gold": "нет",
+          "sha256": "cd23553b79c862aa61c02a2285d0e3548e2de4a40c355a632f2528494c29c954"
+        },
+        {
+          "id": "gk_214-33b2f2ce9052",
+          "facts": {
+            "citizen": false,
+            "company": true,
+            "municipal": false
+          },
+          "gold": "нет",
+          "sha256": "1657cbac2cd2cc49e25dde302d2a2c6ff201c2f16f0da8117f15d58453310845"
+        },
+        {
+          "id": "gk_214-f6b642523ef7",
+          "facts": {
+            "citizen": null,
+            "company": true,
+            "municipal": false
+          },
+          "gold": "нет",
+          "sha256": "55952064fa87d3ab454dc1c200a70efd2cba9fc8e6d6be1dbb9fa924e7898157"
+        },
+        {
+          "id": "gk_214-0e491f8f0a46",
+          "facts": {
+            "citizen": null,
+            "company": false,
+            "municipal": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "5d75face3cc2b566ab37725406417c3d4d81374f8c643d47303ab64e05821f18"
+        },
+        {
+          "id": "gk_214-97a1fab1a8bf",
+          "facts": {
+            "citizen": false,
+            "company": false,
+            "municipal": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "4359d182962da345618098358148128baf5b3a34c1643476e7621d6520ce5853"
+        },
+        {
+          "id": "gk_214-bf8a178dc626",
+          "facts": {
+            "citizen": false,
+            "company": null,
+            "municipal": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "c6133e1931870578bae817ad617553f3ec060026a2b2f995c7dcc45dfd3dc38f"
+        },
+        {
+          "id": "gk_214-620e91356da9",
+          "facts": {
+            "citizen": false,
+            "company": null,
+            "municipal": true
+          },
+          "gold": "нет",
+          "sha256": "eb3fc8a0225ce5bed2c4aa68e5bc4ec8764eb7e58e4dc7cc2ff6ed1fc930a554"
+        },
+        {
+          "id": "gk_214-6231cd01bdd3",
+          "facts": {
+            "citizen": false,
+            "company": false,
+            "municipal": true
+          },
+          "gold": "нет",
+          "sha256": "7a515a0f8a5a7bcee7f62a6b53bb0827abb66f50d3bdf11092610d0b070dc2e7"
+        },
+        {
+          "id": "gk_214-d097131b2a1d",
+          "facts": {
+            "citizen": false,
+            "company": false,
+            "municipal": false
+          },
+          "gold": "да",
+          "sha256": "82dcf3fb68454e98b9332ae3dedd8fd1fb54bde513ca7ae5713d74add2e8bdd6"
+        },
+        {
+          "id": "gk_214-6e3cfd29fe11",
+          "facts": {
+            "citizen": true,
+            "company": false,
+            "municipal": false
+          },
+          "gold": "нет",
+          "sha256": "fa846eaab888d306ce41b64715297a591f4056bf5bfdc888c6c60541768aa634"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "The land-object fact is explicit. The adapter's three ownership categories correspond to the source. It asks whether the entire object is state-owned, not whether any state share exists.",
+      "unknowns": "A known citizen/company/municipal ownership interest is sufficient to refute a conclusion that the entire object falls to state ownership under paragraph2; unknown interests in other categories then need not change the answer.",
+      "limits": [
+        "A right on the object may concern a share; the target intentionally concerns the entire object.",
+        "No allocation of an undetermined remaining share.",
+        "No federal-versus-regional conclusion.",
+        "Unknown ownership is not absence of ownership."
+      ],
+      "counterexample": {
+        "facts": "Citizen owns one half of the land and a regional entity owns the other half.",
+        "broad_claim_refuted": "Known citizen ownership implies the state owns no part.",
+        "current_answer": "нет to the claim that the entire object is state property; individual shares are excluded"
+      }
+    },
+    {
+      "article_key": "gk:227",
+      "scope": "Нашедший правомерно хранит найденную вещь. Обязанности уведомления и возврата по другим положениям не оспариваются. Проверяется возможность реализации по этому предложению и получение доказательств выручки.",
+      "target": "Отвечает ли описанный способ реализации условиям разрешения из указанного предложения? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/gk.txt",
+        "locator": "пункт 3, второе предложение",
+        "start_line": 2053,
+        "fragment_sha256": "d0e3d07341704356c380c92cab3855d53ceae32b825501fe1cd42a8f0e34c5ec"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "gk_227-a6b6d0637656",
+          "facts": {
+            "perishable": true,
+            "expensive_storage": true,
+            "written_evidence": true
+          },
+          "gold": "да",
+          "sha256": "35f168c51e46407aaa0e9d16c12e4029dcfbc210b25253d34e52379a18e85d32"
+        },
+        {
+          "id": "gk_227-c59977ab5490",
+          "facts": {
+            "perishable": false,
+            "expensive_storage": true,
+            "written_evidence": false
+          },
+          "gold": "нет",
+          "sha256": "2380929dc36a17664f42886a7e2f344a0ddf8cb69f3bcc25ea6b239bf8688ce3"
+        },
+        {
+          "id": "gk_227-819368ad1a17",
+          "facts": {
+            "perishable": true,
+            "expensive_storage": false,
+            "written_evidence": false
+          },
+          "gold": "нет",
+          "sha256": "c9cbc100113c0b787834b7b8069fe65378f56c8bc1c65272c1e2def8b0392bac"
+        },
+        {
+          "id": "gk_227-fb033e0e9948",
+          "facts": {
+            "perishable": true,
+            "expensive_storage": true,
+            "written_evidence": false
+          },
+          "gold": "нет",
+          "sha256": "efc082df2a30d12c2a5d15f48f3c214965454adbd9a15da6fd7e411db49f11d3"
+        },
+        {
+          "id": "gk_227-30d12e647975",
+          "facts": {
+            "perishable": false,
+            "expensive_storage": false,
+            "written_evidence": true
+          },
+          "gold": "нет",
+          "sha256": "3feab9af653c2d0c2706128a9bb9f51b16bf79f6d09b6542e5434a94b7b566a0"
+        },
+        {
+          "id": "gk_227-1049cb533b82",
+          "facts": {
+            "perishable": false,
+            "expensive_storage": true,
+            "written_evidence": true
+          },
+          "gold": "да",
+          "sha256": "89f4b11c8bd6407e3980a76709f9a29a7a614cd26b0e606711887cd3fc5a6d08"
+        },
+        {
+          "id": "gk_227-8bfdd657ff2b",
+          "facts": {
+            "perishable": true,
+            "expensive_storage": false,
+            "written_evidence": true
+          },
+          "gold": "да",
+          "sha256": "4317057d64de5a967032057614f807626f27b822585743af6164d750658ac883"
+        },
+        {
+          "id": "gk_227-94429d145146",
+          "facts": {
+            "perishable": null,
+            "expensive_storage": true,
+            "written_evidence": true
+          },
+          "gold": "да",
+          "sha256": "75a39494e68b0fb1de399bea7bd2bd04bb2ec14814d9161b94e9edde5335d345"
+        },
+        {
+          "id": "gk_227-ae5da14da243",
+          "facts": {
+            "perishable": false,
+            "expensive_storage": false,
+            "written_evidence": false
+          },
+          "gold": "нет",
+          "sha256": "a9a555ad98d9f0ea1118ff5b049cc6708faf22e9a917a3ec9286c79f944d63f9"
+        },
+        {
+          "id": "gk_227-97bb33e6d994",
+          "facts": {
+            "perishable": null,
+            "expensive_storage": false,
+            "written_evidence": true
+          },
+          "gold": "недостаточно данных",
+          "sha256": "7a48cf15a351f50d29feee46259a2c2b6c79dfca9c745cb9bd97da86b0e6fe9f"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "Written evidence is to be obtained with the planned sale, matching the independent function and avoiding a pre-existing receipt requirement.",
+      "unknowns": "Known disproportionate storage costs make unknown perishability immaterial, provided written evidence will be obtained. With neither ground known and one missing, the answer can differ.",
+      "limits": [
+        "Lawful custody is supplied; no dispute about other notice/return duties.",
+        "Disproportion is relative to item value, not a raw price threshold.",
+        "Permission to realize does not transfer ownership of proceeds to finder."
+      ],
+      "counterexample": {
+        "facts": {
+          "perishable": false,
+          "expensive_storage": true,
+          "written_evidence": true
+        },
+        "broad_claim_refuted": "Only a perishable finding can be sold.",
+        "current_answer": "да under the selected sentence"
+      }
+    },
+    {
+      "article_key": "gk:229",
+      "scope": "Нашедший вещь рассматривает требование вознаграждения к лицу, управомоченному получить вещь. Запрашивается только прямо названная верхняя граница в доле стоимости, а не фактически присуждённая сумма.",
+      "target": "Какую максимальную долю стоимости вещи прямо предусматривает пункт 2 при этих фактах? Ответьте обыкновенной дробью.",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/gk.txt",
+        "locator": "пункт 2",
+        "start_line": 2063,
+        "fragment_sha256": "07b9e6d6ca5bbbd817054701e6e756bb14200a7dfe1af1bbcaf4880224acff98"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "gk_229-f4ccee230d83",
+          "facts": {
+            "reported": true,
+            "concealed": false,
+            "personal_value": true
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "4936dea0acaa3309996c6759c9fa91f784d4bba59869b4b68d169042b8dd5b36"
+        },
+        {
+          "id": "gk_229-48436436e449",
+          "facts": {
+            "reported": true,
+            "concealed": false,
+            "personal_value": false
+          },
+          "gold": "1/5",
+          "sha256": "70ce007df52f86e772457b711f2a95edd27bf5209036f56ef632e7f9244b90d4"
+        },
+        {
+          "id": "gk_229-f722b732517d",
+          "facts": {
+            "reported": false,
+            "concealed": false,
+            "personal_value": null
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "3f863952fdbe1bf865f1570e4be97b8d1ab533bb35633514cd8a839631a9f75d"
+        },
+        {
+          "id": "gk_229-6715ec4bcc74",
+          "facts": {
+            "reported": false,
+            "concealed": false,
+            "personal_value": false
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "275700f4f2fc1c7137920b7e9a9c30de8cfcfc12835ba56df1d50d6a3cc61a70"
+        },
+        {
+          "id": "gk_229-b51d5d96b42f",
+          "facts": {
+            "reported": true,
+            "concealed": true,
+            "personal_value": true
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "6354df43b139a2b178545d663ba9e001d6b8e200a83ba3fd92b2e20605c98be7"
+        },
+        {
+          "id": "gk_229-5d9655e34f9d",
+          "facts": {
+            "reported": false,
+            "concealed": true,
+            "personal_value": false
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "c0f5451bbcfffdaceaa03bb02411ef121ab531a32c3daa560b2edff4e4be2e58"
+        },
+        {
+          "id": "gk_229-d395d7a2f953",
+          "facts": {
+            "reported": false,
+            "concealed": false,
+            "personal_value": true
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "e2272e608b095b8d155aafeb6e6d4f62149c03f91b41906d155990df6e631ee3"
+        },
+        {
+          "id": "gk_229-0c284269ad1f",
+          "facts": {
+            "reported": false,
+            "concealed": true,
+            "personal_value": true
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "fca95989ddf70e452cc0ba6382ce0fbc0bf48de5a6a16402fee78320dcac45ee"
+        },
+        {
+          "id": "gk_229-ea981dd376eb",
+          "facts": {
+            "reported": true,
+            "concealed": true,
+            "personal_value": false
+          },
+          "gold": "не следует из указанной нормы",
+          "sha256": "374315402971adab3915c7c1f0996c3ebd041fb241a8f02417ec61bcc390ec78"
+        },
+        {
+          "id": "gk_229-400235eaebb1",
+          "facts": {
+            "reported": true,
+            "concealed": false,
+            "personal_value": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "5b1f638b74f4eb2d7f4eeabf3d25da3bc96df44221c2a4aaaad7ff4c5137fe50"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "The independent20-percent cap maps correctly to1/5. No reward right and an agreement-only amount both map to OUTSIDE because the target asks for a statutory numeric cap; the two legal reasons remain distinct in review.",
+      "unknowns": "personal_value unknown with clean reporting can alternate between1/5 and OUTSIDE. No reporting makes OUTSIDE determinate even if personal-value status is unknown.",
+      "limits": [
+        "A cap is not an automatically owed or adjudicated amount.",
+        "Reporting is not necessarily exclusively to police where an entitled recipient is already known.",
+        "Expenses under paragraph1 are separate.",
+        "The special agreement-only branch must not be described as zero reward."
+      ],
+      "counterexample": {
+        "facts": "Properly reported, unconcealed item is valuable only to its entitled recipient.",
+        "broad_claim_refuted": "Every honest finder has a statutory reward fixed at20 percent.",
+        "current_answer": "не следует из указанной нормы for the requested numeric fraction"
+      }
+    },
+    {
+      "article_key": "gk:234",
+      "scope": "Гражданин не является собственником имущества, но добросовестно, открыто и непрерывно владеет им как своим собственным. Применяется общий срок первого предложения; специального срока нет. Начало течения срока установлено правильно, дополнительных периодов правопредшественника нет. Количество лет относится именно к уже засчитываемому владению; возникновение права и регистрация не запрашиваются.",
+      "target": "Достигнута ли общая минимальная продолжительность владения, указанная в этом предложении? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/gk.txt",
+        "locator": "пункт 1, первое предложение",
+        "start_line": 2084,
+        "fragment_sha256": "d8adc5d75139f192c389a4d4a73125d3a2768bacf6933254dddd21a1976ce17c"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "gk_234-262b64740351",
+          "facts": {
+            "immovable": false,
+            "years": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "372a864abb77246bbffad57c9ea3e75e4909ee56d5c6bddbafd8735399e0f462"
+        },
+        {
+          "id": "gk_234-5c83d876c6cf",
+          "facts": {
+            "immovable": null,
+            "years": 15
+          },
+          "gold": "да",
+          "sha256": "7792c4cf30b2bd5caadc472baba410ce160a942e0533194db45f290f018aa492"
+        },
+        {
+          "id": "gk_234-92c2da9f7dd0",
+          "facts": {
+            "immovable": true,
+            "years": 14
+          },
+          "gold": "нет",
+          "sha256": "a03c55b61d3051230bdb1ff2e3153a4e27966b3973fb84e44e220508509b106c"
+        },
+        {
+          "id": "gk_234-5603939afe52",
+          "facts": {
+            "immovable": null,
+            "years": 5
+          },
+          "gold": "недостаточно данных",
+          "sha256": "8cd4b156b783c039942a43de4398839ff4d68a5889958b985ec28161ea58be9d"
+        },
+        {
+          "id": "gk_234-41683aa024ac",
+          "facts": {
+            "immovable": false,
+            "years": 4
+          },
+          "gold": "нет",
+          "sha256": "d86b2153985c30300bc36790032aa85b149fc822dd5173bbec69b8bb19942288"
+        },
+        {
+          "id": "gk_234-abdb2eff383e",
+          "facts": {
+            "immovable": true,
+            "years": 16
+          },
+          "gold": "да",
+          "sha256": "ce775acd9a3fda0bc05f7c982702141592eab27d322178455fcf505fdb0fe3b8"
+        },
+        {
+          "id": "gk_234-a565c7332556",
+          "facts": {
+            "immovable": true,
+            "years": 5
+          },
+          "gold": "нет",
+          "sha256": "b433f1894bf5e285449b2b51c125c86527fc7fd795941c544032373242a0240c"
+        },
+        {
+          "id": "gk_234-82bb98f24676",
+          "facts": {
+            "immovable": false,
+            "years": 5
+          },
+          "gold": "да",
+          "sha256": "c59c6f4cbf1a6e5c96a3820ee8b542c6df298e614a678145e71cbd8c7405eb38"
+        },
+        {
+          "id": "gk_234-45a6870ac7d4",
+          "facts": {
+            "immovable": false,
+            "years": 6
+          },
+          "gold": "да",
+          "sha256": "2729850ea46559819c6e499c35bbb840864b73ffff7bd2ca9130b9a2c1da1805"
+        },
+        {
+          "id": "gk_234-9d2458761c9f",
+          "facts": {
+            "immovable": true,
+            "years": 15
+          },
+          "gold": "да",
+          "sha256": "4ca6cab5569062f5519ef7a468604e5b956cef4f7638d83d4ecdddea3b46cb7a"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "The duration field is expressly legally countable possession, not raw time since acquisition. Finite sample years preserve both5- and15-year thresholds.",
+      "unknowns": "Unknown immovability at15 years gives a determinate yes; at5 years it gives unknown. Unknown years is not bounded in the phrase, but all omitted nonnegative years fall into already represented outcome classes.",
+      "limits": [
+        "Other acquisition conditions and the correct starting point are supplied.",
+        "No predecessor periods and no special period.",
+        "Reaching the minimum duration is not a title-registration or whole ownership judgment."
+      ],
+      "counterexample": {
+        "facts": "15 qualifying years of immovable possession but title registration is not established.",
+        "broad_claim_refuted": "A yes answer proves registered ownership has arisen.",
+        "current_answer": "да only to minimum duration"
+      }
+    },
+    {
+      "article_key": "59:5",
+      "scope": "Рассматривается письменное обращение гражданина, к которому применяется 59-ФЗ. Прямо сообщённые сведения о правах других лиц и охраняемой тайне являются юридически установленными фактами; неизвестные сведения остаются неизвестными.",
+      "target": "Предоставляет ли именно пункт 2 право ознакомиться с этими материалами в описанном виде? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/59.txt",
+        "locator": "пункт 2",
+        "start_line": 28,
+        "fragment_sha256": "9d85b0e8c8bd543fec649f3ff13371bf9ef113d1a1871469de8435b7854cfbf0"
+      },
+      "dependencies": [
+        "59:1"
+      ],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "59_5-ab8a4ef93cd7",
+          "facts": {
+            "related": false,
+            "other_rights": false,
+            "secret": true
+          },
+          "gold": "нет",
+          "sha256": "ada67ff3fbca1fa5da4df0f500b99a6be7e5c23fdae49f2b3fed4c3708bce4a6"
+        },
+        {
+          "id": "59_5-20cc48008c76",
+          "facts": {
+            "related": true,
+            "other_rights": false,
+            "secret": true
+          },
+          "gold": "нет",
+          "sha256": "908884bf0c541d21d5dd4e45b268e2321c46c6ff4d65fc5eab0d283cd71a9b32"
+        },
+        {
+          "id": "59_5-a7f28bf0da7e",
+          "facts": {
+            "related": false,
+            "other_rights": null,
+            "secret": false
+          },
+          "gold": "нет",
+          "sha256": "f6dc47a3e461c75affadad1f79ba198e775870d78e67bee5a63885d560a5a992"
+        },
+        {
+          "id": "59_5-8b72cacbb59e",
+          "facts": {
+            "related": false,
+            "other_rights": true,
+            "secret": false
+          },
+          "gold": "нет",
+          "sha256": "39efe22df0d6075bc1a4da50c166bee634550cec473475df5c95e27034e4ed90"
+        },
+        {
+          "id": "59_5-49af273fc068",
+          "facts": {
+            "related": true,
+            "other_rights": false,
+            "secret": false
+          },
+          "gold": "да",
+          "sha256": "38e71449d5795b483740960d7475c5d854fcb273fec53970e456fcebe0d93f1e"
+        },
+        {
+          "id": "59_5-da08b4cc0b01",
+          "facts": {
+            "related": true,
+            "other_rights": null,
+            "secret": false
+          },
+          "gold": "недостаточно данных",
+          "sha256": "4b22a3b85a9fdc883b6fe2afb28de17bb4635f9ab6555181fc84cefa36238b52"
+        },
+        {
+          "id": "59_5-8efdc8f72360",
+          "facts": {
+            "related": false,
+            "other_rights": true,
+            "secret": true
+          },
+          "gold": "нет",
+          "sha256": "73565aceda2f9501c0dd9c335c621f0c384ed6159abe20402337ef23964caf50"
+        },
+        {
+          "id": "59_5-e8d577e34675",
+          "facts": {
+            "related": true,
+            "other_rights": true,
+            "secret": true
+          },
+          "gold": "нет",
+          "sha256": "202b3365db11bc1123b8adda43576fe6ee7af2ee5879ffadae6b935c39791ac5"
+        },
+        {
+          "id": "59_5-aa2d62ee7ceb",
+          "facts": {
+            "related": true,
+            "other_rights": true,
+            "secret": false
+          },
+          "gold": "нет",
+          "sha256": "8961793672d86217bfd70feaa31381b0b644586745e9edee078d141b96712ffa"
+        },
+        {
+          "id": "59_5-02099a6b5b73",
+          "facts": {
+            "related": false,
+            "other_rights": false,
+            "secret": false
+          },
+          "gold": "нет",
+          "sha256": "4ea4bf9842d9e1b7017b7797e6e9508ecdb5f0b3eb0897e9b2f056576e5cdbf2"
+        }
+      ],
+      "verdict": "no_remaining_blocker_in_revised_scope",
+      "mapping": "Relatedness, effect on others' protected rights, and secrecy correspond to the selected item; all three are conjunctive requirements for access in the described form.",
+      "unknowns": "Only supplied values are legally established; the template expressly preserves unknown values as unknown.",
+      "limits": [
+        "No decision about a redacted copy or another access statute.",
+        "Qualified legal facts are supplied rather than inferred from document content."
+      ],
+      "counterexample": {
+        "facts": "Relevant documents contain a protected secret.",
+        "broad_claim_refuted": "Relevance alone guarantees access to the documents as described.",
+        "current_answer": "нет"
+      },
+      "previous_rule_specific_observation": {
+        "verdict": "no_proven_blocker; minor_scope_wording_risk",
+        "mapping": "Relatedness, effect on others' protected rights, and secrecy correspond to the selected item; all three are conjunctive requirements for access in the described form.",
+        "unknowns": "The phrase «Сведения ... юридически установлены» can be read as fixing legal classifications for reported values, but sits awkwardly alongside a missing rights-impact fact. Prefer «Сообщённые сведения ...» or «если они сообщены». No particular hidden truth value is forced by the present wording.",
+        "counterexample": {
+          "facts": "Relevant documents contain a protected secret.",
+          "broad_claim_refuted": "Relevance alone guarantees access to the documents as described.",
+          "current_answer": "нет"
+        }
+      },
+      "resolution": "Scope now says only directly supplied facts are legally established, while unknown facts remain unknown."
+    },
+    {
+      "article_key": "59:6",
+      "scope": "Рассматривается письменное обращение гражданина, к которому применяется 59-ФЗ. Речь только о сообщении сведений, содержащихся в самом обращении. Все рассматриваемые получатели — государственные органы, органы местного самоуправления или их должностные лица; учреждения и иные организации с публично значимыми функциями не рассматриваются. Сведения о частной жизни из других источников не добавляются; иные правовые режимы передачи не оцениваются.",
+      "target": "Запрещена ли описанная передача сведений именно правилом части 2 о неразглашении? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/59.txt",
+        "locator": "часть 2",
+        "start_line": 35,
+        "fragment_sha256": "66178fd17b4bc3870611349a54091be5bf32338296f47c85cff76691df424871"
+      },
+      "dependencies": [
+        "59:1"
+      ],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "59_6-e618e2234768",
+          "facts": {
+            "consent": false,
+            "forwarding": true,
+            "competent": false
+          },
+          "gold": "да",
+          "sha256": "9ce0708e8061c2e212646f5fea6d40f35533868fac6716df357b0463397697f5"
+        },
+        {
+          "id": "59_6-40a6573788a6",
+          "facts": {
+            "consent": true,
+            "forwarding": true,
+            "competent": false
+          },
+          "gold": "нет",
+          "sha256": "41c2ca85e960185355ed40f8324ff58b9628973f92f81ab3465a37605f47aa57"
+        },
+        {
+          "id": "59_6-6b16ade46380",
+          "facts": {
+            "consent": true,
+            "forwarding": false,
+            "competent": false
+          },
+          "gold": "нет",
+          "sha256": "78b8d9db7179d78e8a1b1cb7ca61cec140fb25e52435feb98a0d80bb69460531"
+        },
+        {
+          "id": "59_6-9ae186520e70",
+          "facts": {
+            "consent": true,
+            "forwarding": false,
+            "competent": true
+          },
+          "gold": "нет",
+          "sha256": "bc451c84c5643d56d05a8cfd11b615679bc8247da9125ecbaeefc82eb175bc65"
+        },
+        {
+          "id": "59_6-4f65c1156d5c",
+          "facts": {
+            "consent": true,
+            "forwarding": true,
+            "competent": null
+          },
+          "gold": "нет",
+          "sha256": "fde02554ba8fba23f0966e78cbbc1522882327b80dffbd405d5b4aa94b92bdf5"
+        },
+        {
+          "id": "59_6-9dc63957c8a4",
+          "facts": {
+            "consent": false,
+            "forwarding": false,
+            "competent": true
+          },
+          "gold": "да",
+          "sha256": "ad3174c8123fbee8ef72c6393a6e3ebaeec89e960a1b36de81daa8d5b4876f2e"
+        },
+        {
+          "id": "59_6-d5fa8f5da904",
+          "facts": {
+            "consent": false,
+            "forwarding": true,
+            "competent": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "248f88835c997776deedadc68ed650bfe527c806fa831e656d486d67718ad7fd"
+        },
+        {
+          "id": "59_6-34417fdc4eb0",
+          "facts": {
+            "consent": false,
+            "forwarding": true,
+            "competent": true
+          },
+          "gold": "нет",
+          "sha256": "fb85132a07e513ebbe9226f094e44993ad59a6dd7b8dccd327a136d61c5b545a"
+        },
+        {
+          "id": "59_6-5d811bd2b8e0",
+          "facts": {
+            "consent": false,
+            "forwarding": false,
+            "competent": false
+          },
+          "gold": "да",
+          "sha256": "beaf4c0938c70cfa8ddf681474a720956fc1963e9125ad9e410033694f677781"
+        },
+        {
+          "id": "59_6-b2b81b9bac6f",
+          "facts": {
+            "consent": true,
+            "forwarding": true,
+            "competent": true
+          },
+          "gold": "нет",
+          "sha256": "6180dce17a849763bc400447111d98e14e0507f3499f491f0baff4570cccafc1"
+        }
+      ],
+      "verdict": "no_remaining_blocker_in_revised_scope",
+      "mapping": "Combining forwarding AND recipient competence is faithful to the expressly named forwarding exception for the listed statutory recipients. A false result means only this confidentiality clause does not prohibit the transfer.",
+      "unknowns": "Consent=True makes recipient competence irrelevant to this particular no-consent bar; the negative competence state now means an incompetent recipient within the expressly listed public-body/official scope.",
+      "limits": [
+        "Only information contained in the appeal; no extra private information from other sources.",
+        "Forwarding is distinct from merely communicating extracts, subject to the stated scope.",
+        "No overall legality conclusion under Article8 complaint-routing restrictions or other privacy rules.",
+        "Article1(4) extends procedure to certain public-function institutions/organizations; this recipient category is now expressly outside the question scope."
+      ],
+      "counterexample": {
+        "facts": "No consent; the full appeal is forwarded to a public-function institution competent for the issue, which is not itself called a state/municipal body.",
+        "issue": "competent=False can literally fit the current list-based negative phrase, while Article1(4) raises a separate extension question. This is not a proved wrong gold; it is a category omitted from the scope qualification.",
+        "current_scope_treatment": "Public-function institutions/organizations are now explicitly excluded."
+      },
+      "previous_rule_specific_observation": {
+        "verdict": "unresolved_scope_ambiguity_for_special_recipient_category",
+        "mapping": "Combining forwarding AND recipient competence is faithful to the expressly named forwarding exception for the listed statutory recipients. A false result means only this confidentiality clause does not prohibit the transfer.",
+        "unknowns": "Consent=True makes missing recipient competence immaterial to this particular no-consent rule. consent=False with forwarding=True and unknown competence properly remains unknown.",
+        "counterexample": {
+          "facts": "No consent; the full appeal is forwarded to a public-function institution competent for the issue, which is not itself called a state/municipal body.",
+          "issue": "competent=False can literally fit the current list-based negative phrase, while Article1(4) raises a separate extension question. This is not a proved wrong gold; it is a category omitted from the scope qualification."
+        }
+      },
+      "resolution": "All recipients are now expressly state/municipal bodies or their officials; public-function institutions and other organizations are excluded. Negative competence means the issues are outside the listed recipient’s competence."
+    },
+    {
+      "article_key": "59:7",
+      "scope": "Рассматривается письменное обращение гражданина, к которому применяется 59-ФЗ. Обращение подано на бумаге. Орган-адресат правильно назван; фамилия, имя и имеющееся отчество гражданина указаны, суть обращения изложена. Проверяются только обязательные реквизиты части 1.",
+      "target": "Выполнены ли все требования части 1 к перечисленным реквизитам этого обращения? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/59.txt",
+        "locator": "часть 1",
+        "start_line": 38,
+        "fragment_sha256": "3ed49c308de79406d30c6b985ee4c28da4c405cc81819f449b408277ec00493b"
+      },
+      "dependencies": [
+        "59:1"
+      ],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 10,
+      "question_checks": [
+        {
+          "id": "59_7-d2ff6e42b8bb",
+          "facts": {
+            "postal": false,
+            "signature": true,
+            "date": true
+          },
+          "gold": "нет",
+          "sha256": "33b7b26f56acf308be737862898b0c03d807d830cc4b2830b6a93a27a52e8eae"
+        },
+        {
+          "id": "59_7-4080e9ed7cea",
+          "facts": {
+            "postal": true,
+            "signature": null,
+            "date": true
+          },
+          "gold": "недостаточно данных",
+          "sha256": "8f3d2db7b5f34e853210deedbe5f87d9fab6b4bcfd2304a8fe32fbc24b80231d"
+        },
+        {
+          "id": "59_7-440ba8f6ea6d",
+          "facts": {
+            "postal": true,
+            "signature": true,
+            "date": false
+          },
+          "gold": "нет",
+          "sha256": "b6479919832f36867db8b35cb34eadfc607e2f49f24263e03db452a14f8d476e"
+        },
+        {
+          "id": "59_7-b6790a2f49ce",
+          "facts": {
+            "postal": false,
+            "signature": true,
+            "date": false
+          },
+          "gold": "нет",
+          "sha256": "9739058574ce111313691f5b898db87a9103fbf76d7879ed18b880dd8244747c"
+        },
+        {
+          "id": "59_7-a3a3e3dcd690",
+          "facts": {
+            "postal": true,
+            "signature": false,
+            "date": true
+          },
+          "gold": "нет",
+          "sha256": "188389129e3aacfc82d7261f857c19a300b6d120bf010281bf871a36579032af"
+        },
+        {
+          "id": "59_7-8e8b467a313e",
+          "facts": {
+            "postal": false,
+            "signature": false,
+            "date": false
+          },
+          "gold": "нет",
+          "sha256": "dfcbd88bdc06c791253a737e908f576ca967d4058615aa8b9a5126bc4cdf94b4"
+        },
+        {
+          "id": "59_7-dde31fa799d7",
+          "facts": {
+            "postal": true,
+            "signature": true,
+            "date": true
+          },
+          "gold": "да",
+          "sha256": "400ed29e9b621f21c12a04682b0d0467c61f346052df0bbe6c38ed0ecf0b7cc5"
+        },
+        {
+          "id": "59_7-6e4828f4e2fa",
+          "facts": {
+            "postal": false,
+            "signature": false,
+            "date": true
+          },
+          "gold": "нет",
+          "sha256": "b0adda7bfed1e5e125453dad03659a0dda80281eec3704d11804e236d1a4a7fb"
+        },
+        {
+          "id": "59_7-8a44c2c95182",
+          "facts": {
+            "postal": true,
+            "signature": false,
+            "date": false
+          },
+          "gold": "нет",
+          "sha256": "8f50faed806da2fbf910887fac9c1a8fcec18a1fb415428c272bf93e5591a4f0"
+        },
+        {
+          "id": "59_7-eade247142bb",
+          "facts": {
+            "postal": false,
+            "signature": null,
+            "date": true
+          },
+          "gold": "нет",
+          "sha256": "9a9d9a7b32d2a63416bcaa7a27aadab4169a610108533536c510f643239eda01"
+        }
+      ],
+      "verdict": "no_blocker_found_in_declared_scope",
+      "mapping": "Body identity, sender name/patronymic as applicable, and substance are fixed as complete. The adapter chooses one fully compliant representative of these fixed facts; the output does not depend on which lawful alternative identifies the recipient.",
+      "unknowns": "A known missing postal address determines incompleteness even if signature is not supplied. Unknown signature with the other variable details present changes completeness.",
+      "limits": [
+        "Paper appeal only.",
+        "Formal completeness only, not consequences of a defect or a right to a response.",
+        "Sender patronymic is required if it exists; this qualification is in scope."
+      ],
+      "counterexample": {
+        "facts": "No personal signature, all other listed details present.",
+        "broad_claim_refuted": "Formal incompleteness necessarily requires rejection without consideration or any response.",
+        "current_answer": "нет only to formal completeness"
+      }
+    },
+    {
+      "article_key": "tk:115",
+      "scope": "Совершеннолетний работник не является инвалидом и не имеет права на удлинённый основной отпуск. Запрашивается обычный ежегодный основной оплачиваемый отпуск, без дополнительных отпусков.",
+      "target": "Какова продолжительность такого основного отпуска в календарных днях?",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/tk.txt",
+        "locator": "часть 1",
+        "start_line": 1103,
+        "fragment_sha256": "f5e3697c9910164210391a6cf5534f61dd56fba254e6348190453f9bb69700b4"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 1,
+      "question_checks": [
+        {
+          "id": "tk_115-44136fa355b3",
+          "facts": {},
+          "gold": "28",
+          "sha256": "47a1b78726c2b4a0b76561b10e379bb7289c2b79e3ca9bf41795846f297aca1d"
+        }
+      ],
+      "verdict": "demo_no_blocker_found",
+      "mapping": "The scope explicitly excludes disability and all extended basic entitlements; the fixed independent ordinary-leave fact is justified.",
+      "unknowns": "No variable facts.",
+      "limits": [
+        "Ordinary annual basic leave only; not total basic-plus-additional leave."
+      ],
+      "counterexample": {
+        "facts": "Worker qualifies for an extended basic leave.",
+        "broad_claim_refuted": "Every worker has exactly28 basic days.",
+        "scope_excludes": true
+      }
+    },
+    {
+      "article_key": "tk:267",
+      "scope": "Работнику 17 полных лет. Иных оснований удлинённого отпуска нет; запрашивается именно основной, а не суммарный с дополнительными отпуск.",
+      "target": "Какова продолжительность основного отпуска по этой статье в календарных днях?",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/tk.txt",
+        "locator": "единственное предложение",
+        "start_line": 2309,
+        "fragment_sha256": "7173f41a1fa5cc49e393e5a107ea79d34017620d989da1999947339d43e38d02"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 1,
+      "question_checks": [
+        {
+          "id": "tk_267-44136fa355b3",
+          "facts": {},
+          "gold": "31",
+          "sha256": "ab6f584a87d338a12e930d1d9dbe688e7cae38d7f329422f0b8245a2719bbee4"
+        }
+      ],
+      "verdict": "demo_no_blocker_found",
+      "mapping": "The stated17-year age maps directly to the independent31-day minor entitlement.",
+      "unknowns": "No variable facts.",
+      "limits": [
+        "Other extended grounds excluded; no sum with additional leave."
+      ],
+      "counterexample": {
+        "facts": "Worker already reached18.",
+        "broad_claim_refuted": "This article still fixes31 days merely because they previously were a minor.",
+        "scope_excludes": true
+      }
+    },
+    {
+      "article_key": "sk:56",
+      "scope": "Нарушены права ребёнка. Он не приобрёл полной дееспособности до совершеннолетия. Запрашивается самостоятельное обращение в суд за защитой этих прав по указанному предложению.",
+      "target": "Предоставляет ли указанное предложение ребёнку право самостоятельно обратиться за защитой в суд? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/sk.txt",
+        "locator": "пункт 2, второе предложение",
+        "start_line": 266,
+        "fragment_sha256": "9c7a78c6ccf77dc93deebb97d9946ab38f999a8f7814c27393e5837f6c9d60a9"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 1,
+      "question_checks": [
+        {
+          "id": "sk_56-abea49b00d67",
+          "facts": {
+            "age": null
+          },
+          "gold": "недостаточно данных",
+          "sha256": "18418e4f10f16af13355aea25a2a1c950b0c2fca733fc56b000fa7cef0140045"
+        }
+      ],
+      "verdict": "demo_no_blocker_found",
+      "mapping": "The stipulated rights violation and excluded prior full capacity match the independent function. Unknown13–15 spans the actual court-access boundary14.",
+      "unknowns": "The demonstration must remain insufficient facts; no hidden minimum-age assumption makes it yes.",
+      "limits": [
+        "Court route only; the child's route to guardianship authority below14 is not negated."
+      ],
+      "counterexample": {
+        "facts": "Rights violated; age13 versus14 is unknown.",
+        "broad_claim_refuted": "All children described have the same independent court route under this sentence.",
+        "current_answer": "недостаточно данных"
+      }
+    },
+    {
+      "article_key": "gk:32",
+      "scope": "Речь идёт о совершеннолетнем гражданине и наличии названного основания для опеки. Порядок назначения конкретного опекуна не рассматривается.",
+      "target": "Назван ли такой гражданин в пункте 1 как лицо, над которым устанавливается опека? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/gk.txt",
+        "locator": "пункт 1",
+        "start_line": 227,
+        "fragment_sha256": "d5d6a5dd073af50e132e0ec8f1c0845671893f8a492296708ad147e5cad17322"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 1,
+      "question_checks": [
+        {
+          "id": "gk_32-eca3dc7f1147",
+          "facts": {
+            "incapable": true
+          },
+          "gold": "да",
+          "sha256": "c04c6086a7867cb883c881c6a5243d3ed649bd2ab7a3032af5cf9f7fcbac5b7d"
+        }
+      ],
+      "verdict": "demo_no_blocker_found",
+      "mapping": "Court-declared incapacity due to mental disorder and adulthood are supplied; guardianship is the correct category.",
+      "unknowns": "The selected demonstration has a known positive legal status.",
+      "limits": [
+        "A medical diagnosis alone would not satisfy the input; no appointment procedure is decided."
+      ],
+      "counterexample": {
+        "facts": "Diagnosis exists but no court declaration.",
+        "broad_claim_refuted": "Medical diagnosis alone establishes this guardianship ground.",
+        "scope_excludes": true
+      }
+    },
+    {
+      "article_key": "gk:33",
+      "scope": "Речь идёт о совершеннолетнем гражданине и наличии основания для попечительства. Вопрос не касается назначения конкретного попечителя.",
+      "target": "Назван ли такой гражданин в пункте 1 как лицо, над которым устанавливается попечительство? Ответьте «да» или «нет».",
+      "source_locator": {
+        "path": "dev/rulaw_proofbench/sources/gk.txt",
+        "locator": "пункт 1",
+        "start_line": 230,
+        "fragment_sha256": "d642c94cdd67a5eff54ecbe5a9f177b7646df1c4e766f5339bd2404de0be31d0"
+      },
+      "dependencies": [],
+      "constraints": [],
+      "constraint_changed_unknown_answers": [],
+      "case_count": 1,
+      "question_checks": [
+        {
+          "id": "gk_33-9c04addc3be2",
+          "facts": {
+            "limited": false
+          },
+          "gold": "нет",
+          "sha256": "4b4d887977cd87a93ff7a55e8b719196c73134219e95d00c1023a932c1998f0f"
+        }
+      ],
+      "verdict": "demo_no_blocker_found",
+      "mapping": "The adult's lack of court-limited capacity gives no selected paragraph1 ground for trusteeship; the adapter does not confuse full incapacity with limitation.",
+      "unknowns": "The selected demonstration has a known negative court-limitation fact.",
+      "limits": [
+        "The negative answer does not deny another protective arrangement, including guardianship under32."
+      ],
+      "counterexample": {
+        "facts": "Adult fully incapable under a court decision, rather than partially limited.",
+        "broad_claim_refuted": "No trusteeship ground means no guardianship or protection is available.",
+        "current_answer": "нет only to this trusteeship category"
+      }
+    }
+  ],
+  "limitations": [
+    "No external expert review.",
+    "Most facts are supplied in legally qualified source-like wording; this is not evidence of broad narrative legal reasoning.",
+    "Only the15 new test articles and5 demonstration articles are reviewed here; previous150 test records are not re-audited in this report.",
+    "Single-valued finite domains can represent broader natural-language intervals only when omitted values are proved outcome-equivalent; relevant checks are recorded per rule.",
+    "No generator, primary card, independent reconstruction, or prior audit was edited."
+  ],
+  "review_history": [
+    {
+      "reviewed_files_sha256": {
+        "expansion.py": "aa4a0f551f1bcfdf2d1a4da3af584dd24003444d697858707bfa15e795e7bc8a",
+        "build_expansion.py": "e7f5b017a85e86480d95899bf6d1dd6f0392ceb35720b5f5fcb12aa73703a651",
+        "independent_expansion.py": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9"
+      },
+      "status": "changes_required_before_language_acceptance",
+      "blocking_findings_count": 2,
+      "unresolved_scope_findings_count": 1,
+      "preserved_findings": [
+        {
+          "id": "EXP-TK122-TIME",
+          "severity": "blocking",
+          "status": "open_at_reviewed_snapshot",
+          "article_key": "tk:122",
+          "source_quote": "работникам, усыновившим ребенка (детей) в возрасте до трех месяцев;",
+          "problem": "The adoption qualification is inferred from child age now, while the source wording does not resolve age-at-adoption versus age-at-application by that fact alone.",
+          "affected_ids": [
+            "tk_122-09476c0deeeb",
+            "tk_122-6f643f4b3404"
+          ],
+          "remedy": "Conservatively fix adoption and the relevant leave/application time within the same stated age band, explicitly giving the age at adoption as well as now. Do not make a general rule that reaching three months now by itself extinguishes the listed adoption ground.",
+          "independence_limit": "The adapter itself supplies the unverified qualification to the independent function, so oracle equality cannot test this inference."
+        },
+        {
+          "id": "EXP-TK67-START",
+          "severity": "blocking_language",
+          "status": "open_at_reviewed_snapshot",
+          "article_key": "tk:67",
+          "source_quote": "Трудовой договор, не оформленный в письменной форме, считается заключенным, если работник приступил к работе с ведома или по поручению работодателя или его уполномоченного на это представителя.",
+          "problem": "Started=False is rendered together with positive present-tense «Начало работы происходит...». These descriptions assert incompatible or ambiguous temporal states.",
+          "affected_ids": [
+            "tk_67-1e5b07953b25",
+            "tk_67-b7229f3a0aad",
+            "tk_67-8bd26b5825e9"
+          ],
+          "remedy": "Render employer/representative permission, knowledge or instruction independently of actual commencement; preserve the source alternative of knowledge without requiring a written order."
+        },
+        {
+          "id": "EXP-FZ6-RECIPIENTS",
+          "severity": "medium_scope_ambiguity",
+          "status": "requires_narrowing_or_legal_resolution",
+          "article_key": "59:6",
+          "source_reference": "sources/59.txt, Article1(4), read together with Article6(2)",
+          "problem": "The competent=False phrase excludes the listed bodies/officials but does not expressly settle recipients that are public-function institutions/organizations covered by Article1(4).",
+          "remedy": "State that recipients are ordinary listed public bodies/officials and competency is about the issues, or explicitly exclude the extra Article1(4) recipient category. Alternatively justify its treatment from primary legal authority.",
+          "qualification": "This finding does not assert a proved wrong outcome for a specific institution; it identifies an unqualified legal category in a general negative branch."
+        },
+        {
+          "id": "EXP-FZ5-QUALIFIED-UNKNOWN",
+          "severity": "low_wording",
+          "status": "nonblocking",
+          "article_key": "59:5",
+          "problem": "Scope says information about other rights/secrecy is legally established while one such fact can be described as unknown.",
+          "remedy": "Qualify the scope as referring to supplied facts, preserving that unreported facts remain unknown."
+        }
+      ]
+    },
+    {
+      "stage": "before_final_mcq_followup",
+      "status": "no_remaining_blocking_language_issue_found_within_revised_scopes",
+      "reviewed_files_sha256": {
+        "expansion.py": "9bb413b9be610b333bb433bcfed733318c78c6f1a56bae2e9f3efb4b5b771b83",
+        "build_expansion.py": "0a747a30e81038e64b3ad65691f214ea1ed922efc487fd8b5f6cd5af045391d6",
+        "independent_expansion.py": "c8378c5853a1b4b300aa410f71d0952dfe248f778439f25bf4b020e32af310c9"
+      },
+      "scope": "Completed open-form language audit retained; the later builder change exports MCQ and fixes demonstration option positions."
+    }
+  ],
+  "followup_checks": {
+    "live_build_candidate_passed": true,
+    "four_findings_resolved_by_scope_or_wording": true,
+    "independent_code_unchanged": true,
+    "old_counterexamples_retained_for_history": true,
+    "dated_law_certification_not_claimed": true,
+    "mcq_derivative_audited": true
+  },
+  "mcq_followup_review": {
+    "status": "no_remaining_blocking_mcq_issue_found_in_generated_candidate",
+    "method": "Nonblind same-model derivative audit; inspect numeric and categorical alternatives, retained facts and target wording, unknown priority, rendered instructions, provenance, and regenerate from live code. MCQ shares the open oracle and is not an independent legal annotation.",
+    "command": "python3 -m dev.rulaw_proofbench.build_expansion --output /tmp/rulaw-expansion",
+    "counts": {
+      "test": 300,
+      "demonstrations": 5,
+      "test_three_choices": 210,
+      "test_four_choices": 90,
+      "demonstration_three_choices": 3,
+      "demonstration_four_choices": 2,
+      "unchanged_previously_reviewed_open_questions_facts_and_gold": 155
+    },
+    "checks": {
+      "exact_deterministic_rebuild": true,
+      "parent_ids_hashes_rule_hashes_aligned": true,
+      "one_matching_gold_per_row": true,
+      "rendered_option_texts_and_canonical_values_unique": true,
+      "numeric_values_distinct_after_rational_normalization": true,
+      "factual_lines_preserved_in_all_305_questions": true,
+      "open_short_answer_commands_removed": true,
+      "unknown_priority_preserved": true,
+      "no_option_evidence_or_witness_metadata_in_question": true,
+      "gold_label_counts_differ_by_at_most_one_within_each_test_article": true,
+      "unchanged_isolated_reconstruction": true
+    },
+    "test_gold_positions_by_choice_count": {
+      "3": {
+        "A": 70,
+        "B": 70,
+        "C": 70
+      },
+      "4": {
+        "A": 23,
+        "B": 23,
+        "C": 22,
+        "D": 22
+      }
+    },
+    "demonstration_gold_positions": [
+      "A",
+      "D",
+      "C",
+      "B",
+      "A"
+    ],
+    "synthetic_distractors": [
+      {
+        "article_key": "gk:229",
+        "values": [
+          "2/5"
+        ],
+        "verdict": "The question asks the explicitly specified statutory maximum share, not any amount obtainable by agreement. 2/5 is distinct from the 1/5 cap and from the outside/unknown answers. numeric_perturbation is correctly recorded; no new legal branch is asserted."
+      },
+      {
+        "article_key": "tk:115",
+        "values": [
+          "29",
+          "30"
+        ],
+        "verdict": "The demonstration fixes an ordinary adult without disability or an extended basic-leave entitlement. Exactly 28 calendar days is the requested duration; 29/30 are incorrect numerical distractors under that scope."
+      },
+      {
+        "article_key": "tk:267",
+        "values": [
+          "32",
+          "33"
+        ],
+        "verdict": "For the stated 17-year-old, the question asks basic leave alone without other extension grounds. 31 calendar days is the unique duration; 32/33 are incorrect numerical distractors."
+      }
+    ],
+    "metadata_wording_finding": {
+      "status": "resolved_before_final_hash",
+      "initial_observation": "validate_mcq semantic_distractor_validation described only branch outcomes and one extension-confusion distractor, omitting the new numeric perturbations.",
+      "resolution": "Current text expressly includes marked numeric perturbations and says synthetic distractors are not legal branches. The expansion export did not use the formerly incomplete validation description."
+    },
+    "artifacts_sha256": {
+      "mcq_test.jsonl": "e90ad6751bdfab5b1582438483d1211c7c5690a7606c00acc428ba944ac4fa36",
+      "mcq_train.jsonl": "b043f7938168acaeef93209eb8a7fb8a360040e2832a564462f7295a251d9fa3"
+    },
+    "limits": [
+      "Three-choice binary and four-choice numeric/categorical rows have different random-choice baselines; global label distribution is consequently not uniform. Within each choice count and article the test positions are balanced as far as the row counts permit.",
+      "Demonstration positions are fixed to cover A/B/C/D; they are not a random or balanced empirical sample of legal outcomes.",
+      "numeric_perturbation denotes an intentionally false distractor, not a statutory alternative or a source-backed legal branch. same_rule_outcome witnesses may be null where that outcome is absent from the selected parent rows.",
+      "This checks the concrete generated options; the generic rational-step algorithm is not independently proved for arbitrary future cards or noncanonical numeric spellings.",
+      "MCQ and open-form questions are linked derivatives sharing gold; comparing their performance does not provide independent legal validation.",
+      "No dated-source conclusion is inferred from MCQ consistency; selected-fragment dating evidence and its limits remain in expansion_source_review.json."
+    ]
+  }
+}

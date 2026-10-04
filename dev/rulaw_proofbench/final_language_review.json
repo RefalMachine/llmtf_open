@@ -1,0 +1,1096 @@
+{
+  "schema_version": "final_language_review_v1",
+  "role": "same-model adversarial/language follow-up; not independent expert validation",
+  "inputs": "Live build_cards(), build(), render(); no stale rule_cards.jsonl or dataset.jsonl used",
+  "reviewed_files_sha256": {
+    "rules.py": "3d39c4e8ca9471870427d1f528fefa12d2b32d65238d8372b442bd4607146540",
+    "generate.py": "c1bac0d63e82d77ae02c9d6145a982d89b6269fae9aab04307181d2dcfc1a491"
+  },
+  "reviewed_build_sha256": "54c300eb3db37890cd960d11a7147fc90cb144eec690797b7cdca51933b28ff4",
+  "as_of_certification": "Not performed in this review; parent owns edition verification.",
+  "counts": {
+    "cards": 15,
+    "records": 150,
+    "pairs": 101
+  },
+  "checks": {
+    "live_build_equals_build_cards": true,
+    "repeated_build_identical": true,
+    "unique_record_ids": true,
+    "unique_rendered_questions": true,
+    "all_rendered_questions_match_live_render": true,
+    "all_answers_match_live_oracle": true,
+    "all_constraint_unknown_combinations_examined": true,
+    "binary_no_instructions_disambiguated": true,
+    "outside_instruction_only_where_supported": true,
+    "unknown_priority_explicit": true
+  },
+  "blocking_findings": [],
+  "notes": [
+    {
+      "id": "FINAL-DIVERSITY",
+      "severity": "limitation",
+      "text": "One fixed phrase per predicate value remains. Source-like wording and controlled slots measure narrow qualified-fact rule application, not broad natural-language robustness or expert legal reasoning."
+    }
+  ],
+  "constraint_reviews": [
+    {
+      "rule_id": "sk_19",
+      "unknown_inputs_checked": 39,
+      "changed_outcomes": [],
+      "incompatible_inputs": [
+        {
+          "consent": true,
+          "children": null,
+          "status": "missing"
+        },
+        {
+          "consent": true,
+          "children": null,
+          "status": "incapable"
+        }
+      ],
+      "hidden_gold_changing_assumption_found": false,
+      "reason": "GK26 implication is explicitly defined in scope and the positive coverage fact; SK19 conservative exclusion does not change any compatible unknown answer."
+    },
+    {
+      "rule_id": "gk_26",
+      "unknown_inputs_checked": 6,
+      "changed_outcomes": [
+        {
+          "facts": {
+            "decision": null,
+            "within_restriction": true
+          },
+          "without_constraints": "недостаточно данных",
+          "with_constraints": "нет"
+        }
+      ],
+      "incompatible_inputs": [],
+      "hidden_gold_changing_assumption_found": false,
+      "reason": "GK26 implication is explicitly defined in scope and the positive coverage fact; SK19 conservative exclusion does not change any compatible unknown answer."
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "tk_92",
+      "scope": "Работник несовершеннолетний. Рассматривается только возрастной предел; вопрос не касается инвалидности, вредных условий труда или иных оснований сокращения.",
+      "target": "Каков установленный указанными положениями возрастной предел рабочего времени в часах в неделю?",
+      "source_locator": {
+        "article": "tk:92",
+        "locator": "часть 1, абзацы 2–3; часть 4",
+        "lines": [
+          962,
+          972
+        ],
+        "fragment_sha256": "897efb75f3f5cefcd5ce985b30a44fe3310fddb7648517b271a44338806c5a46"
+      },
+      "limits": [
+        "Не определяет фактически согласованную продолжительность или допуск к работе.",
+        "Only age-based weekly caps; admission to employment and individual schedules are excluded.",
+        "The combined education/year predicate is stipulated, not inferred from a story.",
+        "Unknown age ranges below14 are not listed but do not add a new weekly outcome."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "dbc68cac05f72b40c5b3b98ef03d8eb9b95dad9e5509cb7bc228ef467d2f00ee",
+        "99b10c422eb547dabe3f716972523d58cf39be0c8a98ab9e8fb0be3636360b10",
+        "9dc695836d4b57900faad81529d443496134ae10332984ba66e8698b84411a7a",
+        "f16b8629af2b494e4ec9b0b6a4dc8c55d72a620e23aff0d9f3e678665694dc04",
+        "00ab56a682abfff66e6476f8f7767a498ba9f6a8e48b9580252dc8a33b27f7af",
+        "dbc3f7a015967ec264979ac9f3407bad9b43dd8361a9cca322735fe8ba475aef",
+        "a0b4d467d918cf364b8bcd5d29b51e601e12902b9d817aefb31978a562741a8b",
+        "2b7888ee6a32501c7e1ce641f1f443a24e00f79223feed41efd2f1dc2f66db3e",
+        "551aa417ceb463e68aba6dea8053505f1642329c0c321b17b4cbbfab00c8359d",
+        "2d2d55baa08c8f458744730bb67d2e4f5b7e3cb24effe3b2ed5111506e509fde"
+      ],
+      "unknown_cases": [
+        {
+          "id": "tk_92-485d38ecb562",
+          "facts": {
+            "age": 16,
+            "study": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "tk_92-db1b6ba55ba9",
+          "facts": {
+            "age": null,
+            "study": false
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "tk_93",
+      "scope": "Работник — один из родителей одного ребёнка; о беременности работника речь не идёт. Работник не осуществляет уход за больным членом семьи на основании медицинского заключения. Проверяется только названное родительское основание.",
+      "target": "Возникает ли именно по указанному положению обязанность работодателя установить неполное рабочее время? Ответьте «да» или «нет».",
+      "source_locator": {
+        "article": "tk:93",
+        "locator": "часть 2, первое предложение",
+        "lines": [
+          973,
+          977
+        ],
+        "fragment_sha256": "20cedb4f63b4cccee61a4185c1d444a4c981a931b33609b8fa05cce6273417b7"
+      },
+      "limits": [
+        "Не запрещает соглашение о неполном времени по части 1 и не задаёт конкретное расписание.",
+        "Only parent-based mandatory part-time work is tested; pregnancy, guardian status and medical family care are outside scope.",
+        "The word ребёнок in the scope denotes the parent-child relation; numeric slots explicitly say son/daughter, including adult ages.",
+        "An unfulfilled statutory duty predicate gives no duty under this provision, not a general ban on agreed part-time work."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "1a2bf7e96f310fd5e70a9926b8172d24a503070419e084ba818e96fc3b570eea",
+        "a743d9be79ec9d01063d40c6bb8f837fd6ba13ca66ccaf7962a8aba9a3cc8746",
+        "671d47c6b6724647b25253cc889c51c710e5f641228923ef3993c7403e436651",
+        "5e04f4a6221d4f70fa757ea192c219aa3c5d8f83a540a21c28752ad07699c9d4",
+        "e484f49da4a6f1e6755bcc2f20393916238cea10822cb40f277c8c1e895c0760",
+        "48da3a7ab0d23a229d5829a4b7e1dc5a6464d18d5b9adad3bb416407f0ab2a41",
+        "e44d4a4af3512c7f5c635918b144fbfd5a05bc718aa76a181009eb1d248bb43a",
+        "7d1f7ba7063bbdb1603836761a999fc0b4a006a3e7bc3de79ffc4c93b06440b7",
+        "0a920de8c8cab1c37fb84195ab04b934b45ba20c9ed231995a641754cf628461",
+        "a623d00fbb05e66cc05ea55a3c3de2e5aa8a2a462943f9c076bd06a0fbfdea3b"
+      ],
+      "unknown_cases": [
+        {
+          "id": "tk_93-662af4430ad5",
+          "facts": {
+            "child_age": 13,
+            "disabled": null,
+            "request": true
+          },
+          "answer": "да"
+        },
+        {
+          "id": "tk_93-16af284233e1",
+          "facts": {
+            "child_age": 14,
+            "disabled": null,
+            "request": true
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "tk_94",
+      "scope": "Работнику от 14 до 17 полных лет, он не является инвалидом, не занят на вредной или опасной работе и не относится к творческим работникам части 4. Рассматривается возрастной предел смены.",
+      "target": "Каков предусмотренный указанными абзацами возрастной предел ежедневной работы в часах?",
+      "source_locator": {
+        "article": "tk:94",
+        "locator": "часть 1, абзацы 2–3",
+        "lines": [
+          978,
+          990
+        ],
+        "fragment_sha256": "24710f9cac1a05d1fc281926a59458bbf3e8b34394551fc263877a6f734fb473"
+      },
+      "limits": [
+        "Не определяет фактическую смену и не разрешает трудоустройство несовершеннолетнего.",
+        "Scope explicitly restricts age to14–17; thus unknown age does not silently include unmodeled under14 employees.",
+        "The target is the age cap in94, not the actual duration on a preholiday day or the legality of hiring."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "5d415a166ff91337f60d4db7d67be088760962d4185418fc630e3390d2b361ab",
+        "905bc7c986edefb8bdd5f552e155253b393be686c59ef911f2aa61d756146491",
+        "276945954266b4b4c093cdad2c9ef60680947f039b252aa2e0c5f324876fb088",
+        "015bbc70965f7321ce4ebcb9921b9d2edb1dfc9fcc7c229506ccade3de240900",
+        "49e783e0f1f4e39603ff9ee92c6460454b3e80381eca8838199d5665d06881a8",
+        "3112f61d107800e0d324fd952515398dc884db567b9ddcb73a87fc6e0b207d1e",
+        "9cb6704f01c061d9b421d767b017eaba82e0304bd39e5436fedf7026d9dc4926",
+        "88902828d6adef800b7fad121b46dcea04ce1c5f331cf7fec633f6bf84de8642",
+        "4cd4c5c713aa2afae741798b71db77cb95bd0c6fd799d37fcbbc0baaa3ab1277",
+        "2acf109edfbbf84be7ce91e4dd8c5a7a5b25a2ab221eabcdc824df769ff05b16"
+      ],
+      "unknown_cases": [
+        {
+          "id": "tk_94-f228d8e88e27",
+          "facts": {
+            "age": null,
+            "study": true
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "tk_94-ded6c1a6fc33",
+          "facts": {
+            "age": 15,
+            "study": null
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "tk_128",
+      "scope": "Рассматривается отпуск без сохранения заработной платы. Нужно назвать предел, прямо установленный для указанного основания, а не сумму отпусков по разным основаниям.",
+      "target": "Каков предел отпуска, обязанность предоставить который возникает по указанному основанию при данных фактах, в календарных днях (для статуса — в году, для события — на событие)? Если условие возникновения этой обязанности не выполнено, ответьте «не следует из указанной нормы».",
+      "source_locator": {
+        "article": "tk:128",
+        "locator": "часть 2, абзацы 2, 3, 5–6",
+        "lines": [
+          1176,
+          1186
+        ],
+        "fragment_sha256": "3d150c1d9b9559697c5ac985e091791abb6e34c54b05dd4bc406a079f968893f"
+      },
+      "limits": [
+        "Не означает автоматическое предоставление максимума или суммирование оснований; коллективный договор может дать иные гарантии.",
+        "Revised target asks for the maximum of the duty triggered by the stated facts; absence of written application now coherently yields OUTSIDE.",
+        "One named ground only; no sum of overlapping grounds and no remaining annual balance computation.",
+        "Five days for an event is not an annual quota."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "b0d739d32f05e944f339ddf5457664c4ca0f39a3100118bbf73684f1089992a3",
+        "0c6ee2a239bb61af21a2e7e8963e51c4edbca02053fe203849a502f053c7accb",
+        "20131ca3d380087e35e11828e09252850bb3b1aba710e3014754625343ce7427",
+        "1bc217d5e77b73004b4933fb2ef9664d47d992ae8cd0b1f700cf511b0a6265ff",
+        "33405212e8ae8fbf0540f882ba10dcf93d04a54deef43e7a6b3ad8b69f75f744",
+        "157ac1a83748225a0219e8a2cd7d618313a646c11f19c9b054b2ac86ed7b63ed",
+        "34cd4807d97690445c71841e799504506a0711fdd2efe9f3b63b52e1e677cf4f",
+        "6e606a40fd44320faa0bc5342fd80be9fc71ccf3e5c08341dbfd73395efbee91",
+        "b8bfeb8bff209421be8e71a742b664cf971514844df8094a6aff1e69700d0005",
+        "75308fb619b7632d6fe11e431576c2a9e201aa50ba0b431d1c3469f436567391"
+      ],
+      "unknown_cases": [
+        {
+          "id": "tk_128-eb5e9a20e870",
+          "facts": {
+            "ground": null,
+            "written": true
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "tk_128-b56560cc3d0f",
+          "facts": {
+            "ground": "birth",
+            "written": null
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "tk_173",
+      "scope": "Работник впервые получает высшее образование соответствующего уровня по имеющей государственную аккредитацию программе бакалавриата, специалитета или магистратуры, успешно её осваивает и работает по основному месту работы. Он обучается только в одной образовательной организации. Отпуск нужен для промежуточной аттестации.",
+      "target": "Какова предусмотренная этими абзацами продолжительность дополнительного отпуска с сохранением среднего заработка в календарных днях?",
+      "source_locator": {
+        "article": "tk:173",
+        "locator": "часть 1, абзацы 1–2",
+        "lines": [
+          1482,
+          1495
+        ],
+        "fragment_sha256": "b34166d76ebd201b60eba281b13e2114cbde1c0fab336ea2bb8442f6a9f0062f"
+      },
+      "limits": [
+        "Не определяет неоплачиваемый отпуск очника или гарантии повторного образования.",
+        "One organization is now explicit, resolving177 choice ambiguity.",
+        "First education at the level, accreditation, success and main employment are fixed prerequisites.",
+        "Target is statutory duration, not proof that a concrete application/call certificate has been filed.",
+        "All later courses share50; only third is represented."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "24e6f8d51126bc88b2c2fbfaff1f3ab4aa5563e7342e564db7fa51556c4f10f3",
+        "5199c73e52beb3d45fd7892d2ca2e27747387341f033a473c84219370063b946",
+        "53b6b75871dbee9ac6abef461faa43d59e4f7534b7a00b7325e3a9196924903b",
+        "26fa12a757d8ff61795cf9c87cbe66a0bed997d443acdb6908df55fe439c6eda",
+        "ee1de1d76d5dfc0870651dfc20d7c06b5f21aec9f6aa961144e309edff9d0e9f",
+        "68e1bbbb61d5a2c62019e11bfb4c6a17fb9b7322c6a3ea0f2f47e982770997a2",
+        "56e325b84cce4aaf58f5689095dcb80ea51e848ea394d439b4178c60be89519e",
+        "51c054fcc261c0e60ce8a2e806b8a0ccd7e5f124f5f29c96e8d5605c43364ea0",
+        "0e87e6fceb770053a9bbb385962b0aebe68f40c5f340ad6891013aaff15b3cd2",
+        "67c5ab2a786b3af116d7c33f041355de9cb771637f6c12efee0d4ef405327662"
+      ],
+      "unknown_cases": [
+        {
+          "id": "tk_173-4619e3148898",
+          "facts": {
+            "course": 2,
+            "accelerated": null,
+            "form": "part_time"
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "tk_173-4c4a44c6b944",
+          "facts": {
+            "course": 1,
+            "accelerated": null,
+            "form": "part_time"
+          },
+          "answer": "40"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "sk_19",
+      "scope": "Один из супругов подал заявление о расторжении брака. Рассматриваются только перечисленные в пунктах основания расторжения брака в ЗАГС; вопрос не касается возбуждения мужем дела вопреки статье 17 или процедуры регистрации.",
+      "target": "Названо ли в указанных пунктах основание для расторжения брака в органе ЗАГС при этих фактах? Ответьте «да» или «нет».",
+      "source_locator": {
+        "article": "sk:19",
+        "locator": "пункты 1–2",
+        "lines": [
+          80,
+          87
+        ],
+        "fragment_sha256": "b4948d714de1f40c1ab1ce39e8466ff981cbe703f9840da9943cc7134623bf80"
+      },
+      "limits": [
+        "Не определяет итог дела или технические условия государственной регистрации.",
+        "One spouse has applied; the other spouse is relative to that applicant.",
+        "Conservative consent/status restriction does not establish a universal theorem that a person declared missing can never reappear before reversal of that declaration.",
+        "The compatibility restriction changes no determinate/unknown outcomes among admissible partially specified worlds in exhaustive checking.",
+        "The target is a ground under19, not completion of registration or a whole-case decision."
+      ],
+      "constraints": [
+        [
+          "any",
+          [
+            "eq",
+            "consent",
+            false
+          ],
+          [
+            "eq",
+            "status",
+            "none"
+          ],
+          [
+            "eq",
+            "status",
+            "prison_2"
+          ],
+          [
+            "eq",
+            "status",
+            "prison_3"
+          ],
+          [
+            "eq",
+            "status",
+            "prison_4"
+          ]
+        ]
+      ],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "50cc3e7be3e85646c8d57a342cb2c900a0911285da7174374c93f10e8e850741",
+        "723b242ee25bc1183acdf72bbe79f152f6f744b58629a823b430d248aaa490bc",
+        "696a19c1717de03daa4e9ff135aa8f13f96dce6da650fabc0c6092c29170f9e6",
+        "36f968e073fb0fe7b0cb0c7dc0c286813a264f0a78adc04e375cf23613013dcd",
+        "734f699a93fbcf6d1caeb3109b3e375503d6c586938f16271fa442439f697438",
+        "fc3d707c6e184367cb9df7b741a5d8d1b62a4e87aba61c217b6aa69c8696e7f8",
+        "d698b1f7517e6400c28e28d15d9613776a6fababafac92225e6d788334ad03ec",
+        "ba5bcb391f4f330a8ffd488a1c535beacb27b154241a94c6136fbc472ca84712",
+        "5b40c71544d27244a5b105b7b2cad022f2c7ac50562950d8be17d3f0250dd6c2",
+        "beb2433dab67924c864ba09bdfefb7985684ee874b19d1ce81c369a9751ac007"
+      ],
+      "unknown_cases": [
+        {
+          "id": "sk_19-e4db484d843a",
+          "facts": {
+            "consent": null,
+            "children": true,
+            "status": "prison_4"
+          },
+          "answer": "да"
+        },
+        {
+          "id": "sk_19-0de206ddff2f",
+          "facts": {
+            "consent": true,
+            "children": null,
+            "status": "none"
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "sk_57",
+      "scope": "Решается вопрос, затрагивающий интересы ребёнка. Проверяется обязательность учёта мнения, а не необходимость согласия на отдельные решения из третьего предложения.",
+      "target": "Обязателен ли учёт мнения именно в силу второго предложения? Ответьте «да» или «нет».",
+      "source_locator": {
+        "article": "sk:57",
+        "locator": "второе предложение",
+        "lines": [
+          273,
+          274
+        ],
+        "fragment_sha256": "06cf23cd1b73529bb757faaaa1a755822deff901f9f1127b1411d83f42987149"
+      },
+      "limits": [
+        "Правовая квалификация интересов задана, не выводится моделью; право быть заслушанным не тождественно обязательности учёта.",
+        "Mandatory consideration is distinct from consent and from the right to express an opinion.",
+        "Whether consideration conflicts with the child’s interests is supplied as a qualified legal fact.",
+        "The age domain samples below/at/above10; unknown child ages outside these samples add no new outcome."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "8d7994acf3e57e1875452f1d525d0288c9c38ddb5f52e9af33fc8ee98c726f9b",
+        "c7b772bc4a730f6601a23c9503e3ccd193e86d155bc404099be750b437e990ea",
+        "5e3d9cdecb3157d434fd11bc8f6141ee9439e7194f2a34e2f24d86c192fa1caf",
+        "6890fe64a92436e12f342db9f55a19a5d9a6a8162c099d313cc731d03789b007",
+        "06214664f01e55e7c6db4ef626abab656360ef05f7f80ff6b917fc45ee8fb9a5",
+        "7a1b505e36e7f131e36c47d5d66f1b26e288d5c2c067a6a5ccc5192c952c01a6",
+        "163503debefb3b857088f481ab5c6b6d6ac83139571b9c6b19af7a30f21e5459",
+        "15ea4b3b3167b11edfade5288abca8318416aa87bdfdb001d85a9c42d56a0751",
+        "837c22b5d19a79365b3d537d3b50c8738ddd9ba6687eeeb4d0072ee551ae1276",
+        "eb2502c04df0f5227a75d146d55335d44b21abc95848b02d88cd7eb442b1ec50"
+      ],
+      "unknown_cases": [
+        {
+          "id": "sk_57-47b836aa58af",
+          "facts": {
+            "age": 9,
+            "against": null
+          },
+          "answer": "нет"
+        },
+        {
+          "id": "sk_57-ed700138e504",
+          "facts": {
+            "age": null,
+            "against": true
+          },
+          "answer": "нет"
+        },
+        {
+          "id": "sk_57-23a307652014",
+          "facts": {
+            "age": null,
+            "against": false
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "sk_57-52dce7f62752",
+          "facts": {
+            "age": 10,
+            "against": null
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "sk_81",
+      "scope": "Вопрос касается только доли заработка и (или) иного дохода, прямо названной в пункте 1 для ежемесячного взыскания алиментов на несовершеннолетних детей; судебные изменения доли по пункту 2 не запрашиваются.",
+      "target": "Какую долю предусматривает пункт 1 для этих фактов? Ответьте обыкновенной дробью.",
+      "source_locator": {
+        "article": "sk:81",
+        "locator": "пункт 1",
+        "lines": [
+          410,
+          412
+        ],
+        "fragment_sha256": "6591b58c508cd76f91c6c7178164514ce5e3f1e42b7cd28bd48b1b0a81160a9a"
+      },
+      "limits": [
+        "Не предсказывает фактический размер алиментов, применение твёрдой суммы и действительность соглашения.",
+        "Children are expressly those for whose maintenance alimony is recovered from this parent.",
+        "Fourth child now checks the3+ plateau.",
+        "Standard fraction only; agreement validity, fixed sums and judicial correction are outside target."
+      ],
+      "constraints": [],
+      "cases": 11,
+      "rendered_question_sha256": [
+        "ff87ff94d794879477e3393ced89aa7708d9037871815f929380a22fbb1bd57f",
+        "c445371b64b736e4ff9c9cc4ac7645bd2186bfd8fff690e5f998768875c8b00d",
+        "6e5bde3e0306929de75f51f4e0eaadb95ec3101a8fedcab29d6c1c6b7171bd60",
+        "af897d289ce6e3705485f41b9a6815b678818be98dd1743ce66395524822dfa1",
+        "4872ea64c4d1faaead03ac767a6a4b9471de4685e9d3f8bed4af2b7579c4c10c",
+        "2e68e32444c9647e1e7b687ed6e5bb302062b787f133f4ec6ed61f5741ddb866",
+        "7bd210f9ae5a8ee9657668094a8238c753f5723160e596e0a54a72cf0701f131",
+        "23a5646c64c6ec29c148d1663393e5d2add812d05d2db04590546e2146b52ee2",
+        "5eee4c70f70f92e18f46f316e353cd9a7df1dddb3b87ea221965cc76a7444178",
+        "7386eee0f2f769ced7ea96520bcda3b4ad4c7e84e2be9a727c667dfdffa0979a",
+        "e0462acd05abd94fbab79bc8da8dd88175f8f19bdf9b85de0f1d9783a547ac87"
+      ],
+      "unknown_cases": [
+        {
+          "id": "sk_81-5716089e3045",
+          "facts": {
+            "children": 1,
+            "agreement": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "sk_81-eb772ad730ac",
+          "facts": {
+            "children": 3,
+            "agreement": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "sk_81-b8ab14c46c68",
+          "facts": {
+            "children": null,
+            "agreement": true
+          },
+          "answer": "не следует из указанной нормы"
+        },
+        {
+          "id": "sk_81-1f15e65fd067",
+          "facts": {
+            "children": null,
+            "agreement": false
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "gk_26",
+      "scope": "Гражданину 16 лет. Он не приобрёл полную дееспособность по пункту 2 статьи 21 или статье 27 ГК РФ. Речь идёт о конкретном распоряжении собственным доходом. Учитываются только действующие решения суда; предикат охвата частичным ограничением означает охват именно этого распоряжения, а при отсутствии частичного ограничения — его отсутствие.",
+      "target": "Сохраняется ли предусмотренное этими положениями право самостоятельно распоряжаться указанным доходом без согласия законных представителей? Ответьте «да» или «нет».",
+      "source_locator": {
+        "article": "gk:26",
+        "locator": "подпункт 1 пункта 2; пункт 4",
+        "lines": [
+          179,
+          189
+        ],
+        "fragment_sha256": "15d4ba112c5537831556cb7b45f270ee9106aecd6cf1ff25d7c9281d58b4f757"
+      },
+      "limits": [
+        "Не оценивает достаточность оснований судебного решения и не распространяется на все сделки несовершеннолетнего.",
+        "Income categories were removed in favor of none/restricted/deprived current court decisions and coverage of the particular disposition.",
+        "Scope explicitly defines coverage as absent when no partial restriction exists; this supports the compatibility constraint.",
+        "A known covered disposition entails a partial restriction even when decision type is not separately reported; this is a valid inference, not a hidden statutory condition.",
+        "Sufficiency of grounds for the court order is not assessed; full capacity and other transactions are excluded."
+      ],
+      "constraints": [
+        [
+          "any",
+          [
+            "eq",
+            "decision",
+            "restricted"
+          ],
+          [
+            "eq",
+            "within_restriction",
+            false
+          ]
+        ]
+      ],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "7b6a8e3261393446407586f4e02d96ce73bb703360eb9cc980b41861e21f17bc",
+        "18f2dbca7b1f58dfe7d2da19eddd40639c6697b2cf6a4d58117cc529968d6ba3",
+        "70cd4ca09720b0d069c14341c72045d899c73f2409669dc84bdf88e2cebdf54c",
+        "c9946d28ca0bcf41f3c2ff675a7b800c321b972ec600720d33945c2436e0e700",
+        "88c7d96f7b43aed1f62b5c3467ca49a407dbf427930618a552cbf8324b0459d1",
+        "fe2076e5714e924645fae6bef96563ba6c65d4d187a65e62548cc63f4b0f7715",
+        "c8c55800d91c1bd9699307288950c281740f65294fe48e39d4f7d439458f60dd",
+        "8ad249921bfb064ed5785212af2795c518e32c4de83b0316bb9a09cc3b650fa7",
+        "1eba03f15f542554b6664c05850eac57bf0a7c85814a6cf0548537f6215a0e3e",
+        "ea8e39b2eab814ef4bddcb58b716738a94bd6ac12ea5bcf79ab0ca0598788a63"
+      ],
+      "unknown_cases": [
+        {
+          "id": "gk_26-df5dec68f0be",
+          "facts": {
+            "decision": "deprived",
+            "within_restriction": null
+          },
+          "answer": "нет"
+        },
+        {
+          "id": "gk_26-8b9dd517c258",
+          "facts": {
+            "decision": "none",
+            "within_restriction": null
+          },
+          "answer": "да"
+        },
+        {
+          "id": "gk_26-8e4b95a6f239",
+          "facts": {
+            "decision": null,
+            "within_restriction": true
+          },
+          "answer": "нет"
+        },
+        {
+          "id": "gk_26-e10dc93660a1",
+          "facts": {
+            "decision": "restricted",
+            "within_restriction": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "gk_26-13aa7c657c49",
+          "facts": {
+            "decision": null,
+            "within_restriction": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "gk_26-bbe50994d6d5",
+          "facts": {
+            "decision": null,
+            "within_restriction": false
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "gk_28",
+      "scope": "Сделка направлена на безвозмездное получение выгоды малолетним. Она не относится к мелким бытовым сделкам и не является распоряжением предоставленными средствами.",
+      "target": "Предусмотрено ли право самостоятельно совершить эту сделку именно указанным подпунктом? Ответьте «да» или «нет».",
+      "source_locator": {
+        "article": "gk:28",
+        "locator": "подпункт 2 пункта 2",
+        "lines": [
+          194,
+          201
+        ],
+        "fragment_sha256": "678dcbbeaa69a848b321eb739c7cd1d4b69ff089616cf6465fe0b2ec87927a45"
+      },
+      "limits": [
+        "Отрицание только права из выбранного подпункта; не решение о действительности конкретной сделки.",
+        "Gratuitous receipt of benefit, not any gratuitous transfer.",
+        "Notarization and registration requirements are stipulated legal classifications, not derived from a contract description.",
+        "Lower age boundary5/6/7 is tested; transition at14 is outside the fixed малолетний scope."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "5cc724dd1307f18e55b33db586564d41c7d28a74b9bbebabced947131c000bd9",
+        "4b7529d19e3a96300c32bade1f55f12c365e154a9ce6557470879a37ee1f35f2",
+        "8b61a120c65a7d24d3978ae183d7c5c76a81ad1130d5903a0e2476aad9e1ebac",
+        "0b7d49b1c0610ad9f06c9bfdd34a66c84c5adb864f599c9f4b828aaee360b4ba",
+        "3869d39dce642099d6cc1c81ea19f1a5bf2d97ba78aee28342e399deafc9b5e2",
+        "b6a43f02af0b7c7131a5f10a16ce730808f70b9f95fd00195893965aabe413e9",
+        "2939e8fff66142bc24085b563559facb644d6fdd70e95e5fd681c8a98810dbea",
+        "f44abee31f71d78c4f49227c6fbcff1580921be9c138a4861afca626b16f59ff",
+        "27dc8e17b8381bc5b8f5ddda676ab0c1f5b7c540999ba737c440391c5592695f",
+        "2a5fcb7c9802175ec62c4e8d88d5fc287c54f69c90eab081dfb77566699399ea"
+      ],
+      "unknown_cases": [
+        {
+          "id": "gk_28-ee671a9b9c70",
+          "facts": {
+            "age": 6,
+            "notary": null,
+            "registration": false
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "gk_28-7f57c712b89f",
+          "facts": {
+            "age": 5,
+            "notary": null,
+            "registration": false
+          },
+          "answer": "нет"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "gk_37",
+      "scope": "Сделка совершается между опекуном и его подопечным. Проверяется только прямо названное исключение из запрета сделок, а не соблюдение всех условий сделки.",
+      "target": "Попадает ли передача под прямо названное исключение из запрета сделок в пункте 3? Ответьте «да» или «нет».",
+      "source_locator": {
+        "article": "gk:37",
+        "locator": "пункт 3, исключение из запрета сделок",
+        "lines": [
+          258,
+          263
+        ],
+        "fragment_sha256": "0bfbeae35a512a8cf1a82fde19d4fff3983cab4970ed1bf4341e1630fd526224"
+      },
+      "limits": [
+        "Исключение из одного запрета не доказывает допустимость сделки в целом; пункт 2 регулирует разрешение органа опеки отдельно.",
+        "Exception to one prohibition only; no claim of overall transaction validity or satisfaction of separate representation rules.",
+        "Only guardian counterparty is modeled, not every listed related person.",
+        "Gift and free use must run toward the ward."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "5dadc0d5487f1db487cd919c0a8fe054ec65531209c0ec2a3a739d2445a0aeba",
+        "0ccc58301b06c22d9577716c4902b3eb4ded14fe8ef31912d2aedc886be5933c",
+        "4fe81d72bc6927e8f53e487fd600063e2b5f19f47dde5b3d2bd743204ebb9030",
+        "3895e25fbae11d278b02e6d318bfbdbf45fd09345ed5cc694c9236c51e4f3012",
+        "bbf5d1aa6e325bcb4d557dee5bc9443aba94b78cee1fb107e95a0692823093bb",
+        "c6eade79e59f7913e6d1415c42f9cbc7571df71e83c953604265e884d7c7087b",
+        "b06539d451d708385ba89a93639deddbba5adcfc7d800f256a5b07c80896a28b",
+        "e01367d04f2cd921f78d540a8fc8fdb77dcb34809565e8c2e3cfd92a7e5ec583",
+        "718f761b85b586e638883e0494cddd661a062b0cb68143379f7e07fb5cfcfe90",
+        "e51c6232456cebde58e3a36caab79203d72006ea96b1065081be682ed0ecce67"
+      ],
+      "unknown_cases": [
+        {
+          "id": "gk_37-282634921384",
+          "facts": {
+            "kind": "gift",
+            "to_ward": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "gk_37-7e5dc6484f36",
+          "facts": {
+            "kind": "sale",
+            "to_ward": null
+          },
+          "answer": "нет"
+        },
+        {
+          "id": "gk_37-6ecb7639c002",
+          "facts": {
+            "kind": null,
+            "to_ward": true
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "gk_37-5d5d6157a3bc",
+          "facts": {
+            "kind": null,
+            "to_ward": false
+          },
+          "answer": "нет"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "gk_186",
+      "scope": "В документе, оформленном как доверенность, не указан срок действия; возможны дефекты оформления. Запрашивается только правило статьи 186; досрочное прекращение по другим основаниям не рассматривается.",
+      "target": "Какое правило о сроке или ничтожности следует из этой статьи? Дайте короткий ответ.",
+      "source_locator": {
+        "article": "gk:186",
+        "locator": "пункты 1–2",
+        "lines": [
+          1815,
+          1818
+        ],
+        "fragment_sha256": "8f0c9c0434d4b7dbcf983228ce9d4d7a3915edc0d67d36d1fe6b5b1b9eb4a504"
+      },
+      "limits": [
+        "Не означает сохранение полномочий после смерти доверителя или иных оснований прекращения.",
+        "Defective documents are now expressly allowed, so notarized+missing date is a defect scenario, not a claim of compliant notarization.",
+        "One year is measured from execution; the short gold omits the anchor but does not compute a calendar expiry date.",
+        "Other termination grounds are expressly excluded."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "a9b5a7579b1dc5a6a9fd25e7c1364f93456ca4237ac36c855131aaad21b54bfc",
+        "7f03f5577437d7916e6cdfd14b65559a08a1da371a909b5066deb3d77f3f1203",
+        "b9831c12a5cc70d7a9f206c7c6afa4e4010c4c454527d6296b7f9da3366817e6",
+        "cf5be15c36527382a22f8f2b684d15e75868c901ed7d5b625214d61ec59182b9",
+        "82021b5d0d76265ab0ebb1ec07f919cf364078b0c8ffa66bcc51991f295c8dd1",
+        "3739cb734b7ad749d70314d70759dcc6761b2c6f7bb6b24a3fd4a33de726d6b3",
+        "4f04e57cda4c2e7cc110f14a2ee41f29f2f7505706cd57dc4dcdf218acf75ba5",
+        "37884b0c9494444aa2d42ced37022aa780565f6b571936a6f9a117cf4422d272",
+        "66fd0d67a60cabd342abb229f4dfdb6734a383c833a826bb3396f586e55a68bc",
+        "557cadcb575813b9205116f8870317515a59c1bc08872c14285f01307efecf36"
+      ],
+      "unknown_cases": [
+        {
+          "id": "gk_186-37c9fb21b7e8",
+          "facts": {
+            "date": false,
+            "notary": null,
+            "abroad": true
+          },
+          "answer": "ничтожна"
+        },
+        {
+          "id": "gk_186-1125b600e402",
+          "facts": {
+            "date": true,
+            "notary": null,
+            "abroad": true
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "59_8",
+      "scope": "Рассматривается зарегистрированное письменное обращение гражданина РФ, к которому применяется 59-ФЗ. Получивший обращение орган не является территориальным органом МВД или высшим должностным лицом субъекта РФ. Это не жалоба на адресата, которому должна быть произведена переадресация. Сведения о содержании установлены независимо от читаемости поступившего экземпляра. Если текст читаем, суть обращения определима; других особых обращений статьи 11 нет. Запрашивается срок направления именно по миграционной части 3.1 при наличии её признака, а в остальных случаях — по части 3.",
+      "target": "Каков предусмотренный указанным положением срок направления со дня регистрации в днях?",
+      "source_locator": {
+        "article": "59:8",
+        "locator": "части 3 и 3.1; исключение части 4 статьи 11",
+        "lines": [
+          42,
+          50
+        ],
+        "fragment_sha256": "4a2972ad401e47301d3fd8cc48d7868f609421abe9b9222b791e49f90ce62977"
+      },
+      "limits": [
+        "При одновременном применении частей 3 и 3.1 не утверждается приоритет одного срока по всему обращению.",
+        "The original recipient is now distinct from both statutory migration destinations.",
+        "Content may be known independently of the readability of the received copy.",
+        "The question selects the3.1 deadline for migration facts and3 otherwise; it does not resolve whole-appeal routing priority.",
+        "No claim about registration deadline under8(2); this card concerns redirection only."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "cc9499a35b90ce9400c64fb7ee235db2085beaec378511e413dfdb984ad0cdae",
+        "40e92909271ba7bf75a5bcddfc48535d57d8810d5280f0b07ff91754510b860e",
+        "d5c878a28ccef90e3bd8a47483a7a7164b86c78c3ca521fd7a08d071b03655bd",
+        "91da230ae6729c24b99d5378a717969f5d70cfb7f69d3b0d8e102aed6827081c",
+        "6bfc90b9ce5533761fa7194b6512664242f05d51306deb675564da03f3201ea6",
+        "5a6f743c3079cf3bb2cef0037cc99b8b1ff94008839fc3572cc9db7978d7da01",
+        "1bf9214e2b20ff35409fa571f8ce7c62ec57fd02c3152c1be1a6e60aeb3a0745",
+        "4824b8e2069abd0be29bcd76212b4566976736cd997b92a99176841a058ee1ff",
+        "2829078b39c25f07b287669de389027e3ba175c71e8c3b204352b8a0d224335f",
+        "8271cc782668bc393743d1f8fab68618d20c1626c2d8c01aee0d8f62cd0c50a5"
+      ],
+      "unknown_cases": [
+        {
+          "id": "59_8-d3260ef5d5bc",
+          "facts": {
+            "readable": false,
+            "migration": null,
+            "competent": false
+          },
+          "answer": "не следует из указанной нормы"
+        },
+        {
+          "id": "59_8-173397c328c6",
+          "facts": {
+            "readable": true,
+            "migration": false,
+            "competent": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "59_8-112c4d1fa5a5",
+          "facts": {
+            "readable": true,
+            "migration": null,
+            "competent": false
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "59_11",
+      "scope": "Рассматривается письменное обращение гражданина РФ, к которому применяется 59-ФЗ. Текст и данные отправителя читаемы, суть обращения определима. Проверяется возможность решения уполномоченного руководителя, не обязанность прекратить переписку.",
+      "target": "Предоставляет ли часть 5 право принять решение о безосновательности очередного обращения и прекращении переписки по данному вопросу? Ответьте «да» или «нет».",
+      "source_locator": {
+        "article": "59:11",
+        "locator": "часть 5",
+        "lines": [
+          64,
+          73
+        ],
+        "fragment_sha256": "7b9737ff9cfdf403b946e40cc455b5d5c28076adb63cba6adc10afb7027c8e7d"
+      },
+      "limits": [
+        "Не утверждает, что руководитель воспользовался правом; о решении требуется уведомить гражданина.",
+        "Permission for an authorized decision maker, not a mandatory or automatically completed termination.",
+        "Only the same question; not a general ban on further communications.",
+        "Repeated written substantive answers form one bundled qualified predicate."
+      ],
+      "constraints": [],
+      "cases": 10,
+      "rendered_question_sha256": [
+        "e2bd3de73d1f2dd29b0c572ce07b287924f0ffd2e6f5dfe9d52dea16b799214f",
+        "108852ceb4c2aab841d94413a5f0636142c9627d82b585d689099074366e2f49",
+        "16e208cec59a62ca9d9802d59e8fee17dcb2507caba0203a5811c0b3db64d5d2",
+        "b318ce77ee74ca6e49dd5ef9b145574cfa2fb7ae4b1b2ee3e2d7c8f07a089dea",
+        "f3a050b623704f700fc87fd2bae96549ae7ce096d7ecd31c8bbf202c713cc710",
+        "26db5b36afe9d73fc1e366162163f59e98e0a8cc4fc5c87beece6fbaaa2ffad7",
+        "85b2488e2bd34fbf6be98f341539ba6b16e2b74dbe4ee973aa197a140a10b507",
+        "02425772d3643cb8847d8eb853fa5a3da3e6d0f26d42593df54b54ac7bc2c38a",
+        "de7da40175a29465017badf1552f0214f2a94d1eaf5efbb75cf7cec5a96c1b4b",
+        "45323c167c4b96b24a396adf77c4c3707c0f8debe3e6defb0aedc9dea68c29c6"
+      ],
+      "unknown_cases": [
+        {
+          "id": "59_11-9930d5bb733c",
+          "facts": {
+            "repeated": false,
+            "new": null,
+            "same": true
+          },
+          "answer": "нет"
+        },
+        {
+          "id": "59_11-282b7adc2937",
+          "facts": {
+            "repeated": true,
+            "new": null,
+            "same": true
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    },
+    {
+      "rule_id": "59_12",
+      "scope": "Зарегистрированное письменное обращение гражданина РФ поступило в компетентный орган или должностному лицу. К нему применяется порядок 59-ФЗ, специальная федеральная процедура не применяется. Обращение не относится к особым обращениям статьи 11. Запрашивается базовая длительность из частей 1 и 1.1, без продления по части 2.",
+      "target": "Какова предусмотренная этими частями базовая длительность рассмотрения в днях со дня регистрации?",
+      "source_locator": {
+        "article": "59:12",
+        "locator": "части 1 и 1.1",
+        "lines": [
+          74,
+          77
+        ],
+        "fragment_sha256": "eb9239e10f296848b8933d748b8bfff4bfbde27b9d57fa46d7a7cb8b4ad15c97"
+      },
+      "limits": [
+        "Не определяет итоговый срок реального дела; часть 2 допускает продление.",
+        "Competence and ordinary59-ФЗ applicability are stipulated.",
+        "Base period only; extensions and special types under11 are excluded.",
+        "Nine cases exhaust the two-boolean-plus-unknown square; no artificial tenth duplicate is needed for language quality."
+      ],
+      "constraints": [],
+      "cases": 9,
+      "rendered_question_sha256": [
+        "7c1e0438094530f5e81825f4c6e6bb16cf7444aaa86f532d71d97a9ce2b79f6a",
+        "0997c6622e5093792dd020005a07cf41120cf81418d4f9e865fa89c76688b091",
+        "17988cccc2cede55cb23d7f35ef8ea34d2dd68729c770277303fbab28d166f80",
+        "326608218b0baeec538e12f2f9a84ec2c044092cb83af377ca57753b4fce86cc",
+        "9f194a70c08e074c04545e43087c4bb679ddd70adaf18d7ced46dceeedda8ee7",
+        "7e2cbc9e8bfb679dcea7e223e734c8abb287aa90d7c4057cfbe2325df4685fbe",
+        "2382b443868c5ed85d5e1cde01aa8ae88ae0787e094651e4b9a5b043e2b040cb",
+        "04d400d9805c0452980aaee5c5cfbe28d66089709970814fb0fb3f552856e173",
+        "787101a3991aa6c02d9944ea399a006ff4c4e02fd2d534702feef0cc62e955dc"
+      ],
+      "unknown_cases": [
+        {
+          "id": "59_12-6e4dd5ab9297",
+          "facts": {
+            "head": true,
+            "migration": null
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "59_12-7bac1fbd0151",
+          "facts": {
+            "head": null,
+            "migration": false
+          },
+          "answer": "30"
+        },
+        {
+          "id": "59_12-5c16c5260a96",
+          "facts": {
+            "head": false,
+            "migration": null
+          },
+          "answer": "30"
+        },
+        {
+          "id": "59_12-bc447fdc7aec",
+          "facts": {
+            "head": null,
+            "migration": true
+          },
+          "answer": "недостаточно данных"
+        },
+        {
+          "id": "59_12-d0ba966b00ff",
+          "facts": {
+            "head": null,
+            "migration": null
+          },
+          "answer": "недостаточно данных"
+        }
+      ],
+      "rule_specific_blockers": [],
+      "verdict": "No additional rule-specific blocking issue found within declared scope; common render findings must also be resolved."
+    }
+  ],
+  "status": "no_remaining_blocking_language_issue_found_within_scopes",
+  "limits": [
+    "No external legal expert review.",
+    "No runtime/model scoring audit.",
+    "Validation flags set by generation are not themselves evidence; this report records its own checks.",
+    "Saved isolated reconstruction and earlier adversarial report were not modified."
+  ],
+  "resolved_findings": [
+    {
+      "id": "FINAL-ANSWER-ROUTING",
+      "original_severity": "blocking",
+      "status": "resolved_and_live_render_verified",
+      "original_problem": "A universal OUTSIDE instruction took precedence over determinate binary нет, e.g. SK57 age9/against=False.",
+      "resolution": "OUTSIDE instruction now appears only on cards with that outcome; all yes/no targets explicitly route determinate absence to нет. UNKNOWN retains precedence.",
+      "verified_generator_sha256": "c1bac0d63e82d77ae02c9d6145a982d89b6269fae9aab04307181d2dcfc1a491",
+      "example_rule": "sk_57",
+      "example_facts": {
+        "age": 9,
+        "against": false
+      },
+      "example_gold": "нет"
+    },
+    {
+      "id": "FINAL-INFERABLE-UNKNOWN",
+      "original_severity": "nonblocking_wording",
+      "status": "resolved_and_live_render_verified",
+      "original_problem": "GK26 said existence/type of a court decision was unknown while a known covered disposition entails a partial restriction.",
+      "resolution": "The text now states that separate description of the decision is not directly given, allowing inference from known coverage.",
+      "verified_generator_sha256": "c1bac0d63e82d77ae02c9d6145a982d89b6269fae9aab04307181d2dcfc1a491",
+      "example_rule": "gk_26",
+      "example_facts": {
+        "decision": null,
+        "within_restriction": true
+      },
+      "example_gold": "нет"
+    }
+  ]
+}

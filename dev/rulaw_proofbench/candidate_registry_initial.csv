@@ -1,0 +1,30 @@
+article_key,act,domain,source_url,stage,status,rejection_code,branches,dependencies
+tk:70,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,source_selection_before_generation,reserve,,,pending
+tk:92,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,source_selection_before_generation,candidate,,,pending
+tk:93,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,source_selection_before_generation,candidate,,,pending
+tk:94,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,source_selection_before_generation,candidate,,,pending
+tk:128,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,source_selection_before_generation,candidate,,,pending
+tk:173,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,source_selection_before_generation,candidate,,,pending
+tk:193,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,source_selection_before_generation,reserve,,,pending
+sk:13,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,reserve,,,pending
+sk:17,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,reserve,,,pending
+sk:19,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,candidate,,,pending
+sk:25,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,reserve,,,pending
+sk:57,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,candidate,,,pending
+sk:60,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,reserve,,,pending
+sk:81,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,candidate,,,pending
+sk:83,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,source_selection_before_generation,reserve,,,pending
+gk:21,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,reserve,,,pending
+gk:26,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,candidate,,,pending
+gk:28,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,candidate,,,pending
+gk:37,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,candidate,,,pending
+gk:42,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,reserve,,,pending
+gk:45,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,reserve,,,pending
+gk:186,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,candidate,,,pending
+gk:333,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,source_selection_before_generation,reserve,,,pending
+59:7,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,source_selection_before_generation,reserve,,,pending
+59:8,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,source_selection_before_generation,candidate,,,pending
+59:10,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,source_selection_before_generation,reserve,,,pending
+59:11,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,source_selection_before_generation,candidate,,,pending
+59:12,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,source_selection_before_generation,candidate,,,pending
+59:13,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,source_selection_before_generation,reserve,,,pending

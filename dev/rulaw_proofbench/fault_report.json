@@ -1,0 +1,63 @@
+{
+  "validator_sha256": "73544aaf85aa1bfa95466f63be8746dc2b95e71379b2c579c55928c77ad58aa6",
+  "classes": {
+    "wrong_gold": {
+      "injected": 10,
+      "detected": 10,
+      "independent_table": 10,
+      "oracle_gold": 10
+    },
+    "wrong_clause": {
+      "injected": 10,
+      "detected": 10,
+      "language_render": 10,
+      "source_binding": 10
+    },
+    "wrong_date": {
+      "injected": 10,
+      "detected": 10,
+      "date_and_scope": 10,
+      "language_render": 10
+    },
+    "wrong_source": {
+      "injected": 10,
+      "detected": 10,
+      "source_binding": 10
+    },
+    "scope_attack": {
+      "injected": 10,
+      "detected": 10,
+      "date_and_scope": 10,
+      "language_render": 10
+    },
+    "condition_inversion": {
+      "injected": 10,
+      "detected": 10,
+      "fact_binding": 10,
+      "independent_table": 7,
+      "language_render": 10,
+      "oracle_gold": 7,
+      "proof_replay": 10,
+      "unknown_semantics": 2
+    },
+    "missing_negation": {
+      "injected": 10,
+      "detected": 10,
+      "language_render": 10
+    },
+    "omitted_exception": {
+      "injected": 10,
+      "detected": 10,
+      "independent_table": 10
+    },
+    "boundary_error": {
+      "injected": 10,
+      "detected": 10,
+      "independent_table": 10
+    }
+  },
+  "false_positives": [],
+  "clean_records": 150,
+  "missed": [],
+  "inference_limit": "Known synthetic corruption detection, not an estimate of unknown legal error prevalence."
+}

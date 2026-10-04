@@ -1,0 +1,163 @@
+{
+  "status": "resolved_with_documented_limits",
+  "rules_sha256": "3d39c4e8ca9471870427d1f528fefa12d2b32d65238d8372b442bd4607146540",
+  "generator_sha256": "c1bac0d63e82d77ae02c9d6145a982d89b6269fae9aab04307181d2dcfc1a491",
+  "resolutions": [
+    {
+      "finding_id": "GLOBAL-CONSTRAINTS",
+      "disposition": "fixed",
+      "resolution": "Консервативные ограничения SK19 и логическое ограничение GK26; в остальных независимые квалифицированные слоты."
+    },
+    {
+      "finding_id": "GLOBAL-STYLE",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Считать это контролируемым символьным/текстовым применением нормы. Заявлять языковую устойчивость только после отдельного проверенного перефразирования; renderer и итоговый корпус в этом проходе не проверялись."
+    },
+    {
+      "finding_id": "GLOBAL-ANSWER-FORMAT",
+      "disposition": "fixed",
+      "resolution": "Renderer разделяет binary нет и числовой OUTSIDE; UNKNOWN явно приоритетен."
+    },
+    {
+      "finding_id": "GLOBAL-TEXTUAL-VS-ENTITLEMENT",
+      "disposition": "fixed",
+      "resolution": "TK128 спрашивает предел возникающей обязанности; TK173 спрашивает нормативную длительность, не конкретное предоставление."
+    },
+    {
+      "finding_id": "TK92-BORDER",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Сохранить узкую область и честно обозначить, что верхняя граница18 не проверена; если добавлять18, изменить scope и исход вне нормы."
+    },
+    {
+      "finding_id": "TK93-ADULT-CHILD",
+      "disposition": "fixed",
+      "resolution": "Используется сын/дочь и установленная инвалидность; домен включает оба соседних значения каждого порога."
+    },
+    {
+      "finding_id": "TK93-COVERAGE",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Не заявлять проверку всей ч.2; обозначать родительскую поднорму."
+    },
+    {
+      "finding_id": "TK94-DAY",
+      "disposition": "accepted_scope_limit",
+      "resolution": "В финальном вопросе сохранять слово «возрастной» и ссылку на выбранные абзацы; иначе исключать предпраздничный/иной специальный день."
+    },
+    {
+      "finding_id": "TK128-TARGET",
+      "disposition": "fixed",
+      "resolution": "Target переписан на предел обязанности при данных фактах с явным ответом вне условия."
+    },
+    {
+      "finding_id": "TK128-SCOPE-FIX",
+      "disposition": "fixed",
+      "resolution": "В окончательной карточке нет фиксированного утверждения о поданном заявлении."
+    },
+    {
+      "finding_id": "TK173-CHOICE",
+      "disposition": "fixed",
+      "resolution": "В scope явно одна образовательная организация."
+    },
+    {
+      "finding_id": "TK173-CERTIFICATE",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Не делать из ответа вывод о возникновении исполнимой обязанности предоставить отпуск без необходимых документов."
+    },
+    {
+      "finding_id": "SK19-APPLICATION",
+      "disposition": "fixed",
+      "resolution": "В scope заявление одного супруга."
+    },
+    {
+      "finding_id": "SK19-CONSENT-COMPAT",
+      "disposition": "fixed",
+      "resolution": "Пилот не рассматривает комбинации согласия с недееспособностью/судебным отсутствием. Это консервативное сужение, не юридическое утверждение об их абсолютной невозможности."
+    },
+    {
+      "finding_id": "SK19-BORDER",
+      "disposition": "fixed",
+      "resolution": "Добавлен срок 2 года; представлены 2,3,4."
+    },
+    {
+      "finding_id": "SK57-INTEREST",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Описывать benchmark как применение готовой квалификации; не заявлять проверку самостоятельной оценки интересов."
+    },
+    {
+      "finding_id": "SK81-FOUR",
+      "disposition": "fixed",
+      "resolution": "Добавлены 4 ребёнка."
+    },
+    {
+      "finding_id": "SK81-COUNT",
+      "disposition": "fixed",
+      "resolution": "Число детей явно связано со взысканием с этого родителя."
+    },
+    {
+      "finding_id": "GK26-INCOME-REDUNDANCY",
+      "disposition": "fixed",
+      "resolution": "Декоративный income удалён; введено частичное ограничение и охват именно рассматриваемого распоряжения."
+    },
+    {
+      "finding_id": "GK26-CURRENT-ORDER",
+      "disposition": "fixed",
+      "resolution": "В scope и слотах только действующие решения суда."
+    },
+    {
+      "finding_id": "GK28-AGE14",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Не добавлять14 без изменения fixed scope; если нужно, отдельный сценарий о переходе возраста и26 п.2 подп.4."
+    },
+    {
+      "finding_id": "GK28-FORMALITY",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Не считать это проверкой классификации реальных договоров/регистрации прав."
+    },
+    {
+      "finding_id": "GK37-COUNTERPARTIES",
+      "disposition": "accepted_scope_limit",
+      "resolution": "В покрытии назвать сужение субъектов; не заявлять всю субъектную область п.3."
+    },
+    {
+      "finding_id": "GK186-NOTARY-NO-DATE",
+      "disposition": "fixed",
+      "resolution": "Scope допускает дефектный документ, оформленный как доверенность."
+    },
+    {
+      "finding_id": "GK186-YEAR-ANCHOR",
+      "disposition": "accepted_scope_limit",
+      "resolution": "В объяснении и полном ответе сохранять «со дня совершения»; допустимый краткий gold может оставаться1 год при явно заданном формате."
+    },
+    {
+      "finding_id": "FZ8-DESTINATION",
+      "disposition": "fixed",
+      "resolution": "Исходный орган явно отличен от двух адресатов части3.1."
+    },
+    {
+      "finding_id": "FZ8-UNREADABLE",
+      "disposition": "fixed",
+      "resolution": "Сведения о содержании заданы независимо от читаемости экземпляра."
+    },
+    {
+      "finding_id": "FZ11-PRIOR-CONTENT",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Не утверждать отдельное покрытие устного ответа, одного ответа или отписки; для этого нужны отдельные факты/контрпримеры."
+    },
+    {
+      "finding_id": "FZ12-COUNT",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Если протокол требует минимум10, добавить осмысленный независимый случай; не заполнять квоту косметической копией."
+    },
+    {
+      "finding_id": "FZ12-MIGRATION",
+      "disposition": "accepted_scope_limit",
+      "resolution": "Сохранить эту отрицательную пару."
+    }
+  ],
+  "final_review": "final_language_review.json",
+  "notes": [
+    "Independent oracle logic and table were not rewritten to agree with first pass. Parent only changed its diagnostic source path from temporary acquisition files to committed archive.",
+    "No legal experts or independent human auditor participated.",
+    "Direct-LLM vs formal-pipeline blind comparison not performed; no comparative rejection-rate claim. Public faults are the completed validation experiment."
+  ]
+}

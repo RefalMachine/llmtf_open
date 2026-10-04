@@ -1,0 +1,30 @@
+article_key,act,domain,source_url,stage,status,rejection_code,branches,dependencies
+tk:70,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,before_question_generation,rejected,OPEN_EXTERNAL_EXCEPTIONS,,not_fully_formalized
+tk:92,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,after_source_rule_language_audit,accepted,,4,tk:94
+tk:93,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,after_source_rule_language_audit,accepted,,2,
+tk:94,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,after_source_rule_language_audit,accepted,,5,tk:92
+tk:128,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,after_source_rule_language_audit,accepted,,5,
+tk:173,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,after_source_rule_language_audit,accepted,,3,tk:177;tk:287
+tk:193,Трудовой кодекс Российской Федерации,labor,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&rdk=177,before_question_generation,rejected,MULTIPLE_TEMPORAL_DEPENDENCIES,,not_fully_formalized
+sk:13,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,before_question_generation,rejected,REGIONAL_VARIATION,,not_fully_formalized
+sk:17,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,before_question_generation,rejected,TEMPORAL_EDGE_INTERPRETATION,,not_fully_formalized
+sk:19,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,after_source_rule_language_audit,accepted,,2,sk:17;sk:21
+sk:25,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,before_question_generation,rejected,TOO_FEW_DISTINCT_VECTORS,,not_fully_formalized
+sk:57,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,after_source_rule_language_audit,accepted,,2,
+sk:60,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,before_question_generation,rejected,WIDE_DEPENDENCY_GRAPH,,not_fully_formalized
+sk:81,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,after_source_rule_language_audit,accepted,,4,sk:83;sk:99
+sk:83,Семейный кодекс Российской Федерации,family,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&rdk=52,before_question_generation,rejected,OPEN_EVALUATIVE_CONDITIONS,,not_fully_formalized
+gk:21,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,before_question_generation,rejected,DEPENDENCY_ONLY,,not_fully_formalized
+gk:26,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,after_source_rule_language_audit,accepted,,2,gk:21;gk:27
+gk:28,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,after_source_rule_language_audit,accepted,,2,gk:37
+gk:37,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,after_source_rule_language_audit,accepted,,2,
+gk:42,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,before_question_generation,rejected,CALENDAR_CALCULATION_OUT_OF_SCOPE,,not_fully_formalized
+gk:45,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,before_question_generation,rejected,SPECIAL_TRANSITION_REGIMES,,not_fully_formalized
+gk:186,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,after_source_rule_language_audit,accepted,,3,gk:188
+gk:333,Гражданский кодекс Российской Федерации (часть первая),civil,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&rdk=140,before_question_generation,rejected,OPEN_EVALUATIVE_CONDITIONS,,not_fully_formalized
+59:7,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,before_question_generation,rejected,LOW_BRANCH_DIVERSITY,,not_fully_formalized
+59:8,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,after_source_rule_language_audit,accepted,,4,59:1;59:4;59:11
+59:10,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,before_question_generation,rejected,DEPENDENCY_ONLY,,not_fully_formalized
+59:11,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,after_source_rule_language_audit,accepted,,2,59:1;59:4
+59:12,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,after_source_rule_language_audit,accepted,,2,59:1;59:4;59:8;59:10;59:11
+59:13,Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»,administrative,http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&rdk=9,before_question_generation,rejected,OPEN_EVALUATIVE_CONDITIONS,,not_fully_formalized

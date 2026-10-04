@@ -1,0 +1,34 @@
+{
+  "dataset_repo": "RefalMachine/RuLaw-ProofBench",
+  "dataset_revision": "cae70d59bdd44bd28e3fbd411b0c8acf7427ef98",
+  "as_of": "2025-01-01",
+  "test_count": 300,
+  "demonstration_count": 5,
+  "files": {
+    "data/open/test.parquet": {
+      "sha256": "e34cc5111e4eb7b7ae72f3901c196b9482340fcbffc123307252b329528dab1f",
+      "rows": 300
+    },
+    "data/open/train.parquet": {
+      "sha256": "54ce169e91cbfb1f0691e2560d08d47087947e623d80a18b65e0c48c5851554b",
+      "rows": 5
+    },
+    "data/mcq/test.parquet": {
+      "sha256": "815895c5cc87a867329f8eb5b8f0f53d1dc73c4ac71b03a58ca1fe84c8205d2c",
+      "rows": 300
+    },
+    "data/mcq/train.parquet": {
+      "sha256": "3c2a348e03d12675b5035306f0b07312c8459fa776cf6ef75357230684b544e7",
+      "rows": 5
+    },
+    "audit/construction.tar.gz": {
+      "sha256": "ee917f7279e6d68cfc2fd161f4d6348df0e363fc85540aba7d3d111284f8cbef"
+    },
+    "audit/pilot_results.tar.gz": {
+      "sha256": "b3a511841805878b7a2b4cebd91611b1aa50ebc1d91309105a3126ff289e1ced"
+    },
+    "code/scoring.py": {
+      "sha256": "5598e97a0c661fe567d70ea5557ec63f40b3adbda0253368a028cc8453dc8852"
+    }
+  }
+}
