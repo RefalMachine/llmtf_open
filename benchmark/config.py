@@ -12,6 +12,7 @@ MODEL_KEYS = {
     'max_new_tokens_reasoning', 'min_new_tokens_reasoning',
     'end_thinking_token_id', 'backend_kwargs', 'is_foundational',
     'assistant_prefill_policy', 'probe_api_prefill', 'api_profile',
+    'reasoning_truncing_prompt',
 }
 EVALUATION_KEYS = {
     'few_shot_count', 'batch_size', 'max_sample_per_dataset', 'name_suffix',
@@ -55,6 +56,7 @@ class BenchmarkModelConfig:
     assistant_prefill_policy: str = 'auto'
     probe_api_prefill: bool = False
     api_profile: str = 'auto'
+    reasoning_truncing_prompt: str = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,8 @@ def load_benchmark_config(path):
     model_raw = _require_mapping(raw.get('model'), 'model')
     _reject_unknown(model_raw, MODEL_KEYS, 'model')
     model = BenchmarkModelConfig(**model_raw)
+    if model.reasoning_truncing_prompt is not None and not isinstance(model.reasoning_truncing_prompt, str):
+        raise ValueError('model.reasoning_truncing_prompt must be a string or null')
     if model.model_kind not in {'plain', 'hybrid', 'reasoning'}:
         raise ValueError(f"Invalid model.model_kind: {model.model_kind!r}")
     if model.assistant_prefill_policy not in {
@@ -230,6 +234,8 @@ def build_evaluate_command(config, task, *, model_name, output_dir,
         command += ['--model_context_len', str(config.model.model_context_len)]
     if config.model.end_thinking_token_id is not None:
         command += ['--end_thinking_token_id', str(config.model.end_thinking_token_id)]
+    if config.model.reasoning_truncing_prompt is not None:
+        command += ['--reasoning_truncing_prompt', config.model.reasoning_truncing_prompt]
     if config.model.backend_kwargs:
         command += [
             '--backend_kwargs',

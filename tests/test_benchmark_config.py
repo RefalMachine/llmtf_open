@@ -8,6 +8,30 @@ from benchmark.config import build_evaluate_command, load_benchmark_config
 
 
 class BenchmarkConfigTests(unittest.TestCase):
+    def test_truncation_phrase_preserves_empty_and_multiline_values(self):
+        import yaml
+        for phrase in (None, '', '\nПерехожу к ответу.\n'):
+            with self.subTest(phrase=phrase), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'config.yaml'
+                path.write_text(yaml.safe_dump({
+                    'model': {'reasoning_truncing_prompt': phrase},
+                    'tasks': [{'name': 'test', 'datasets': ['x']}],
+                }), encoding='utf-8')
+                config = load_benchmark_config(path)
+                for api in (False, True):
+                    command = build_evaluate_command(config, config.tasks[0],
+                        model_name='model', output_dir='out', api=api, base_url='http://localhost:8000')
+                    if phrase is None:
+                        self.assertNotIn('--reasoning_truncing_prompt', command)
+                    else:
+                        self.assertEqual(command[command.index('--reasoning_truncing_prompt') + 1], phrase)
+
+    def test_nontext_truncation_phrase_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._write(directory, 'model: {reasoning_truncing_prompt: 42}')
+            with self.assertRaisesRegex(ValueError, 'reasoning_truncing_prompt'):
+                load_benchmark_config(path)
+
     def _write(self, directory, body):
         path = Path(directory) / 'benchmark.yaml'
         path.write_text(textwrap.dedent(body), encoding='utf-8')

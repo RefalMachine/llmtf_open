@@ -28,6 +28,8 @@ def build_parser():
     parser.add_argument('--model_context_len', type=int, default=argparse.SUPPRESS)
     parser.add_argument('--max_new_tokens_reasoning', type=int, default=4096)
     parser.add_argument('--min_new_tokens_reasoning', type=int, default=1024)
+    parser.add_argument('--reasoning_truncing_prompt', default=None,
+                        help='Text inserted only when reasoning hits its token budget; empty string disables the phrase')
     parser.add_argument('--end_thinking_token_id', type=int, default=None)
     parser.add_argument('--vllm', action='store_true')
     add_thinking_flags(parser)
@@ -128,6 +130,7 @@ def main(argv=None):
         max_new_tokens_reasoning=args.max_new_tokens_reasoning,
         min_new_tokens_reasoning=args.min_new_tokens_reasoning,
         end_thinking_token_id=args.end_thinking_token_id,
+        reasoning_truncing_prompt=args.reasoning_truncing_prompt,
     )
     model.generation_config.temperature = args.temperature
     model.generation_config.repetition_penalty = args.repetition_penalty

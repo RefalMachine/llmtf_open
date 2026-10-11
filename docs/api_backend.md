@@ -6,6 +6,15 @@
 
 ## Профили
 
+Общий YAML принимает `model.reasoning_truncing_prompt`. `null` (или отсутствие
+поля) сохраняет штатную фразу, пустая строка убирает только текст фразы,
+другая строка заменяет его. Фраза используется лишь при обрыве reasoning по
+бюджету; закрытие reasoning и разделитель ответа сохраняются. Параметр также
+доступен как `--reasoning_truncing_prompt` в обоих single-model CLI и входит
+в существующий reasoning provenance/fingerprint. Минимальный резерв
+`min_new_tokens_reasoning` не заставляет модель генерировать заданное число
+токенов. API reasoning требует проверки assistant continuation, описанной ниже.
+
 ```text
 --api_profile {auto,openai,vllm}
 ```
