@@ -23,6 +23,7 @@ from llmtf.continuation import (
     PrefillVerification,
     analyze_assistant_prefill,
     candidate_surface_forms,
+    render_local_chat_prompt,
     resolve_prefill,
     single_token_candidate_ids,
 )
@@ -35,6 +36,10 @@ class APIBackend(Backend):
     Supports generate / calculate_tokens_proba. PPL not supported.
     return_tokens=True raises NotImplementedError. Reasoning orchestration
     lives on the LLM level.
+
+    assistant_continuation_method="chat" is the default. "rendered_prompt"
+    is an experimental, explicit vLLM-only compatibility path; see
+    docs/api_backend.md for its template and token-round-trip limitations.
     """
 
     def __init__(self, api_base, api_key=None, model_context_len=None,
@@ -42,7 +47,8 @@ class APIBackend(Backend):
                  num_procs=None, redact_endpoint=True, api_profile="auto",
                  supports_logprobs=None,
                  calculate_tokens_proba_logprobs_count=20,
-                 token_probability_method="top_logprobs", **kwargs):
+                 token_probability_method="top_logprobs",
+                 assistant_continuation_method="chat", **kwargs):
         super().__init__(**kwargs)
         if api_profile not in {"auto", "openai", "vllm"}:
             raise ValueError("api_profile must be one of: auto, openai, vllm")
@@ -53,6 +59,11 @@ class APIBackend(Backend):
         if token_probability_method == "vllm_generative_scoring" and api_profile != "vllm":
             raise ValueError("vllm_generative_scoring requires api_profile=vllm")
         self.token_probability_method = token_probability_method
+        if assistant_continuation_method not in {"chat", "rendered_prompt"}:
+            raise ValueError("Unknown assistant_continuation_method")
+        if assistant_continuation_method == "rendered_prompt" and api_profile != "vllm":
+            raise ValueError("rendered_prompt requires api_profile=vllm")
+        self.assistant_continuation_method = assistant_continuation_method
         self._candidate_token_cache = {}
         if not 1 <= int(calculate_tokens_proba_logprobs_count) <= 100:
             raise ValueError(
@@ -308,6 +319,9 @@ class APIBackend(Backend):
         return int(data['count'])
 
     def _chat_tokenization_payload(self, messages, continue_last_assistant_message, enable_thinking=False):
+        if self._uses_rendered_continuation(messages, continue_last_assistant_message):
+            return {'model': self.model_name, 'prompt': self._render_continuation(messages, enable_thinking),
+                    'add_special_tokens': False}
         last_role = messages[-1]['role']
         payload = {'messages': messages, 'model': self.model_name}
         if self._use_vllm_extensions:
@@ -320,6 +334,58 @@ class APIBackend(Backend):
             })
         return payload
 
+    def _uses_rendered_continuation(self, messages, continue_last_assistant_message):
+        return (self.assistant_continuation_method == 'rendered_prompt'
+                and continue_last_assistant_message and messages[-1]['role'] == 'assistant')
+
+    def _render_continuation(self, messages, enable_thinking):
+        """Experimental adapter of the shared renderer to a server tokenizer.
+
+        The native template is still applied on the server. Its final assistant
+        is marked and sliced by llmtf.continuation, without Transformers' full
+        message containment check. Template normalization still applies;
+        this does not guarantee preservation of all original token IDs.
+        No local tokenizer or torch is required.
+        """
+        backend = self
+
+        class ServerTokenizer:
+            def apply_chat_template(self, messages, *, tokenize, enable_thinking, **options):
+                if tokenize:
+                    raise ValueError('Expected text rendering')
+                response = backend._request('POST', '/tokenize', json={
+                    'model': backend.model_name, 'messages': messages, **options,
+                    'chat_template_kwargs': {'enable_thinking': enable_thinking},
+                })
+                tokens = backend._require_token_ids(response.json())
+                response = backend._request('POST', '/detokenize', json={
+                    'model': backend.model_name, 'tokens': tokens,
+                })
+                prompt = response.json().get('prompt')
+                if not isinstance(prompt, str):
+                    raise ValueError('vLLM /detokenize must return a text prompt')
+                return prompt
+
+        prompt, _ = render_local_chat_prompt(
+            ServerTokenizer(), messages, config=self.continuation_config,
+            enable_thinking=enable_thinking,
+        )
+        return prompt
+
+    def _completion_transport(self, payload, messages, continue_last_assistant_message, enable_thinking):
+        """Use raw completions only for explicitly selected assistant prefills."""
+        if not self._uses_rendered_continuation(messages, continue_last_assistant_message):
+            return '/v1/chat/completions', payload
+        payload = dict(payload)
+        payload.pop('messages')
+        for key in ('add_generation_prompt', 'continue_final_message', 'chat_template_kwargs'):
+            payload.pop(key, None)
+        payload['prompt'] = self._render_continuation(messages, enable_thinking)
+        payload['add_special_tokens'] = False
+        if 'top_logprobs' in payload:
+            payload['logprobs'] = payload.pop('top_logprobs')
+        return '/v1/completions', payload
+
     def _resolve_prefill_decision(self, messages, *,
                                   continue_last_assistant_message,
                                   enable_thinking=False):
@@ -327,6 +393,10 @@ class APIBackend(Backend):
             messages,
             continue_last_assistant_message=continue_last_assistant_message,
         )
+        if self._uses_rendered_continuation(messages, continue_last_assistant_message):
+            # The actual request must successfully round-trip the marked prompt.
+            # This bypasses the whitespace-stripping chat continuation transport.
+            return resolve_prefill(analysis, self.continuation_config, local_exact=True)
         probe_result = None
         if analysis.hazardous and self.supports_assistant_continuation \
                 and self.continuation_config.probe_api_prefill:
@@ -493,14 +563,14 @@ class APIBackend(Backend):
                     # Reasoning needs the terminal ID to remove a native EOS
                     # from the assistant turn before requesting the answer.
                     payload['return_token_ids'] = True
-            r = self._request(
-                'POST', '/v1/chat/completions',
-                json=payload,
+            path, payload = self._completion_transport(
+                payload, messages, continue_last_assistant_message, enable_thinking,
             )
+            r = self._request('POST', path, json=payload)
 
             data = r.json()
             choice = data['choices'][0]
-            outputs.append(choice['message']['content'])
+            outputs.append(choice['text'] if path == '/v1/completions' else choice['message']['content'])
             termination = vllm_generation_termination(
                 choice.get('finish_reason'), choice.get('stop_reason'),
                 has_stop_reason=self._use_vllm_extensions and 'stop_reason' in choice,
@@ -626,11 +696,21 @@ class APIBackend(Backend):
                 ),
                 'chat_template_kwargs': {'enable_thinking': False},
             })
-        r = self._request('POST', '/v1/chat/completions', json=payload)
+        path, payload = self._completion_transport(
+            payload, messages, continue_last_assistant_message, False,
+        )
+        r = self._request('POST', path, json=payload)
 
         data = r.json()
         try:
-            token_entry = data['choices'][0]['logprobs']['content'][0]
+            if path == '/v1/completions':
+                entry = data['choices'][0]['logprobs']
+                token_entry = {'token': entry['tokens'][0], 'top_logprobs': [
+                    {'token': token, 'logprob': value}
+                    for token, value in entry['top_logprobs'][0].items()
+                ]}
+            else:
+                token_entry = data['choices'][0]['logprobs']['content'][0]
             logprobs = token_entry['top_logprobs']
             if not isinstance(logprobs, list):
                 raise TypeError
@@ -639,7 +719,7 @@ class APIBackend(Backend):
                 self._supports_logprobs = False
                 self._refresh_server_capabilities()
             display_url = (
-                '<redacted>/v1/chat/completions' if self.redact_endpoint else self.api_base + '/v1/chat/completions'
+                '<redacted>' + path if self.redact_endpoint else self.api_base + path
             )
             raise BackendRequestError(
                 'POST', display_url,
@@ -831,6 +911,9 @@ class APIBackend(Backend):
             ),
             'server_capabilities': self.server_capabilities,
         }
+        # Default chat is unchanged; keep existing chat cache identities stable.
+        if self.assistant_continuation_method != 'chat':
+            params['assistant_continuation_method'] = self.assistant_continuation_method
         return params
 
     def get_model_context_len(self):

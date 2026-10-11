@@ -23,6 +23,58 @@ class Response:
 
 
 class APIBackendTests(unittest.TestCase):
+    def test_rendered_continuation_uses_shared_boundary_and_raw_completion(self):
+        backend = self._backend()
+        backend.assistant_continuation_method = 'rendered_prompt'
+        backend._tokenize_available = True
+        sent = []
+        rendered = {}
+
+        def request(method, path, **kwargs):
+            payload = kwargs['json']
+            sent.append((path, copy.deepcopy(payload)))
+            if path == '/tokenize' and 'messages' in payload:
+                self.assertFalse(payload['continue_final_message'])
+                rendered['prompt'] = 'native-header\n' + payload['messages'][-1]['content'] + 'end-of-turn'
+                return Response({'tokens': [1, 2], 'count': 2})
+            if path == '/detokenize':
+                return Response({'prompt': rendered['prompt']})
+            if path == '/tokenize':
+                self.assertTrue(payload['prompt'].endswith('Ответ:  '))
+                self.assertFalse(payload['add_special_tokens'])
+                return Response({'tokens': [1, 2], 'count': 2})
+            self.assertEqual(path, '/v1/completions')
+            self.assertTrue(payload['prompt'].endswith('Ответ:  '))
+            self.assertNotIn('continue_final_message', payload)
+            self.assertFalse(payload['add_special_tokens'])
+            self.assertNotIn('messages', payload)
+            return Response({'choices': [{'text': 'A', 'logprobs': {
+                'tokens': ['A'], 'top_logprobs': [{'A': -1.0, ' B': -2.0}],
+            }}], 'usage': {'prompt_tokens': 2, 'completion_tokens': 1}})
+
+        backend._request = request
+        messages = [{'role': 'user', 'content': 'question'}, {'role': 'assistant', 'content': 'Ответ:  '}]
+        self.assertEqual(backend.count_tokens_for_messages(messages), 2)
+        _, answer, info = backend.generate(messages)
+        self.assertEqual(answer, 'A')
+        self.assertEqual(info['prompt_len'], 2)
+        _, scores, _ = backend.calculate_tokens_proba(messages, ['A', 'B'])
+        self.assertGreater(scores['A'], scores['B'])
+        self.assertEqual(messages[-1]['content'], 'Ответ:  ')
+        self.assertEqual(backend.get_params()['assistant_continuation_method'], 'rendered_prompt')
+
+    def test_rendered_continuation_requires_explicit_vllm_profile(self):
+        for profile in ('auto', 'openai'):
+            with self.subTest(profile=profile), self.assertRaises(ValueError):
+                APIBackend('http://server', api_profile=profile, assistant_continuation_method='rendered_prompt')
+
+    def test_rendered_continuation_rejects_lost_boundary(self):
+        backend = self._backend()
+        backend.assistant_continuation_method = 'rendered_prompt'
+        backend._request = mock.Mock(side_effect=[Response({'tokens': [1]}), Response({'prompt': 'lost marker'})])
+        with self.assertRaisesRegex(ValueError, 'internal continuation boundary'):
+            backend.generate([{'role': 'user', 'content': 'q'}, {'role': 'assistant', 'content': 'Ответ:'}])
+
     def test_generative_scoring_preserves_prefill_and_full_vocab_probabilities(self):
         backend = self._backend()
         backend.token_probability_method = 'vllm_generative_scoring'
