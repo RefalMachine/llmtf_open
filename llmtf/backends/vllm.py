@@ -25,7 +25,7 @@ import numpy as np
 from peft import PeftConfig
 from transformers import AutoTokenizer, GenerationConfig
 
-from llmtf.backends.base import Backend, normalize_stop_token_ids
+from llmtf.backends.base import Backend, normalize_stop_token_ids, vllm_generation_termination
 from llmtf.config import DEFAULT_VLLM_GPU_MEMORY_UTILIZATION
 from llmtf.continuation import render_local_chat_prompt, single_token_candidate_ids
 from llmtf.utils import json_to_jinja
@@ -155,6 +155,11 @@ class VLLMBackend(Backend):
         except:
             self.generation_config = GenerationConfig.from_dict({})
 
+        # Keep model EOS separate from stops added by a conversation template.
+        self.native_eos_token_ids = list(dict.fromkeys(
+            (normalize_stop_token_ids(self.tokenizer.eos_token_id) or [])
+            + (normalize_stop_token_ids(self.generation_config.eos_token_id) or [])
+        ))
         self.conv_template_eos_string = None
         self._update_chat_template(is_foundational, conversation_template_path)
         self._init_default_gen_params()
@@ -422,7 +427,8 @@ class VLLMBackend(Backend):
                 getattr(generation_config, 'eos_token_id', None)
             ),
             n=generation_config.num_return_sequences,
-            include_stop_str_in_output=enable_thinking or include_stop_str_in_output
+            include_stop_str_in_output=enable_thinking or include_stop_str_in_output,
+            skip_special_tokens=skip_special_tokens,
         )
 
         prompts_vllm = []
@@ -437,12 +443,31 @@ class VLLMBackend(Backend):
         )
 
         for response_index, response in enumerate(vllm_responses):
+            terminations = []
+            native_eos_ids = normalize_stop_token_ids(
+                getattr(self, 'native_eos_token_ids', getattr(self.tokenizer, 'eos_token_id', None))
+            ) or []
+            for out in response.outputs:
+                termination = vllm_generation_termination(
+                    out.finish_reason, out.stop_reason,
+                    native_eos_token_ids=native_eos_ids,
+                )
+                if (termination['reason'] == 'stop' and out.token_ids
+                        and out.token_ids[-1] in native_eos_ids):
+                    # A native EOS can also match the model's EOS stop string.
+                    termination['reason'] = 'eos'
+                if termination['reason'] == 'eos' and out.token_ids and not skip_special_tokens:
+                    termination['terminal_text'] = self.tokenizer.decode(
+                        [out.token_ids[-1]], skip_special_tokens=False,
+                    )
+                terminations.append(termination)
             infos.append(
                 {
                     'prompt_len': len(response.prompt_token_ids),
                     'generated_len': [len(out.token_ids) for out in response.outputs],
                     'generated_cumulative_logprob': [out.cumulative_logprob for out in response.outputs],
                     'assistant_prefill': prefill_decisions[response_index].to_dict(),
+                    'generation_termination': terminations,
                 }
             )
             prompts_vllm.append(self.tokenizer.decode(response.prompt_token_ids))

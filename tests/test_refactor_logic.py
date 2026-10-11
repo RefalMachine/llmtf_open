@@ -254,11 +254,11 @@ def test_emulated_strategy_run_stop_by_think_then_continuation():
     assert result.reasoning_prompts == ['p0']
     assert result.final_outputs == ['answer']
     # The visible-answer separator is normalized for continuation rendering.
-    assert result.reasoning_outputs == ['reasoning' + TC + '\n\n']
+    assert result.reasoning_outputs == ['reasoning\n' + TC + '\n\n']
     # continuation received prefix + assistant(reasoning text)
     assert seen['msgs'][0][0]['role'] == 'user'
     assert seen['msgs'][0][1]['role'] == 'assistant'
-    assert seen['msgs'][0][1]['content'] == 'reasoning' + TC + '\n\n'
+    assert seen['msgs'][0][1]['content'] == 'reasoning\n' + TC + '\n\n'
     # raw reasoning/final infos passed through (LLM layer shapes info, not strategy)
     assert result.reasoning_infos[0]['generated_len'] == [3]
     assert result.final_infos[0]['generated_cumulative_logprob'] == -0.5
@@ -533,14 +533,14 @@ def test_dispatcher_hybrid_two_pass_generate():
     assert calls['gen'] == 2  # reasoning + continuation
     assert outputs == [' answer']
     assert continuation_messages['value'][0][-1] == {
-        'role': 'assistant', 'content': 'reasoning' + TC + '\n\nprefix '
+        'role': 'assistant', 'content': 'reasoning\n' + TC + '\n\nprefix '
     }
     assert sum(
         message['role'] == 'assistant'
         for message in continuation_messages['value'][0]
     ) == 1
     assert infos[0]['reasoning']['generated_len'] == [3]
-    assert infos[0]['reasoning']['text'] == 'reasoning' + TC + '\n\n'
+    assert infos[0]['reasoning']['text'] == 'reasoning\n' + TC + '\n\n'
     assert infos[0]['response']['generated_cumulative_logprob'] == -0.5
 
 
@@ -610,7 +610,7 @@ def test_dispatcher_hybrid_two_pass_ctp():
     assert probs == [{'A': 0.9}]
     assert infos[0]['response']['generated_token'] == 'A'
     assert 'generated_cumulative_logprob' not in infos[0]['response']
-    assert infos[0]['reasoning']['text'] == 'reasoning' + TC + '\n\n'
+    assert infos[0]['reasoning']['text'] == 'reasoning\n' + TC + '\n\n'
 
 
 def test_maxlencontext_trims_reasoning_above_floor():

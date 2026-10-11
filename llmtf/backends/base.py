@@ -80,6 +80,25 @@ def normalize_stop_token_ids(value):
     raise TypeError("stop token ids must be int, list[int], or None")
 
 
+def vllm_generation_termination(finish_reason, stop_reason, *, has_stop_reason=True,
+                                native_eos_token_ids=()):
+    """Recognize native EOS, including an explicit stop on a known EOS ID.
+
+    A standard OpenAI finish_reason=stop alone does not establish EOS.
+    """
+    reason = "unknown"
+    if finish_reason == "length":
+        reason = "length"
+    elif finish_reason == "stop" and has_stop_reason:
+        known_eos_ids = normalize_stop_token_ids(native_eos_token_ids) or []
+        reason = "eos" if stop_reason is None or stop_reason in known_eos_ids else "stop"
+    return {
+        "reason": reason,
+        "finish_reason": finish_reason,
+        "stop_reason": stop_reason,
+    }
+
+
 class Backend(Base):
     """Abstract interface for a model backend (primitive provider).
 

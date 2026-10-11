@@ -6,6 +6,33 @@
 
 ## Профили
 
+### Преждевременный EOS в двухэтапном reasoning
+
+При подтверждённом EOS до `THINK_CLOSE_MARKER` LLMTF закрывает reasoning
+и выполняет отдельную стадию ответа. Фраза о лимите добавляется только при
+исчерпании reasoning budget. Терминальный EOS удаляется из assistant-prefill;
+текст рассуждения не используется как готовый итоговый ответ.
+
+Для явного vLLM-профиля `finish_reason=stop` вместе с возвращённым
+`stop_reason=null` означает EOS; явно известный штатный EOS ID также
+распознаётся. Сам по себе стандартный `finish_reason=stop`
+такой гарантии не даёт. При сохранении специальных токенов клиент запрашивает
+`return_token_ids` и декодирует последний ID через `/detokenize`, чтобы удалить
+точный конечный маркер. Неизвестный короткий stop или ошибка генерации
+по-прежнему не считаются успешным завершением reasoning.
+
+В sample `info.reasoning` записываются `termination_reason` (`think_close`,
+`length`, `eos`), `synthetic_close`, `eos_removed` и исходные сведения backend
+в `generation_termination`. В params указан
+`termination_policy=close_on_confirmed_eos_v1`. Для анализа абляций следует
+отдельно считать долю EOS: такие примеры не получают завершающую фразу.
+6 октября 2026 года прошли проверки HF, local vLLM и CPU-only API-клиента
+на Qwen3.5-2B с одной RTX 4090: обычные off/on вызовы, принудительный
+пустой и непустой EOS, отдельный strict reasoning, generate и probability.
+Артефакты и ограничения проверки сохранены в
+`papers/LLMTF_legal/experiments/validation/eos-2026-10-06/`.
+Это проверка исполнения, без утверждения общей local/API parity.
+
 Общий YAML принимает `model.reasoning_truncing_prompt`. `null` (или отсутствие
 поля) сохраняет штатную фразу, пустая строка убирает только текст фразы,
 другая строка заменяет его. Фраза используется лишь при обрыве reasoning по
@@ -63,6 +90,16 @@ Reasoning parser, tool parser и остальные model-specific server option
 выполняются.
 
 ## Assistant continuation
+
+Перед вторым проходом LLMTF нормализует конец reasoning: удаляет только
+завершающие пробельные символы перед `THINK_CLOSE_MARKER` и ставит ровно
+один перевод строки перед ним. Это применяется при естественном закрытии,
+лимите и EOS; внутренние абзацы, разделитель после маркера и assistant-prefill
+задачи сохраняются. Граница соответствует шаблону Qwen и устраняет ошибку
+`continue_final_message` из-за лишних переводов строк перед закрытием.
+В params записывается `normalization_policy=single_newline_before_close_v1`;
+для нового запуска нужен отдельный output или явный пересчёт старого кеша.
+Обычный transport по умолчанию остаётся `chat`.
 
 Профили `auto` и `openai` не обещают, что финальное сообщение `assistant`
 будет продолжено. При политиках `auto` и `exact` такой prompt отклоняется до

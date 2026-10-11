@@ -107,7 +107,8 @@ class BackendContractTests(unittest.TestCase):
             def __init__(inner_self, **kwargs):
                 captured.update(kwargs)
         output = type('Output', (), {
-            'token_ids': [9], 'cumulative_logprob': -1.0, 'text': 'answer'
+            'token_ids': [9], 'cumulative_logprob': -1.0, 'text': 'answer',
+            'finish_reason': 'length', 'stop_reason': None,
         })()
         response = type('Response', (), {
             'prompt_token_ids': [1, 2], 'outputs': [output]
@@ -141,6 +142,27 @@ class BackendContractTests(unittest.TestCase):
             )
         self.assertEqual(captured['stop_token_ids'], [42])
         self.assertEqual(backend.generation_config.eos_token_id, [1])
+
+        # Task-specific stop IDs are not native EOS IDs.
+        backend.native_eos_token_ids = [1]
+        backend.eos_token_ids_base = [1, 9]
+        backend.generation_config.eos_token_id = [1, 9]
+        output.finish_reason = 'stop'
+        output.stop_reason = 9
+        with mock.patch.object(module, 'SamplingParams', SamplingParams):
+            _, _, infos = backend.generate_batch(
+                [[{'role': 'user', 'content': 'q'}]], generation_config=phase,
+            )
+        self.assertEqual(infos[0]['generation_termination'][0]['reason'], 'stop')
+
+        output.token_ids = [1]
+        for stop_reason in (1, 'native-eos-string'):
+            output.stop_reason = stop_reason
+            with mock.patch.object(module, 'SamplingParams', SamplingParams):
+                _, _, infos = backend.generate_batch(
+                    [[{'role': 'user', 'content': 'q'}]], generation_config=phase,
+                )
+            self.assertEqual(infos[0]['generation_termination'][0]['reason'], 'eos')
 
 
 if __name__ == '__main__':

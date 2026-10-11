@@ -61,7 +61,7 @@ class APIBackendTests(unittest.TestCase):
         def request(method, path, **kwargs):
             payload = kwargs['json']
             payloads.append(payload)
-            is_reasoning = payload['stop_token_ids'] == [42]
+            is_reasoning = 42 in payload['stop_token_ids']
             return Response({
                 'choices': [{'message': {'content': (
                     'reasoning' + THINK_CLOSE_MARKER if is_reasoning else 'answer'
@@ -79,8 +79,50 @@ class APIBackendTests(unittest.TestCase):
             model.generate_batch(
                 [[{'role': 'user', 'content': 'q'}]], enable_thinking=True
             )
-        self.assertEqual([payload['stop_token_ids'] for payload in payloads], [[42], [1]])
+        self.assertEqual([payload['stop_token_ids'] for payload in payloads], [[1, 42], [1]])
         self.assertEqual(backend.generation_config.eos_token_id, [1])
+
+    def test_vllm_eos_has_verified_terminal_text(self):
+        backend = self._backend()
+        sent = []
+
+        def request(method, path, **kwargs):
+            sent.append((path, kwargs['json']))
+            if path == '/detokenize':
+                self.assertEqual(kwargs['json']['tokens'], [99])
+                return Response({'prompt': '[native-eos]'})
+            self.assertTrue(kwargs['json']['return_token_ids'])
+            return Response({'choices': [{
+                'message': {'content': 'reasoning[native-eos]'},
+                'finish_reason': 'stop', 'stop_reason': None, 'token_ids': [7, 99],
+            }], 'usage': {'prompt_tokens': 2, 'completion_tokens': 2}})
+
+        backend._request = request
+        _, text, info = backend.generate([{'role': 'user', 'content': 'q'}], skip_special_tokens=False)
+        self.assertEqual(text, 'reasoning[native-eos]')
+        self.assertEqual(info['generation_termination'][0]['reason'], 'eos')
+        self.assertEqual(info['generation_termination'][0]['terminal_text'], '[native-eos]')
+        self.assertEqual(len(sent), 2)
+
+    def test_standard_stop_or_explicit_stop_is_not_confirmed_eos(self):
+        backend = self._backend()
+        for metadata, expected in (({'finish_reason': 'stop'}, 'unknown'),
+                                   ({'finish_reason': 'stop', 'stop_reason': 'STOP'}, 'stop'),
+                                   ({'finish_reason': 'length'}, 'length')):
+            backend._request = mock.Mock(return_value=Response({'choices': [{
+                'message': {'content': 'short'}, **metadata,
+            }], 'usage': {'completion_tokens': 1}}))
+            _, _, info = backend.generate([{'role': 'user', 'content': 'q'}], skip_special_tokens=False)
+            self.assertEqual(info['generation_termination'][0]['reason'], expected)
+            self.assertEqual(backend._request.call_count, 1)
+
+    def test_visible_eos_without_returned_ids_fails_closed(self):
+        backend = self._backend()
+        backend._request = mock.Mock(return_value=Response({'choices': [{
+            'message': {'content': 'short'}, 'finish_reason': 'stop', 'stop_reason': None,
+        }]}))
+        with self.assertRaisesRegex(ValueError, 'returned token_ids'):
+            backend.generate([{'role': 'user', 'content': 'q'}], skip_special_tokens=False)
 
     def test_failed_middle_request_fails_closed_with_original_index(self):
         backend = self._backend()

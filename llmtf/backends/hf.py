@@ -10,7 +10,7 @@ import tqdm
 from peft import PeftConfig, PeftModel
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
-from llmtf.backends.base import Backend
+from llmtf.backends.base import Backend, normalize_stop_token_ids
 from llmtf.continuation import render_local_chat_prompt, single_token_candidate_ids
 from llmtf.utils import add_tokens_with_logsoftmax_messages, json_to_jinja
 
@@ -114,6 +114,11 @@ class HFBackend(Backend):
         except:
             self.generation_config = GenerationConfig.from_dict({})
 
+        # Keep model EOS separate from stops added by a conversation template.
+        self.native_eos_token_ids = list(dict.fromkeys(
+            (normalize_stop_token_ids(self.tokenizer.eos_token_id) or [])
+            + (normalize_stop_token_ids(self.generation_config.eos_token_id) or [])
+        ))
         self.conv_template_eos_string = None
         self._update_chat_template(is_foundational, conversation_template_path)
         self._init_default_gen_params()
@@ -418,12 +423,36 @@ class HFBackend(Backend):
 
         outputs = []
         infos = []
+        stop_ids = normalize_stop_token_ids(generation_config.eos_token_id) or []
+        native_eos_ids = set(getattr(
+            self, 'native_eos_token_ids',
+            normalize_stop_token_ids(self.tokenizer.eos_token_id) or [],
+        ))
         for batch_idx, (sample_output_ids_all, sample_input_ids) in enumerate(zip(output_ids, data["input_ids"])):
             sample_output_all = []
             generated_len = []
+            terminations = []
             prompt_len = int(data["attention_mask"][batch_idx].cpu().detach().sum())
             for sample_output_ids in sample_output_ids_all:
                 sample_output_ids = sample_output_ids[len(sample_input_ids):]
+                # HF pads sequences which ended before other batch members.
+                # Count and decode only the actual continuation, including EOS.
+                generated_ids = sample_output_ids.cpu().detach().tolist()
+                for token_index, token_id in enumerate(generated_ids):
+                    if token_id in stop_ids:
+                        sample_output_ids = sample_output_ids[:token_index + 1]
+                        generated_ids = generated_ids[:token_index + 1]
+                        break
+                termination = {'reason': 'unknown'}
+                if generated_ids and generated_ids[-1] in native_eos_ids:
+                    termination = {
+                        'reason': 'eos',
+                        'stop_reason': generated_ids[-1],
+                        'terminal_text': self.tokenizer.decode([generated_ids[-1]], skip_special_tokens=False),
+                    }
+                elif len(generated_ids) >= generation_config.max_new_tokens:
+                    termination['reason'] = 'length'
+                terminations.append(termination)
 
                 if return_tokens:
                     generated_ids = sample_output_ids.cpu().detach().tolist()
@@ -457,6 +486,7 @@ class HFBackend(Backend):
                     'generated_len': generated_len,
                     'generated_cumulative_logprob': None,
                     'assistant_prefill': prefill_decisions[batch_idx].to_dict(),
+                    'generation_termination': terminations,
                 }
             )
 

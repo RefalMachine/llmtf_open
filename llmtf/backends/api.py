@@ -15,6 +15,7 @@ from llmtf.backends.base import (
     BackendBatchError,
     BackendRequestError,
     normalize_stop_token_ids,
+    vllm_generation_termination,
 )
 from llmtf.config import SamplingConfig
 from llmtf.continuation import (
@@ -443,6 +444,7 @@ class APIBackend(Backend):
         num_return_sequences = generation_config.num_return_sequences if generation_config.num_return_sequences is not None else 1
         completion_tokens = []
         outputs = []
+        terminations = []
         for _ in range(num_return_sequences):
             payload = {
                 'messages': messages,
@@ -471,13 +473,34 @@ class APIBackend(Backend):
                     'include_stop_str_in_output': include_stop_str_in_output,
                     'chat_template_kwargs': {'enable_thinking': enable_thinking},
                 })
+                if not skip_special_tokens:
+                    # Reasoning needs the terminal ID to remove a native EOS
+                    # from the assistant turn before requesting the answer.
+                    payload['return_token_ids'] = True
             r = self._request(
                 'POST', '/v1/chat/completions',
                 json=payload,
             )
 
             data = r.json()
-            outputs.append(data['choices'][0]['message']['content'])
+            choice = data['choices'][0]
+            outputs.append(choice['message']['content'])
+            termination = vllm_generation_termination(
+                choice.get('finish_reason'), choice.get('stop_reason'),
+                has_stop_reason=self._use_vllm_extensions and 'stop_reason' in choice,
+                native_eos_token_ids=getattr(self, 'eos_token_ids_base', None),
+            )
+            if termination['reason'] == 'eos' and not skip_special_tokens:
+                token_ids = choice.get('token_ids')
+                if not isinstance(token_ids, list) or not token_ids:
+                    raise ValueError('vLLM EOS normalization requires returned token_ids')
+                terminal_text = self._request('POST', '/detokenize', json={
+                    'model': self.model_name, 'tokens': [token_ids[-1]],
+                }).json().get('prompt')
+                if not isinstance(terminal_text, str):
+                    raise ValueError('vLLM /detokenize must return terminal EOS text')
+                termination['terminal_text'] = terminal_text
+            terminations.append(termination)
             completion_tokens.append(
                 data.get('usage', {}).get('completion_tokens')
             )
@@ -490,6 +513,7 @@ class APIBackend(Backend):
             'generated_len': completion_tokens,
             'generated_cumulative_logprob': None,
             'assistant_prefill': prefill_decision.to_dict(),
+            'generation_termination': terminations,
         }
         return messages, outputs, info
 

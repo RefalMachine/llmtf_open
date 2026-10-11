@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, List
 import copy
 import logging
-from llmtf.backends.base import validate_batch_result
+from llmtf.backends.base import normalize_stop_token_ids, validate_batch_result
 
 
 THINK_CLOSE_MARKER = "</think>"
@@ -178,7 +178,10 @@ class EmulatedReasoningStrategy:
         if self._rc.max_new_tokens_reasoning is not None:
             cfg.max_new_tokens = self._rc.max_new_tokens_reasoning
         if self.fmt.end_thinking_token_id is not None:
-            cfg.eos_token_id = [self.fmt.end_thinking_token_id]
+            cfg.eos_token_id = list(dict.fromkeys(
+                (normalize_stop_token_ids(getattr(base_config, 'eos_token_id', None)) or [])
+                + [self.fmt.end_thinking_token_id]
+            ))
         return cfg
 
     def _split_messages(self, messages_batch):
@@ -209,28 +212,65 @@ class EmulatedReasoningStrategy:
             parts.append(content)
         return "".join(parts)
 
-    def _validate_and_normalize_reasoning_text(self, reasoning_text, generated_len):
-        """Apply stop-condition validation and length-limit normalization."""
+    def _normalize_reasoning(self, reasoning_text, generated_len, termination,
+                             add_truncation_prompt):
+        """Close a reasoning turn after its marker, budget, or confirmed EOS."""
+        failed_reasons = ('error', 'abort', 'cancelled', 'content_filter')
+        if (termination.get('reason') in failed_reasons
+                or termination.get('finish_reason') in failed_reasons):
+            raise ValueError('Reasoning generation failed; an answer continuation cannot recover it')
+        stopped_by_eos = termination.get('reason') == 'eos'
+        terminal_text = termination.get('terminal_text', '')
+        eos_removed = bool(
+            stopped_by_eos and terminal_text
+            and terminal_text != self.fmt.think_close
+            and reasoning_text.endswith(terminal_text)
+        )
+        if eos_removed:
+            reasoning_text = reasoning_text[:-len(terminal_text)]
         max_new_tokens_reasoning = self._rc.max_new_tokens_reasoning
         stopped_by_length = (
             max_new_tokens_reasoning is not None
+            and generated_len is not None
             and generated_len >= max_new_tokens_reasoning
+            and not stopped_by_eos
             and not reasoning_text.endswith(self.fmt.think_close)
         )
         stopped_by_think = False
         if self.fmt.think_close in reasoning_text:
             stopped_by_think = True
             if not reasoning_text.endswith(self.fmt.think_close):
-                raise Exception(
-                    f"Unexpected generation: {self.fmt.think_close} token is present but generation did not stop.\n"
-                    f'Reasoning text: "{reasoning_text}"'
+                raise ValueError(
+                    'Unexpected generation: THINK_CLOSE_MARKER is present '
+                    'before the end of reasoning text'
                 )
-        if not (stopped_by_think or stopped_by_length):
-            raise Exception(
-                f"Unexpected generation: stopped by neither {self.fmt.think_close} token nor length limit.\n"
-                f'Reasoning text: "{reasoning_text}"'
+        if not (stopped_by_think or stopped_by_length or stopped_by_eos):
+            raise ValueError(
+                "Unexpected reasoning termination: no THINK_CLOSE_MARKER, "
+                "length limit, or confirmed EOS. "
+                f"Backend termination: {termination.get('reason', 'unknown')}"
             )
-        return stopped_by_length
+        if stopped_by_think:
+            reason = 'think_close'
+        elif stopped_by_eos:
+            reason = 'eos'
+        else:
+            reason = 'length'
+        synthetic_close = not stopped_by_think
+        if stopped_by_think:
+            reasoning_text = reasoning_text[:-len(self.fmt.think_close)]
+        elif stopped_by_length and add_truncation_prompt:
+            reasoning_text += self.fmt.truncation_prompt
+        # Qwen's chat template trims the reasoning tail and inserts one newline
+        # before the close marker. Match that boundary before chat continuation
+        # checks the original assistant content against the rendered template.
+        # Keep internal paragraphs and the separate answer prefill untouched.
+        reasoning_text = reasoning_text.rstrip() + '\n' + self.fmt.think_close
+        return reasoning_text, {
+            'termination_reason': reason,
+            'synthetic_close': synthetic_close,
+            'eos_removed': eos_removed,
+        }
 
     def run(self, messages_batch, *, reasoning_fn, continuation_fn, generation_config,
             reasoning_phase_kwargs, continuation_phase_kwargs,
@@ -281,18 +321,21 @@ class EmulatedReasoningStrategy:
         )
         reasoning_prompt_batch, reasoning_output_batch, reasoning_infos_batch = reasoning_result
 
-        truncation_prompt = self.fmt.truncation_prompt
         updated_messages_batch = []
         for i, messages in enumerate(prompt_messages_batch):
             reasoning_text = reasoning_output_batch[i]
             generated_len = reasoning_infos_batch[i]["generated_len"][0]
-            stopped_by_length = self._validate_and_normalize_reasoning_text(reasoning_text, generated_len)
-            if stopped_by_length:
-                if add_reasoning_truncing_prompt:
-                    reasoning_text += truncation_prompt
-                if not reasoning_text.endswith("\n"):
-                    reasoning_text += "\n"
-                reasoning_text += self.fmt.think_close
+            terminations = reasoning_infos_batch[i].get('generation_termination', [{}])
+            reasoning_text, normalization = self._normalize_reasoning(
+                reasoning_text, generated_len, terminations[0],
+                add_reasoning_truncing_prompt,
+            )
+            reasoning_infos_batch[i] = {**reasoning_infos_batch[i], **normalization}
+            if normalization['termination_reason'] == 'eos':
+                self.logger.warning(
+                    'Reasoning sample %d ended by EOS before its close marker; '
+                    'continuing to the answer phase without the truncation phrase.', i,
+                )
             # Qwen chat templates render reasoning and the visible answer in
             # one assistant turn with this canonical boundary.  Normalizing it
             # also lets continue_final_message match the rendered final turn.

@@ -253,6 +253,9 @@ class LLM(BaseLLM):
             "generated_len": reasoning_info["generated_len"],
             "generated_cumulative_logprob": reasoning_info["generated_cumulative_logprob"],
         }
+        for key in ('generation_termination', 'termination_reason', 'synthetic_close', 'eos_removed'):
+            if key in reasoning_info:
+                entry[key] = reasoning_info[key]
         if add_reasoning_info:
             entry["text"] = reasoning_text
         return entry
@@ -473,6 +476,9 @@ class LLM(BaseLLM):
             },
         }
         params['_llmtf_continuation'] = self.continuation_config.to_dict()
+        if rc.model_kind != ModelKind.plain:
+            params['_llmtf_reasoning']['termination_policy'] = 'close_on_confirmed_eos_v1'
+            params['_llmtf_reasoning']['normalization_policy'] = 'single_newline_before_close_v1'
         return params
 
     def get_model_context_len(self):
