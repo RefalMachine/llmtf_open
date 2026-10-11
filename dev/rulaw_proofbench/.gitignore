@@ -1,3 +1,5 @@
-# Archived on HF; restore only when reproducing dataset construction.
+# Current inputs and build outputs belong in ../rulaw_artifacts/.
+# Historical evidence is stored in the archive named in DEVELOPMENT_REPORT.md.
 /sources/
 /*.jsonl
+/runs/

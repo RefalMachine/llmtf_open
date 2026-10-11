@@ -1,0 +1,537 @@
+{
+  "as_of": "2025-01-01",
+  "seed": 555,
+  "max_source_rounds": 4,
+  "allowed_source_hosts": [
+    "pravo.gov.ru"
+  ],
+  "api": {
+    "base_url": "https://openrouter.ai/api/v1",
+    "api_key_env": "OPENROUTER_API_KEY",
+    "model": "openai/gpt-6.1-sol",
+    "timeout_seconds": 600,
+    "request_options": {
+      "reasoning": {
+        "effort": "high"
+      },
+      "max_tokens": 12000
+    },
+    "stage_overrides": {
+      "disagreement_review": {
+        "model": "openai/gpt-6-astra",
+        "request_options": {
+          "reasoning": {
+            "effort": "high"
+          }
+        }
+      }
+    }
+  },
+  "sources": [
+    {
+      "id": "59",
+      "title": "Федеральный закон «О порядке рассмотрения обращений граждан Российской Федерации»",
+      "domain": "administrative",
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&nd=102106413&rdk=9&page=all",
+      "sha256": "dfa6048b236d094cc4136451a68a9160547a73645d1bbfb65312519a04c06ae8",
+      "split": "test",
+      "articles": [
+        "8",
+        "10",
+        "12",
+        "7",
+        "11",
+        "5",
+        "6",
+        "9",
+        "13"
+      ],
+      "path": "59.html"
+    },
+    {
+      "id": "tk",
+      "title": "Трудовой кодекс Российской Федерации",
+      "domain": "labor",
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102074279&rdk=177",
+      "sha256": "c8d4965718d0cf9b55143aba86485e107709ed29b3744f328089ecbb1b575bbd",
+      "split": "test",
+      "articles": [
+        "128",
+        "93",
+        "70",
+        "71",
+        "80",
+        "99",
+        "113",
+        "117",
+        "119",
+        "122",
+        "123",
+        "124",
+        "125",
+        "126",
+        "127",
+        "136",
+        "140",
+        "173",
+        "174",
+        "176",
+        "186",
+        "260",
+        "269",
+        "286"
+      ],
+      "path": "tk.mht"
+    },
+    {
+      "id": "sk",
+      "title": "Семейный кодекс Российской Федерации",
+      "domain": "family",
+      "split": "test",
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&nd=102038925&rdk=52&page=all",
+      "path": "sk.html",
+      "sha256": "76c4e43804ebfe1107ab31a2f11883a2100d7166e0422469282543536f15560f",
+      "articles": [
+        "57",
+        "81",
+        "17",
+        "19",
+        "12",
+        "13",
+        "14",
+        "21",
+        "25",
+        "27",
+        "34",
+        "35",
+        "36",
+        "38",
+        "39",
+        "42",
+        "58",
+        "59",
+        "62",
+        "65",
+        "66",
+        "69",
+        "71",
+        "72",
+        "73",
+        "85",
+        "87",
+        "89",
+        "90",
+        "107"
+      ]
+    },
+    {
+      "id": "gk",
+      "title": "Гражданский кодекс Российской Федерации (часть первая)",
+      "domain": "civil",
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102033239&rdk=140",
+      "sha256": "94d7cb559dc8f209cec9e35a16d586d3b652bdd02dc3a9aa4026ade94115042a",
+      "split": "test",
+      "articles": [
+        "186",
+        "26",
+        "27",
+        "21",
+        "22",
+        "28",
+        "29",
+        "30",
+        "37",
+        "42",
+        "45",
+        "160",
+        "161",
+        "162",
+        "163",
+        "165",
+        "172",
+        "175",
+        "178",
+        "181",
+        "185",
+        "187",
+        "188",
+        "190",
+        "191",
+        "192",
+        "193",
+        "196",
+        "200",
+        "203",
+        "206"
+      ],
+      "path": "gk.mht"
+    },
+    {
+      "id": "sk",
+      "title": "Семейный кодекс Российской Федерации",
+      "domain": "family",
+      "split": "train",
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&nd=102038925&rdk=52&page=all",
+      "path": "sk.html",
+      "sha256": "76c4e43804ebfe1107ab31a2f11883a2100d7166e0422469282543536f15560f",
+      "articles": [
+        "56",
+        "32",
+        "60"
+      ]
+    },
+    {
+      "id": "tk",
+      "title": "Трудовой кодекс Российской Федерации",
+      "domain": "labor",
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102074279&rdk=177",
+      "sha256": "c8d4965718d0cf9b55143aba86485e107709ed29b3744f328089ecbb1b575bbd",
+      "split": "train",
+      "articles": [
+        "115",
+        "267",
+        "185"
+      ],
+      "path": "tk.mht"
+    },
+    {
+      "id": "gk",
+      "title": "Гражданский кодекс Российской Федерации (часть первая)",
+      "domain": "civil",
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102033239&rdk=140",
+      "sha256": "94d7cb559dc8f209cec9e35a16d586d3b652bdd02dc3a9aa4026ade94115042a",
+      "split": "train",
+      "articles": [
+        "20",
+        "52"
+      ],
+      "path": "gk.mht"
+    }
+  ],
+  "supporting_sources": [
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279&page=all",
+      "path": "tk-editions.html",
+      "sha256": "c7dc4900e466c24f36738d93ea4cbe362d60d234e25b30c7ce2b34051037023e"
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102074279&rdk=182",
+      "path": "tk-comparison.mht",
+      "sha256": "6472678a129a047380b95c1bc19c3275a8f2f46ed1cdef41d2bda9cc6c831231",
+      "compare_articles": true
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102435732&rdk=0",
+      "path": "amendment-2017-125.mht",
+      "sha256": "e167a4c72a1698f34d2cd845dd579852208cb2b01ae2b640fa713a5902ef0737"
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=608103570&rdk=0",
+      "path": "amendment-2024-498.mht",
+      "sha256": "d6c862cac5f329a0bdf93d17ac4ac81e563ca92343814d5d63ae4e11e7568bbc"
+    },
+    {
+      "for": [
+        "gk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102033239&page=all",
+      "path": "gk-editions.html",
+      "sha256": "e75cf0a49109747150e1dbca7fdbe95445bd71574ef31f814d129edb1a72270d"
+    },
+    {
+      "for": [
+        "gk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102033239&rdk=141",
+      "path": "gk-comparison.mht",
+      "sha256": "05f75d93e02f0ac8f561df97f3dec32cd783fcc40272a8323700eba44d4e4bc0",
+      "compare_articles": true
+    },
+    {
+      "for": [
+        "gk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102162486&rdk=0",
+      "path": "amendment-2012-302.mht",
+      "sha256": "dff8676518be80205cbb0614607945e3b73c07f6637012d2233c77d0151bfefd"
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102106413&page=all",
+      "path": "59-editions.html",
+      "sha256": "9c7cea94c52707046abc2783fa481ee10d4f2bbe8abe55f5abcbfa4e0a5e774e"
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102106413&rdk=10",
+      "path": "59-comparison.mht",
+      "sha256": "cd01aae6e2efb1714eec446d76e5b547532c09587edf7104569d9d6bb763ee7b",
+      "compare_articles": true
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102362473&rdk=0",
+      "path": "amendment-2014-357.mht",
+      "sha256": "b182ee448cc3fc4524b8efd69b8bd77019ae108e664dba63619a5f4987741d1b",
+      "articles": [
+        "4",
+        "7"
+      ]
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102500789&rdk=0",
+      "path": "amendment-2018-528.mht",
+      "sha256": "916f7fb923df0a68e848a76db1881742e5ee2bd8f544bf61e1eaf3f56cacd6d5",
+      "articles": [
+        "9"
+      ]
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=608103494&rdk=0",
+      "path": "amendment-2024-547.mht",
+      "sha256": "f9d41456fc5916cb40297e0aeaa5bbc5cd428e94d21bb883bf4bc7837b719a44"
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=607496381&rdk=0",
+      "path": "amendment-2024-339.mht",
+      "sha256": "687bf779b679802e2ad664d020347d6b63aa57eba7f42aaed8c822598d353e81"
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=607845328&rdk=0",
+      "path": "amendment-2024-381.mht",
+      "sha256": "81d85e233b2d8729479c0685322c47b428aaa7d818ebb4bb43a01592111e63a9"
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=608103500&rdk=0",
+      "path": "amendment-2024-541.mht",
+      "sha256": "a2d8e7874b7e4df8e72578004bfc2ae2a44a90284ff6e0e2e5c67efb7dee3087"
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102435732&rdk=0",
+      "path": "amendment-2017-125-metadata.html",
+      "sha256": "51c6cf8c3d5b92c009a08d2345019d050542923f9816294968f43a82a2e43479"
+    },
+    {
+      "for": [
+        "tk",
+        "gk",
+        "sk",
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102030627",
+      "path": "publication-law-5.mht",
+      "sha256": "d386a390987d589bb530d065b97e27982939808af365dbf938d92f66153cef92",
+      "articles": [
+        "4",
+        "6"
+      ]
+    },
+    {
+      "for": [
+        "gk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102033238&rdk=0",
+      "path": "intro-gk-52.mht",
+      "sha256": "cb39faab837614b55715d80c25fddb27578fcd3d027a9ce41011b68652d8aae5"
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&page=all",
+      "path": "sk-editions.html",
+      "sha256": "eba4ba84f113c43b6c00ef851d9e3d7646427bda0dcadfe0eb9c575efe2222d0"
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102121402&rdk=0",
+      "path": "amendment-2008-49.mht",
+      "sha256": "d9029f8206e540c2fe4270a2dffdc00b385b7f9fbcf134351f73e07db4d15c4c"
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=607920359&rdk=0",
+      "path": "amendment-2024-405.mht",
+      "sha256": "1180e9a8bc23e701115cf445c7a0016a74dad5e97f43a307838a2324968cfb60"
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=607299809&rdk=0",
+      "path": "amendment-2024-260.mht",
+      "sha256": "aaa408eee48be8756aa16737feb293e4c6704cea75e86874eca30336e4ddca7c",
+      "articles": [
+        "5",
+        "18"
+      ]
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102038925&rdk=53",
+      "path": "sk-comparison.mht",
+      "sha256": "54c12c284a76d9a9d736ff4d742107ea0ca0bb6dcb4bf8665e045c58c9802e49",
+      "compare_articles": true
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102166739&rdk=0",
+      "path": "amendment-2013-185.mht",
+      "sha256": "915c17eeb3d7ab4c78556309c42ad7f30138d3e37764440bbb9886e16333900d",
+      "articles": [
+        "80",
+        "163"
+      ]
+    },
+    {
+      "for": [
+        "tk"
+      ],
+      "for_articles": [
+        "128"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102722391&rdk=0",
+      "path": "amendment-2020-127.mht",
+      "sha256": "09b4247be40fca237e218bb9f0b606930caf8517ff474baf14b16db4dd84cfc4"
+    },
+    {
+      "for": [
+        "gk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102165201&rdk=0",
+      "path": "amendment-2013-100.mht",
+      "sha256": "cbd6ebd79072af77d21cde5708d6813e478b52af9954d44241194b7e748a4001",
+      "articles": [
+        "1",
+        "3"
+      ]
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102106413&rdk=9",
+      "path": "59-metadata.html",
+      "sha256": "30d12c5cdb00c997fbbd3d600d2781968263510ea241b79169665016370ddc56"
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=605772018&rdk=0",
+      "path": "amendment-2023-480.mht",
+      "sha256": "2c166864f9d83757e1096630a6460051c3bf7fb6ec183864e16b50fd9a27da19",
+      "for_articles": [
+        "8"
+      ]
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "for_articles": [
+        "10"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102140501&rdk=0",
+      "path": "amendment-2010-227.mht",
+      "sha256": "361012aa51199b334a76dfe86888532ea13704b282053998b0241ec5de0bbc38",
+      "articles": [
+        "21",
+        "29"
+      ]
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "for_articles": [
+        "8",
+        "11"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102139520&rdk=0",
+      "path": "amendment-2010-126.mht",
+      "sha256": "7bcfe94835d091af872e0d53a304f4452ae61a36e0ec6d4122bf6a489759f011"
+    },
+    {
+      "for": [
+        "59"
+      ],
+      "for_articles": [
+        "8"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102452044&rdk=0",
+      "path": "amendment-2017-355.mht",
+      "sha256": "3fdcfe7f0573e5f1fc1fd4927f7bde86af3388eee3de4d7bc199a6f29c027a81"
+    },
+    {
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102074279&rdk=177",
+      "path": "tk-metadata.html",
+      "sha256": "b7d046990cd9424cc54ec7d834adefe2661cd4fb981f5ed5d6a1ce41acaa7a8c",
+      "for": [
+        "tk"
+      ]
+    },
+    {
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102038925&rdk=52",
+      "path": "sk-metadata.html",
+      "sha256": "363d4c5072f731b0fb9a24b6bd32ba307624ee8153a11dda0ee89be02a7e5b87",
+      "for": [
+        "sk"
+      ]
+    },
+    {
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=102033239&rdk=140",
+      "path": "gk-metadata.html",
+      "sha256": "60f00ebd3be24a9cb74a3372ea71fda83a2d17913acd862aeb12832ec3837b09",
+      "for": [
+        "gk"
+      ]
+    }
+  ],
+  "workers": 4,
+  "input_dir": "../../rulaw_artifacts/inputs"
+}

@@ -1,0 +1,37 @@
+{
+  "as_of": "2025-01-01",
+  "seed": 555,
+  "test_count": 300,
+  "train_count": 5,
+  "questions_per_article": 10,
+  "max_card_revisions": 1,
+  "api": {
+    "base_url": "https://openrouter.ai/api/v1",
+    "api_key_env": "OPENROUTER_API_KEY",
+    "model": "openai/gpt-6.1-sol",
+    "timeout_seconds": 600,
+    "request_options": {
+      "reasoning": {
+        "effort": "high"
+      },
+      "max_tokens": 12000
+    },
+    "stage_overrides": {
+      "disagreement_review": {
+        "model": "openai/gpt-6-astra",
+        "request_options": {
+          "reasoning": {
+            "effort": "high"
+          }
+        }
+      }
+    }
+  },
+  "workers": 4,
+  "test_quotas": {
+    "59": 40,
+    "tk": 90,
+    "sk": 90,
+    "gk": 80
+  }
+}

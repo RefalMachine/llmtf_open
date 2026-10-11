@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1520" height="2060" viewBox="0 0 1520 2060" role="img" aria-labelledby="title desc">
+  <title id="title">Построение RuLaw-ProofBench: от подготовленных норм к проверенным вопросам</title>
+  <desc id="desc">Показан основной алгоритм после подготовки документов. Модель составляет рабочее правило А и в отдельном запросе контрольное правило Б, не видя содержания А. Модель сопоставляет ситуации в двух правилах, а программа сравнивает ответы. По правилу А программа создаёт вопросы и вычисляет эталонные ответы. Модель решает вопросы по нормативному тексту без эталонов. После сверки ответов, разбора расхождений и итоговой проверки программа собирает датасет. Синие блоки обозначают работу языковой модели, зелёные — детерминированные операции. Условия отказа и повторной попытки указаны в блоках и под схемой.</desc>
+  <defs>
+    <style>
+      text { font-family: 'DejaVu Sans', sans-serif; fill: #172b3a; }
+      .title { font-size: 30px; font-weight: 700; }
+      .label { font-size: 24px; font-weight: 700; }
+      .body { font-size: 21px; }
+      .small { font-size: 18px; }
+      .tag { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
+      .llm { fill: #edf4ff; stroke: #426ca5; stroke-width: 1.8; }
+      .code { fill: #edf7f1; stroke: #3b7860; stroke-width: 1.8; }
+      .data { fill: #f4f5f7; stroke: #687787; stroke-width: 1.5; }
+      .flow { fill: none; stroke: #344454; stroke-width: 2; }
+      .branch { font-size: 17px; fill: #344454; }
+    </style>
+  </defs>
+  <rect width="1520" height="2060" fill="white"/>
+  <text x="80" y="48" class="title">Как строится RuLaw-ProofBench</text>
+  <text x="80" y="82" class="body">Основной алгоритм для одной статьи; в конце вопросы разных статей объединяются</text>
+  <rect x="80" y="105" width="20" height="16" rx="3" class="llm"/>
+  <text x="110" y="120" class="small">Языковая модель (LLM)</text>
+  <rect x="420" y="105" width="20" height="16" rx="3" class="code"/>
+  <text x="450" y="120" class="small">Программа: операции по заданным правилам</text>
+  <rect x="990" y="105" width="20" height="16" rx="3" class="data"/>
+  <text x="1020" y="120" class="small">Вход и результат</text>
+
+  <rect x="80" y="150" width="1360" height="85" rx="10" class="data"/>
+  <text x="104" y="185" class="label">Вход: подготовленные тексты норм и постановка задачи</text>
+  <text x="104" y="214" class="body">Зафиксированы редакции, необходимые положения и границы рассматриваемых ситуаций.</text>
+  <path d="M390 235V285 M1130 235V285" class="flow"/>
+
+  <rect x="80" y="285" width="620" height="175" rx="10" class="llm"/>
+  <text x="104" y="310" class="tag">LLM · РАБОЧЕЕ ПРАВИЛО</text>
+  <text x="104" y="342" class="label">1. Записать норму как правило А</text>
+  <text x="104" y="376" class="body">Какие условия важны, какие значения</text>
+  <text x="104" y="405" class="body">они принимают и какой ответ дают.</text>
+  <text x="104" y="438" class="small">По этому правилу будут создаваться вопросы.</text>
+
+  <rect x="820" y="285" width="620" height="175" rx="10" class="llm"/>
+  <text x="844" y="310" class="tag">LLM · КОНТРОЛЬНОЕ ПРАВИЛО · НОВЫЙ ЗАПРОС</text>
+  <text x="844" y="342" class="label">2. Заново вывести правило Б</text>
+  <text x="844" y="376" class="body">Те же нормы и та же задача.</text>
+  <text x="844" y="405" class="body">Условия и ответы правила А не показаны.</text>
+  <text x="844" y="438" class="small">Это правило нужно для проверки правила А.</text>
+  <path d="M700 385H820" class="flow"/>
+  <text x="715" y="354" class="branch">Общая</text>
+  <text x="707" y="375" class="branch">постановка</text>
+  <path d="M390 460V487H530V525 M1130 460V487H530" class="flow"/>
+
+  <rect x="80" y="525" width="900" height="155" rx="10" class="llm"/>
+  <text x="104" y="550" class="tag">LLM · СОПОСТАВЛЕНИЕ ОПИСАНИЙ СИТУАЦИЙ</text>
+  <text x="104" y="582" class="label">3. Сопоставить ситуации в правилах А и Б</text>
+  <text x="104" y="616" class="body">Условия могут быть записаны по-разному. Условный пример:</text>
+  <text x="104" y="645" class="body">А: «возраст — 17 лет» → Б: «возраст — младше 18 лет».</text>
+  <text x="104" y="668" class="small">Модель видит описания условий, но не правила вычисления ответов.</text>
+  <path d="M530 680V725" class="flow"/>
+
+  <rect x="80" y="725" width="900" height="115" rx="10" class="code"/>
+  <text x="104" y="750" class="tag">ПРОГРАММА</text>
+  <text x="104" y="782" class="label">4. Проверить, что оба правила дают одинаковые ответы</text>
+  <text x="104" y="811" class="body">Перебрать допустимые сочетания известных и неизвестных условий.</text>
+  <text x="104" y="832" class="small">Проверка ограничена значениями, заданными в правилах.</text>
+  <text x="1050" y="775" class="body">Есть расхождение —</text>
+  <text x="1050" y="804" class="body">статью исключают.</text>
+  <path d="M980 785H1032" class="flow"/>
+  <path d="M530 840V895" class="flow"/>
+  <text x="550" y="873" class="branch">Ответы совпадают</text>
+
+  <rect x="80" y="895" width="900" height="155" rx="10" class="code"/>
+  <text x="104" y="920" class="tag">ПРОГРАММА</text>
+  <text x="104" y="952" class="label">5. Составить вопросы и вычислить эталонные ответы</text>
+  <text x="104" y="986" class="body">Выбрать условия; собрать текст из фраз, подготовленных моделью.</text>
+  <text x="104" y="1015" class="body">Вычислить ответ по правилу А и составить варианты выбора.</text>
+  <text x="104" y="1038" class="small">Если допустимые дополнения дают разные ответы: «недостаточно данных».</text>
+  <path d="M530 1050V1095" class="flow"/>
+
+  <rect x="80" y="1095" width="900" height="125" rx="10" class="llm"/>
+  <text x="104" y="1120" class="tag">LLM · НОВЫЙ ЗАПРОС</text>
+  <text x="104" y="1152" class="label">6. Решить вопросы по нормам, не видя эталонных ответов</text>
+  <text x="104" y="1185" class="body">Модель получает нормы и вопросы; правила А и Б, вычисленные</text>
+  <text x="104" y="1210" class="body">ответы и варианты выбора ей не передаются.</text>
+  <path d="M530 1220V1255" class="flow"/>
+
+  <rect x="80" y="1255" width="900" height="95" rx="10" class="code"/>
+  <text x="104" y="1280" class="tag">ПРОГРАММА</text>
+  <text x="104" y="1312" class="label">7. Сравнить ответ модели с вычисленным ответом</text>
+  <text x="104" y="1340" class="body">Точное совпадение текста — переход к итоговой проверке.</text>
+  <path d="M980 1310H1060" class="flow"/>
+  <text x="988" y="1284" class="branch">Разные</text>
+  <path d="M530 1350V1470" class="flow"/>
+  <text x="550" y="1414" class="branch">Совпадают</text>
+
+  <rect x="1060" y="1255" width="380" height="270" rx="10" class="llm"/>
+  <text x="1082" y="1280" class="tag">ДРУГАЯ LLM · РАЗБОР РАСХОЖДЕНИЙ</text>
+  <text x="1082" y="1312" class="label">8. Выяснить причину</text>
+  <text x="1082" y="1344" class="body">Сверить оба ответа, вопрос</text>
+  <text x="1082" y="1373" class="body">и правило с текстом норм.</text>
+  <text x="1082" y="1412" class="small">Ошибка правила или вопроса:</text>
+  <text x="1082" y="1437" class="small">повторить построение с шага 1.*</text>
+  <text x="1082" y="1472" class="small">Причина не установлена:</text>
+  <text x="1082" y="1497" class="small">исключить вопрос.</text>
+  <path d="M1440 1450H1480V1595H980" class="flow"/>
+  <text x="1058" y="1550" class="branch">Другая формулировка того же ответа</text>
+  <text x="1058" y="1574" class="branch">или ошибка модели на шаге 6</text>
+
+  <rect x="80" y="1470" width="900" height="160" rx="10" class="llm"/>
+  <text x="104" y="1495" class="tag">LLM · ПРОВЕРКА С ДОСТУПОМ К ПРАВИЛУ И ЭТАЛОНАМ</text>
+  <text x="104" y="1527" class="label">9. Проверить правильность и ясность готовых вопросов</text>
+  <text x="104" y="1561" class="body">Соответствуют ли правило, вопрос и ответ исходным нормам?</text>
+  <text x="104" y="1590" class="body">Верно ли описаны условия? Корректны ли варианты выбора?</text>
+  <text x="104" y="1616" class="small">Ошибка правила: возврат к шагу 1.* Нехватка норм: отказ по статье.</text>
+  <path d="M530 1630V1700" class="flow"/>
+  <text x="550" y="1658" class="branch">Оставить вопросы, прошедшие обе проверки:</text>
+  <text x="550" y="1681" class="branch">сверку ответов (7–8) и итоговую проверку (9)</text>
+
+  <rect x="80" y="1700" width="900" height="120" rx="10" class="code"/>
+  <text x="104" y="1725" class="tag">ПРОГРАММА</text>
+  <text x="104" y="1757" class="label">10. Объединить прошедшие проверку вопросы</text>
+  <text x="104" y="1789" class="body">Проверить отсутствие повторов и пересечений норм между</text>
+  <text x="104" y="1812" class="body">тестовой частью и демонстрациями; учесть квоты по актам.</text>
+  <path d="M530 1820V1855" class="flow"/>
+
+  <rect x="80" y="1855" width="900" height="85" rx="10" class="data"/>
+  <text x="104" y="1890" class="label">Датасет: вопросы, ответы и нормативный контекст</text>
+  <text x="104" y="1920" class="body">Тестовая часть и отдельные примеры для демонстрации в запросе</text>
+
+  <line x1="80" y1="1965" x2="1440" y2="1965" stroke="#c4ccd3"/>
+  <text x="80" y="1991" class="small">* Одна повторная попытка по замечаниям модели, со всеми проверками. При повторной ошибке — отказ.</text>
+  <text x="80" y="2018" class="small">Входные нормы остаются фиксированными. При их нехватке требуется новая подготовка входов вне этого алгоритма.</text>
+  <text x="80" y="2045" class="small">Эталон вычисляет программа. Согласие правил и проверки моделей не заменяют юридическую экспертизу.</text>
+
+  <!-- Explicit arrowheads remain visible in SVG exporters without marker support. -->
+  <path d="M390 285L385 275L395 275Z M1130 285L1125 275L1135 275Z M820 385L810 380L810 390Z M530 525L525 515L535 515Z M530 725L525 715L535 715Z M1032 785L1022 780L1022 790Z M530 895L525 885L535 885Z M530 1095L525 1085L535 1085Z M530 1255L525 1245L535 1245Z M1060 1310L1050 1305L1050 1315Z M530 1470L525 1460L535 1460Z M980 1595L990 1590L990 1600Z M530 1700L525 1690L535 1690Z M530 1855L525 1845L535 1845Z" fill="#344454"/>
+</svg>

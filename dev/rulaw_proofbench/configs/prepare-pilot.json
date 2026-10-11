@@ -1,0 +1,106 @@
+{
+  "as_of": "2025-01-01",
+  "seed": 555,
+  "max_source_rounds": 4,
+  "allowed_source_hosts": [
+    "pravo.gov.ru"
+  ],
+  "api": {
+    "base_url": "https://openrouter.ai/api/v1",
+    "api_key_env": "OPENROUTER_API_KEY",
+    "model": "openai/gpt-6.1-sol",
+    "timeout_seconds": 600,
+    "request_options": {
+      "reasoning": {
+        "effort": "high"
+      },
+      "max_tokens": 12000
+    },
+    "stage_overrides": {
+      "disagreement_review": {
+        "model": "openai/gpt-6-astra",
+        "request_options": {
+          "reasoning": {
+            "effort": "high"
+          }
+        }
+      }
+    }
+  },
+  "sources": [
+    {
+      "id": "sk",
+      "title": "Семейный кодекс Российской Федерации",
+      "domain": "family",
+      "split": "test",
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&nd=102038925&rdk=52&page=all",
+      "path": "sk.html",
+      "sha256": "76c4e43804ebfe1107ab31a2f11883a2100d7166e0422469282543536f15560f",
+      "articles": [
+        "57",
+        "81"
+      ]
+    },
+    {
+      "id": "sk",
+      "title": "Семейный кодекс Российской Федерации",
+      "domain": "family",
+      "split": "train",
+      "url": "http://pravo.gov.ru/proxy/ips/?doc_itself=&nd=102038925&rdk=52&page=all",
+      "path": "sk.html",
+      "sha256": "76c4e43804ebfe1107ab31a2f11883a2100d7166e0422469282543536f15560f",
+      "articles": [
+        "56"
+      ]
+    }
+  ],
+  "supporting_sources": [
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102038925&page=all",
+      "path": "sk-editions.html",
+      "sha256": "eba4ba84f113c43b6c00ef851d9e3d7646427bda0dcadfe0eb9c575efe2222d0"
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102121402&rdk=0",
+      "path": "amendment-2008-49.mht",
+      "sha256": "d9029f8206e540c2fe4270a2dffdc00b385b7f9fbcf134351f73e07db4d15c4c"
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=607920359&rdk=0",
+      "path": "amendment-2024-405.mht",
+      "sha256": "1180e9a8bc23e701115cf445c7a0016a74dad5e97f43a307838a2324968cfb60"
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=607299809&rdk=0",
+      "path": "amendment-2024-260.mht",
+      "sha256": "aaa408eee48be8756aa16737feb293e4c6704cea75e86874eca30336e4ddca7c",
+      "articles": [
+        "5",
+        "18"
+      ]
+    },
+    {
+      "for": [
+        "sk"
+      ],
+      "url": "http://pravo.gov.ru/proxy/ips/?savertf=&nd=102038925&rdk=53",
+      "path": "sk-comparison.mht",
+      "sha256": "54c12c284a76d9a9d736ff4d742107ea0ca0bb6dcb4bf8665e045c58c9802e49",
+      "compare_articles": true
+    }
+  ],
+  "workers": 2,
+  "input_dir": "../../rulaw_artifacts/inputs"
+}
