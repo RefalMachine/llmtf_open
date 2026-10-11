@@ -23,6 +23,75 @@ class Response:
 
 
 class APIBackendTests(unittest.TestCase):
+    def test_generative_scoring_preserves_prefill_and_full_vocab_probabilities(self):
+        backend = self._backend()
+        backend.token_probability_method = 'vllm_generative_scoring'
+        backend.max_model_len = 64
+        probabilities = {10: 1e-8, 11: 2e-8, 12: 7e-8}
+        requests_sent = []
+
+        def request(method, path, **kwargs):
+            payload = kwargs['json']
+            requests_sent.append((path, payload))
+            if path == '/tokenize':
+                if 'messages' in payload:
+                    return Response({'tokens': [1, 2, 3], 'count': 3})
+                # B and its leading-space form share an ID; score it only once.
+                return Response({'tokens': {'A': [10], ' A': [11], 'B': [12], ' B': [12]}[payload['prompt']]})
+            self.assertEqual(path, '/generative_scoring')
+            self.assertFalse(payload['apply_softmax'])
+            self.assertFalse(payload['add_special_tokens'])
+            self.assertEqual(payload['query'], [1, 2, 3])
+            self.assertEqual(payload['items'], [[]])
+            return Response({'data': [{'index': 0, 'score': probabilities[payload['label_token_ids'][0]]}],
+                             'usage': {'prompt_tokens': 3}})
+
+        backend._request = request
+        messages = [{'role': 'user', 'content': 'question'}, {'role': 'assistant', 'content': 'Ответ:'}]
+        _, scores, info = backend.calculate_tokens_proba(messages, ['A', 'B'])
+        self.assertEqual(scores, {'A': 2e-8, 'B': 7e-8})
+        self.assertTrue(info['candidate_ranking_resolved'])
+        self.assertEqual(info['candidate_score_semantics'], 'full_vocab_single_token_probability')
+        self.assertEqual(info['scoring_forward_passes'], 3)
+        tokenize = requests_sent[0][1]
+        self.assertEqual(tokenize['messages'], messages)
+        self.assertTrue(tokenize['continue_final_message'])
+        self.assertFalse(tokenize['add_generation_prompt'])
+        self.assertEqual(backend.get_params()['token_probability_method'], 'vllm_generative_scoring')
+
+    def test_generative_scoring_requires_explicit_vllm_profile(self):
+        for profile in ('auto', 'openai'):
+            with self.subTest(profile=profile), self.assertRaises(ValueError):
+                APIBackend('http://server', api_profile=profile, token_probability_method='vllm_generative_scoring')
+
+    def test_generative_scoring_rejects_truncation_and_invalid_probability(self):
+        for response, message in (
+            ({'usage': {'prompt_tokens': 1}, 'data': [{'index': 0, 'score': 0.5}]}, 'length changed'),
+            ({'usage': {'prompt_tokens': 2}, 'data': [{'index': 0, 'score': float('nan')}]}, 'Invalid'),
+            ({'usage': {'prompt_tokens': 2}, 'data': []}, 'Malformed'),
+        ):
+            backend = self._backend()
+            backend.token_probability_method = 'vllm_generative_scoring'
+            backend.max_model_len = 64
+            backend._request = lambda method, path, **kwargs: Response(
+                {'tokens': [1, 2]} if path == '/tokenize' and 'messages' in kwargs['json']
+                else {'tokens': [10]} if path == '/tokenize' else response
+            )
+            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+                backend.calculate_tokens_proba([{'role': 'user', 'content': 'q'}], ['A'])
+        backend.max_model_len = 2
+        with self.assertRaisesRegex(ValueError, 'truncation is forbidden'):
+            backend.calculate_tokens_proba([{'role': 'user', 'content': 'q'}], ['A'])
+
+    def test_generative_scoring_never_uses_first_token_of_multitoken_candidate(self):
+        backend = self._backend()
+        backend.token_probability_method = 'vllm_generative_scoring'
+        backend.max_model_len = 64
+        backend._request = mock.Mock(return_value=Response({'tokens': [1, 2]}))
+        with self.assertRaisesRegex(ValueError, 'No single-token surface form'):
+            backend.calculate_tokens_proba([{'role': 'user', 'content': 'q'}], ['long label'])
+        self.assertTrue(all(call.args[1] == '/tokenize' for call in backend._request.call_args_list))
+
     def _backend(self):
         backend = APIBackend(
             api_base='http://server', api_key='secret', max_retries=0,

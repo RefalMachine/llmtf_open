@@ -24,6 +24,7 @@ from llmtf.continuation import (
     analyze_assistant_prefill,
     candidate_surface_forms,
     resolve_prefill,
+    single_token_candidate_ids,
 )
 from llmtf.utils import json_to_jinja
 
@@ -40,12 +41,19 @@ class APIBackend(Backend):
                  request_timeout=60.0, max_retries=2, retry_backoff=0.5,
                  num_procs=None, redact_endpoint=True, api_profile="auto",
                  supports_logprobs=None,
-                 calculate_tokens_proba_logprobs_count=20, **kwargs):
+                 calculate_tokens_proba_logprobs_count=20,
+                 token_probability_method="top_logprobs", **kwargs):
         super().__init__(**kwargs)
         if api_profile not in {"auto", "openai", "vllm"}:
             raise ValueError("api_profile must be one of: auto, openai, vllm")
         if supports_logprobs not in {None, True, False}:
             raise TypeError("supports_logprobs must be bool or None")
+        if token_probability_method not in {"top_logprobs", "vllm_generative_scoring"}:
+            raise ValueError("Unknown token_probability_method")
+        if token_probability_method == "vllm_generative_scoring" and api_profile != "vllm":
+            raise ValueError("vllm_generative_scoring requires api_profile=vllm")
+        self.token_probability_method = token_probability_method
+        self._candidate_token_cache = {}
         if not 1 <= int(calculate_tokens_proba_logprobs_count) <= 100:
             raise ValueError(
                 "calculate_tokens_proba_logprobs_count must be between 1 and 100"
@@ -137,7 +145,8 @@ class APIBackend(Backend):
         if method == 'generate':
             return True
         if method == 'calculate_tokens_proba':
-            return self._supports_logprobs is not False
+            return (self.token_probability_method == 'vllm_generative_scoring'
+                    or self._supports_logprobs is not False)
         return False
 
     # --- model loading (probe server) ---
@@ -153,6 +162,7 @@ class APIBackend(Backend):
         self.is_foundational = bool(is_foundational)
         self.conversation_template_path = conversation_template_path
         self.model_name = model_dir
+        self._candidate_token_cache.clear()
         try:
             model_data = self._request('GET', '/v1/models').json().get('data')
             if not isinstance(model_data, list):
@@ -284,16 +294,9 @@ class APIBackend(Backend):
         )
         if self._tokenize_available is False:
             return None
-        last_role = _messages[-1]['role']
-        payload = {'messages': _messages, 'model': self.model_name}
-        if self._use_vllm_extensions:
-            payload.update({
-                'add_generation_prompt': last_role == 'user',
-                'continue_final_message': (
-                    continue_last_assistant_message and last_role == 'assistant'
-                ),
-                'chat_template_kwargs': {'enable_thinking': add_think_token},
-            })
+        payload = self._chat_tokenization_payload(
+            _messages, continue_last_assistant_message, add_think_token,
+        )
         r = self._request('POST', '/tokenize', json=payload)
         data = r.json()
         if 'count' not in data:
@@ -303,6 +306,19 @@ class APIBackend(Backend):
         self._tokenize_available = True
         self._refresh_server_capabilities()
         return int(data['count'])
+
+    def _chat_tokenization_payload(self, messages, continue_last_assistant_message, enable_thinking=False):
+        last_role = messages[-1]['role']
+        payload = {'messages': messages, 'model': self.model_name}
+        if self._use_vllm_extensions:
+            payload.update({
+                'add_generation_prompt': last_role == 'user',
+                'continue_final_message': (
+                    continue_last_assistant_message and last_role == 'assistant'
+                ),
+                'chat_template_kwargs': {'enable_thinking': enable_thinking},
+            })
+        return payload
 
     def _resolve_prefill_decision(self, messages, *,
                                   continue_last_assistant_message,
@@ -583,6 +599,10 @@ class APIBackend(Backend):
             continue_last_assistant_message=continue_last_assistant_message,
             enable_thinking=False,
         )
+        if self.token_probability_method == 'vllm_generative_scoring':
+            return self._generative_tokens_proba(
+                messages, tokens_of_interest, continue_last_assistant_message, prefill_decision,
+            )
         last_role = messages[-1]['role']
 
         if self._supports_logprobs is False:
@@ -619,8 +639,7 @@ class APIBackend(Backend):
                 self._supports_logprobs = False
                 self._refresh_server_capabilities()
             display_url = (
-                '<redacted>/v1/chat/completions' if self.redact_endpoint
-                else self.api_base + '/v1/chat/completions'
+                '<redacted>/v1/chat/completions' if self.redact_endpoint else self.api_base + '/v1/chat/completions'
             )
             raise BackendRequestError(
                 'POST', display_url,
@@ -666,6 +685,80 @@ class APIBackend(Backend):
             'candidate_ranking_resolved': candidate_ranking_resolved,
             'candidate_surface_coverage': matched_surfaces,
             'top_logprobs_count': len(logprobs),
+        }
+        return messages, probs, info
+
+    @staticmethod
+    def _require_token_ids(data):
+        tokens = data.get('tokens')
+        if not isinstance(tokens, list) or not tokens or any(
+            type(token) is not int or token < 0 for token in tokens
+        ):
+            raise ValueError('vLLM /tokenize must return non-empty integer token IDs')
+        return tokens
+
+    def _tokenize_candidate(self, text, *, add_special_tokens=False):
+        if add_special_tokens:
+            raise ValueError('Candidate tokenization must not add special tokens')
+        if text not in self._candidate_token_cache:
+            response = self._request('POST', '/tokenize', json={
+                'model': self.model_name, 'prompt': text, 'add_special_tokens': False,
+            })
+            self._candidate_token_cache[text] = tuple(
+                self._require_token_ids(response.json())
+            )
+        return {'input_ids': list(self._candidate_token_cache[text])}
+
+    def _generative_tokens_proba(self, messages, candidates, continue_last_assistant_message, prefill_decision):
+        # Render once on the server, including the same assistant continuation
+        # used for token counting. Never reconstruct its chat template locally.
+        payload = self._chat_tokenization_payload(messages, continue_last_assistant_message)
+        response = self._request('POST', '/tokenize', json=payload)
+        prompt_ids = self._require_token_ids(response.json())
+        limits = [self.get_model_context_len()]
+        if self.max_model_len is not None:
+            limits.append(int(self.max_model_len))
+        # vLLM 0.21's scoring endpoint silently truncates long token lists.
+        # Reject overflow here and verify usage below instead of losing context.
+        if len(prompt_ids) + 1 > min(limits):
+            raise ValueError('Generative scoring prompt exceeds context; truncation is forbidden')
+        variants = single_token_candidate_ids(self._tokenize_candidate, candidates)
+        unique_ids = list(dict.fromkeys(token for ids in variants for token in ids))
+        by_id = {}
+        for token_id in unique_ids:
+            # This vLLM endpoint returns the probability of the first label ID.
+            # One label per request avoids top-k censoring and renormalization.
+            response = self._request('POST', '/generative_scoring', json={
+                'model': self.model_name, 'query': prompt_ids, 'items': [[]],
+                'label_token_ids': [token_id], 'apply_softmax': False,
+                'add_special_tokens': False,
+            })
+            data = response.json()
+            if data.get('usage', {}).get('prompt_tokens') != len(prompt_ids):
+                raise ValueError('Generative scoring prompt length changed on the server')
+            rows = data.get('data')
+            if (not isinstance(rows, list) or len(rows) != 1
+                    or not isinstance(rows[0], dict) or rows[0].get('index') != 0):
+                raise ValueError('Malformed vLLM generative scoring response')
+            value = rows[0].get('score')
+            if (type(value) not in (int, float)
+                    or not math.isfinite(value) or not 0 <= value <= 1):
+                raise ValueError('Invalid vLLM token probability')
+            by_id[token_id] = float(value)
+        probs = {
+            candidate: max(by_id[token] for token in ids)
+            for candidate, ids in zip(candidates, variants)
+        }
+        info = {
+            'prompt_len': len(prompt_ids),
+            'generated_len': 1,
+            'generated_token': None,
+            'assistant_prefill': prefill_decision.to_dict(),
+            'candidate_surface_form_aggregation': 'max',
+            'candidate_score_semantics': 'full_vocab_single_token_probability',
+            'candidate_ranking_resolved': any(probs.values()),
+            'candidate_token_ids': dict(zip(candidates, variants)),
+            'scoring_forward_passes': len(unique_ids),
         }
         return messages, probs, info
 
@@ -717,7 +810,7 @@ class APIBackend(Backend):
     def get_params(self):
         self._refresh_server_capabilities()
         api_base = '<redacted>' if self.redact_endpoint else self.api_base
-        return {
+        params = {
             'model_name_or_path': self.model_name,
             'backend_class': type(self).__name__,
             'api_base': api_base,
@@ -732,11 +825,13 @@ class APIBackend(Backend):
             'is_foundational': self.is_foundational,
             'conversation_template_path': self.conversation_template_path,
             'api_profile': self.api_profile,
+            'token_probability_method': self.token_probability_method,
             'calculate_tokens_proba_logprobs_count': (
                 self.calculate_tokens_proba_logprobs_count
             ),
             'server_capabilities': self.server_capabilities,
         }
+        return params
 
     def get_model_context_len(self):
         if self._model_context_len_override is not None and self.max_model_len is not None:
