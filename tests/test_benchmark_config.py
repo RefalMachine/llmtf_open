@@ -8,6 +8,26 @@ from benchmark.config import build_evaluate_command, load_benchmark_config
 
 
 class BenchmarkConfigTests(unittest.TestCase):
+    def test_legal_groups_are_independently_schedulable_with_unchanged_protocols(self):
+        for track, count, shots in (('foundational', 5, 5), ('instruct', 7, 0)):
+            config = load_benchmark_config(Path(__file__).resolve().parents[1] / 'benchmark' / f'llmtf_legal_{track}.yaml')
+            self.assertEqual(len(config.tasks), count)
+            self.assertTrue(all(len(t.datasets) == 1 for t in config.tasks))
+            self.assertEqual(len({t.datasets[0] for t in config.tasks}), count)
+            self.assertFalse(any(t.datasets[0].startswith(('rutar/', 'rulegalner_manual/'))
+                                 for t in config.tasks))
+            self.assertTrue(all(t.evaluation['few_shot_count'] == shots for t in config.tasks))
+            self.assertEqual(
+                {t.datasets[0] for t in config.tasks
+                 if t.datasets[0].startswith('legalbench_ru/')},
+                {'legalbench_ru/closed', 'legalbench_ru/grounded'},
+            )
+            for task in config.tasks:
+                if task.datasets[0] != 'shlepa/lawmc':
+                    self.assertEqual(task.evaluation['name_suffix'], f'{shots}shot')
+                if task.datasets[0].startswith('rulaw_proofbench/'):
+                    self.assertEqual(task.generation['temperature'], 0.0)
+
     def test_truncation_phrase_preserves_empty_and_multiline_values(self):
         import yaml
         for phrase in (None, '', '\nПерехожу к ответу.\n'):

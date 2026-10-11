@@ -16,12 +16,8 @@
 | Компонент | Foundational | Instruct |
 |---|---|---|
 | `shlepa/lawmc` | 5-shot, temperature 0, без лимита | 0-shot, temperature 0, без лимита |
-| `legalbench_ru/closed` | 5-shot, temperature 0, 816 записей | 0-shot, temperature 0.3, до 200 записей |
-| `legalbench_ru/grounded` | 5-shot, temperature 0, 205 записей | 0-shot, temperature 0.3, до 200 записей |
-| `legalbench_ru/distractor` | 5-shot, temperature 0, 189 записей | 0-shot, temperature 0.3, 189 записей |
-| `legalbench_ru/temporal` | 5-shot, temperature 0, 8 записей | 0-shot, temperature 0.3, 8 записей |
-| `rutar/closed` | 5-shot, все 202 вопроса | 0-shot, все 202 вопроса |
-| `rulegalner_manual/legal` | 5-shot, все 201 фрагмент | 0-shot, все 201 фрагмент |
+| `legalbench_ru/closed` | 5-shot, temperature 0, 816 записей | 0-shot, temperature 0.3, 816 записей |
+| `legalbench_ru/grounded` | 5-shot, temperature 0, 205 записей | 0-shot, temperature 0.3, 205 записей |
 | RuLaw-ProofBench, закрытая книга | `rulaw_proofbench/mcq_closed`, 5-shot | `rulaw_proofbench/closed` и `rulaw_proofbench/mcq_closed`, 0-shot |
 | RuLaw-ProofBench, открытая книга | `rulaw_proofbench/mcq_grounded`, 5-shot | `rulaw_proofbench/grounded` и `rulaw_proofbench/mcq_grounded`, 0-shot |
 
@@ -33,10 +29,15 @@ Foundational использует настоящие пять demonstrations; In
 Пять соседних записей для формирования distractor options остаются отдельным
 механизмом. Подробности — в [протоколе Shlepa](shlepa.md).
 
-Для LegalBench-RU в Instruct перенесён лимит 200, используемый Instruct Fast
-для ограничиваемых задач. Чтобы оценить весь корпус, удалите его
-`max_sample_per_dataset`. Состав и скоринг LegalBench-RU описаны
+Для LegalBench-RU в обоих текущих YAML используется полный evaluation split
+без `max_sample_per_dataset`. Состав и скоринг LegalBench-RU описаны
 [отдельно](legalbench_ru.md).
+По решению автора в общий бенчмарк входят только closed и grounded;
+distractor и temporal остаются доступными для самостоятельного запуска.
+
+По решению автора RuTaR и ручной RuLegalNER также исключены из обоих общих
+YAML. Их задачи и отдельные протоколы остаются доступны; описание ниже относится
+к самостоятельным запускам и историческим проверкам.
 
 RuTaR — бинарные налоговые вопросы с оценкой вероятностей `0`/`1` и accuracy.
 Пять постоянных демонстраций исключены из оценки даже при k=0; пустой вопрос
@@ -79,7 +80,14 @@ zero-shot MCQ для обоих режимов; вероятность вари�
 разметки нет, различение моделей требует дальнейшего эксперимента.
 См. [пакет и команды](../dev/rulaw_proofbench/README.md).
 
-Итого Foundational создаёт 9 отдельных результатов, Instruct — 11.
+Итого Foundational создаёт 5 отдельных результатов, Instruct — 7.
+Каждая постановка находится в отдельной группе `tasks`, поэтому managed API
+runner может распределять их между восемью серверами при `--num_gpus 8
+--tensor_parallel_size 1`. При TP=2 он создаёт четыре сервера. Освободившийся
+сервер берёт следующую группу из очереди.
+Число примеров, k, generation settings и имена артефактов при таком разделении
+сохранены. Внутри одной задачи данные на shards не делятся, поэтому большой
+тест всё ещё может определять время окончания всего запуска.
 Для открытых ответов RuLaw прямой скоринг и опциональный LLM-судья записываются
 как метрики одного результата; MCQ использует только точность выбора варианта.
 
@@ -119,8 +127,8 @@ python -m benchmark.calculate_benchmark \
 соответствующий серверный foundational template; credentials передаются
 через environment.
 
-Каждый конфиг запускается в один каталог модели. LawMC, все четыре режима
-LegalBench-RU, RuTaR и ручной RuLegalNER имеют отдельные имена artifacts. Base и Instruct результаты
+Каждый конфиг запускается в один каталог модели. LawMC, два режима LegalBench-RU
+и постановки RuLaw-ProofBench имеют отдельные имена artifacts. Base и Instruct результаты
 хранятся раздельно. Дополнительный Instruct 5-shot можно добавить отдельной
 записью `tasks` с `few_shot_count: 5` и `name_suffix: 5shot`.
 
@@ -142,14 +150,16 @@ python show_results.py \
   --output_dir reports/legal/foundational
 ```
 
-Отчёт содержит LawMC и отдельные значения closed, grounded, distractor,
-temporal, accuracy RuTaR, macro-F1 ручного RuLegalNER и отдельные closed/open-book
+Отчёт нового запуска содержит LawMC и отдельные значения closed, grounded
+LegalBench-RU и отдельные closed/open-book
 результаты RuLaw для включённых форматов ответа. Парные сравнения не нужны для его формирования.
 Стандартный `Mean`
 остаётся обычным средним показанных задач; методология итогового балла
 юридического бенчмарка пока не определена. Не считайте такой `Mean`
-согласованным общим legal score. Проверяйте наличие всех 9 Foundational или 11 Instruct totals:
+согласованным общим legal score. Проверяйте наличие всех 5 Foundational или 7 Instruct totals:
 стандартный отчёт может отображать результаты неполного запуска.
+Если каталог содержит результаты прежнего состава, `show_results.py` также
+покажет distractor, temporal, RuTaR и RuLegalNER: YAML не фильтрует уже сохранённые totals.
 
 `dev/tools/legalbench_ru_report.py` — дополнительная maintainer-утилита для
 проверки скоринга и целостности сохранённых LegalBench-RU artifacts. Она не
@@ -179,12 +189,13 @@ split. Тест включает 27 документов, 145 LAW, 139 PROVISION
 разных документов. Они показывают три класса, повторные упоминания и пустой
 ответ. Это технически просмотренные примеры, не экспертная юридическая
 валидация. `k=0..5` выбирает их префикс, полный evaluation содержит одни и те же
-201 строки при любом k. Оба legal YAML используют полный test;
+201 строки при любом k. Самостоятельный запуск использует полный test;
 `max_sample_per_dataset` может явно ограничить его первыми N строками.
 При доступном счётчике токенов переполнение контекста выявляется до генерации;
 без счётчика превышение лимита обрабатывает backend. В обоих случаях k не
 уменьшается. Answer budget — 1024 токена. Нет task assistant-prefill.
-Задача исключена из общего `all` и включена явно в оба legal YAML.
+Задача исключена из общего `all` и текущих общих legal YAML; для самостоятельного
+запуска требуется явный выбор `rulegalner_manual/legal`.
 
 Gold получается как `[class, text[start:end]]` без исправления upstream
 аннотаций и нормализации пробелов. Ответ — JSON-массив таких пар; разрешена

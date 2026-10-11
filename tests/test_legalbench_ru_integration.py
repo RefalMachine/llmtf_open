@@ -110,8 +110,7 @@ class IntegrationTests(unittest.TestCase):
             selected = [name for task in cfg.tasks for name in task.datasets]
             expected = {
                 'shlepa/lawmc', 'legalbench_ru/closed', 'legalbench_ru/grounded',
-                'legalbench_ru/distractor', 'legalbench_ru/temporal', 'rutar/closed',
-                'rulegalner_manual/legal', 'rulaw_proofbench/mcq_closed',
+                'rulaw_proofbench/mcq_closed',
                 'rulaw_proofbench/mcq_grounded',
             }
             if not cfg.model.is_foundational:
@@ -165,17 +164,22 @@ class IntegrationTests(unittest.TestCase):
                     patch('llmtf.evaluator.Evaluator'):
                 runpy.run_module('benchmark.calculate_benchmark_existing_api',
                                  run_name='__main__')
-            self.assertEqual(execute.call_count, 5)
+            self.assertEqual(execute.call_count, 7)
             commands = [call.args[0] for call in execute.call_args_list]
-            self.assertIn('shlepa/lawmc', commands[0])
-            for mode in ('closed', 'grounded', 'distractor', 'temporal'):
-                self.assertIn('legalbench_ru/' + mode, commands[1])
-            self.assertIn('rutar/closed', commands[2])
-            self.assertIn('rulegalner_manual/legal', commands[3])
-            for mode in ('closed', 'grounded', 'mcq_closed', 'mcq_grounded'):
-                self.assertIn('rulaw_proofbench/' + mode, commands[4])
-            self.assertEqual(commands[4][commands[4].index('--few_shot_count') + 1], '0')
+            self.assertEqual(
+                [command[command.index('--dataset_names') + 1] for command in commands],
+                [
+                    'shlepa/lawmc',
+                    'legalbench_ru/closed',
+                    'legalbench_ru/grounded',
+                    'rulaw_proofbench/closed',
+                    'rulaw_proofbench/grounded',
+                    'rulaw_proofbench/mcq_closed',
+                    'rulaw_proofbench/mcq_grounded',
+                ],
+            )
             for command in commands:
+                self.assertEqual(command[command.index('--few_shot_count') + 1], '0')
                 self.assertEqual(command[command.index('--batch_size') + 1], '10000000')
 
 

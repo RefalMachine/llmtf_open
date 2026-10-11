@@ -60,13 +60,15 @@ Thinking-on использует assistant continuation внутри общег�
 
 Общие YAML: `benchmark/llmtf_legal_instruct.yaml` (0-shot) и
 `benchmark/llmtf_legal_foundational.yaml` (5-shot). Каждый включает LawMC,
-все четыре режима LegalBench-RU, RuTaR и ручной RuLegalNER. Семь результатов
+closed и grounded LegalBench-RU и RuLaw-ProofBench. RuTaR и ручной RuLegalNER
+по решению автора исключены из общего набора и доступны отдельно.
+Пять Foundational или семь Instruct результатов
 сохраняются в один каталог модели под разными именами. `show_results.py` выводит
 отдельное значение каждого компонента без категорий и парных сравнений. Standard `Mean` не является
 согласованным итоговым баллом юридического бенчмарка.
 
 Параметры общих конфигов соответствуют основным LLMTF пресетам: в частности,
-LegalBench-RU Instruct использует temperature 0.3 и лимит 200 на режим, а Base —
+LegalBench-RU Instruct использует temperature 0.3 без лимита числа примеров, а Base —
 temperature 0 и контекст 16 000. Прямые команды выше показывают самостоятельный
 детерминированный прогон всей задачи с контекстом 32K. Запуски и таблица всего
 юридического бенчмарка описаны в [руководстве](legal_benchmark.md).

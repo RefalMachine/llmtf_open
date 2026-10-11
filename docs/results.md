@@ -109,11 +109,19 @@ python show_results.py \
 PPL totals без поля `time` отображаются с пустым значением времени.
 
 Для общих legal-конфигов не передавайте `--category_path`: таблица показывает
-LawMC, четыре режима LegalBench-RU, accuracy RuTaR и macro-F1 ручного RuLegalNER
-отдельно. Проверяйте наличие всех семи totals; `Mean` не является согласованным
-итоговым legal score. В RuLegalNER `format_valid` и `exact_match` — диагностики,
-основной результат — только `f1-macro`. Для этой задачи sample bootstrap
-отключён, поскольку фрагменты одного исходного документа зависимы.
+LawMC, два режима LegalBench-RU (closed и grounded) и отдельные постановки
+RuLaw-ProofBench. Проверяйте наличие всех 5 Foundational
+или 7 Instruct totals; `Mean` не является согласованным итоговым legal score.
+RuTaR и ручной RuLegalNER исключены из текущих общих YAML.
+В старых каталогах distractor, temporal, RuTaR и RuLegalNER по-прежнему попадут в таблицу:
+`--benchmark_config` не ограничивает набор уже сохранённых totals.
+
+Обычный sample bootstrap legal-набора поддерживается для LawMC и RuTaR.
+LegalBench-RU отвергает повторные composite IDs при агрегации, поэтому текущий
+bootstrap с возвращением с ним несовместим. Для RuLaw требуется bootstrap по
+статьям, для ручного RuLegalNER — по документам. В остальных колонках при
+`--n_bags` сохраняются обычные totals. Формат `x ± s` означает среднее
+bootstrap-оценок и их стандартное отклонение, а не 95%-й доверительный интервал.
 `dev/tools/legalbench_ru_report.py` нужен только для дополнительной offline
 проверки LegalBench-RU artifacts, а не для формирования этой таблицы. Команды:
 [юридический бенчмарк](legal_benchmark.md).

@@ -23,32 +23,44 @@ tasks:
       presence_penalty: 0.0
       num_return_sequences: 1
 
-  - name: legalbench_ru
+  - name: legalbench_ru_closed
     datasets:
       - legalbench_ru/closed
+    few_shot_count: 0
+    name_suffix: 0shot
+
+  - name: legalbench_ru_grounded
+    datasets:
       - legalbench_ru/grounded
-      - legalbench_ru/distractor
-      - legalbench_ru/temporal
     few_shot_count: 0
     name_suffix: 0shot
 
-  - name: rutar
-    datasets:
-      - rutar/closed
-    few_shot_count: 0
-    name_suffix: 0shot
-
-  - name: rulegalner_manual
-    datasets:
-      - rulegalner_manual/legal
-    few_shot_count: 0
-    name_suffix: 0shot
-
-  - name: rulaw_proofbench
+  - name: rulaw_proofbench_closed
     datasets:
       - rulaw_proofbench/closed
+    few_shot_count: 0
+    name_suffix: 0shot
+    generation:
+      temperature: 0.0
+
+  - name: rulaw_proofbench_grounded
+    datasets:
       - rulaw_proofbench/grounded
+    few_shot_count: 0
+    name_suffix: 0shot
+    generation:
+      temperature: 0.0
+
+  - name: rulaw_proofbench_mcq_closed
+    datasets:
       - rulaw_proofbench/mcq_closed
+    few_shot_count: 0
+    name_suffix: 0shot
+    generation:
+      temperature: 0.0
+
+  - name: rulaw_proofbench_mcq_grounded
+    datasets:
       - rulaw_proofbench/mcq_grounded
     few_shot_count: 0
     name_suffix: 0shot
