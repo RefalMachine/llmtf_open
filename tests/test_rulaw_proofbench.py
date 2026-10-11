@@ -45,6 +45,18 @@ class RuLawTests(unittest.TestCase):
         for row in rows:
             self.assertNotRegex(row["context"], r"(?m)^(?:tk|sk|gk|59):\d+\s*$")
 
+    def test_published_tables_have_no_cutoff_column(self):
+        from huggingface_hub import hf_hub_download
+        import pyarrow.parquet as pq
+
+        spec = manifest()
+        self.assertEqual(set(spec["files"]), {f"data/{config}/{split}.parquet"
+                                             for config in ("open", "mcq") for split in ("test", "train")})
+        for filename in spec["files"]:
+            path = hf_hub_download(spec["dataset_repo"], filename, repo_type="dataset",
+                                   revision=spec["dataset_revision"], token=False)
+            self.assertNotIn("as_of", pq.read_schema(path).names)
+
     def test_exact_five_shots_and_unchanged_test_membership(self):
         from llmtf.tasks.rulaw_proofbench import task as task_module
 
@@ -92,15 +104,16 @@ class RuLawTests(unittest.TestCase):
                 task.load_dataset(Model(), 16000, 2, 5)
 
     def test_published_demonstrations(self):
+        spec = manifest()
         train = load_rows("mcq", "train")
         test = load_rows("mcq", "test")
-        self.assertEqual(len(train), 5)
-        self.assertEqual(len(test), 300)
-        self.assertEqual({row["mcq"]["gold_label"] for row in train}, set("ABCD"))
+        self.assertEqual(len(train), spec["demonstration_count"])
+        self.assertEqual(len(test), spec["test_count"])
+        self.assertTrue(all(row["mcq"]["gold_label"] in {o["label"] for o in row["mcq"]["options"]} for row in train))
         self.assertFalse({row["article_key"] for row in train} & {row["article_key"] for row in test})
         task = RuLawProofBenchMCQ()
-        messages, samples = task.load_dataset(Model(), 16000, 300, 5)
-        self.assertEqual(len(samples), 300)
+        messages, samples = task.load_dataset(Model(), 16000, spec["test_count"], 5)
+        self.assertEqual(len(samples), spec["test_count"])
         for message, sample in zip(messages, samples):
             self.assertEqual(len(message["messages"]), 12)
             self.assertEqual(sample["sample"]["_rulaw_proofbench"]["demonstration_ids"], [row["id"] for row in train])

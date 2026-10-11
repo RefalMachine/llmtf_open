@@ -51,10 +51,11 @@ def load_rows(config="open", split="test", data_dir=None):
             "id": row["id"],
             "article": row["article_key"],
             "domain": row["domain"],
-            "as_of": row["as_of"],
             "answer": row["gold"]["value"],
             "answer_unit": row["gold"]["unit"],
         }
+        if "as_of" in public:
+            fields["as_of"] = row["as_of"]
         if config == "mcq":
             mcq = json.loads(public["mcq_json"])
             fields.update(
