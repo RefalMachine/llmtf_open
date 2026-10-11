@@ -30,6 +30,17 @@ The published image IDs exactly matched cache-only rebuilds from the v0.3.0
 Dockerfiles and profile requirements before upload. No mutable `latest` tag is
 published because the API, HF and vLLM profiles have different capabilities.
 
+Registry verification on 2026-10-02 confirmed all three manifest digests above
+and their identity with the local images used for validation. The current
+Published images use the release Dockerfiles from `2136f9a`, but `requirements/profiles/common.txt`
+removed `fasttext-langdetect` in `d365438` on 2026-09-21. All three published
+images still contain `fasttext-langdetect==1.1.1`; current task code uses
+`langdetect` instead. They remain compatible with the current mounted source
+and passed the recorded LegalBench-RU/Shlepa checks, but their installed package
+sets do not exactly match the current requirements. Exact environment alignment
+requires rebuilding API and HF, then their dependent vLLM image, and publishing
+new images; the release digests above identify the original v0.3.0 environments.
+
 ## Build
 
 Rebuild only when the execution environment changes: Dockerfiles, dependency

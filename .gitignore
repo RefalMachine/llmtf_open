@@ -23,3 +23,4 @@ venv/
 .env.*
 !.env.example
 /RuParam.csv
+/papers/
