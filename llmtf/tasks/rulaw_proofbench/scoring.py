@@ -17,6 +17,8 @@ UNITS = {
     'calendar_days': r'(?:календарный день|календарных дня|календарных дней|день|дня|дней)',
     'hours': r'(?:час|часа|часов)',
     'hours_per_week': r'(?:час|часа|часов)(?: в неделю)?',
+    'months': r'(?:месяц|месяца|месяцев)',
+    'years': r'(?:год|года|лет)',
 }
 NUMBER = r'(?:[0-9]+(?:\.[0-9]+)?|[0-9]+\s*/\s*[0-9]+)'
 
@@ -94,7 +96,8 @@ def score(sample,prediction):
     return dict(id=sample['id'],article_key=sample['article_key'],question_type=sample['question_type'],
                 gold=sample['gold']['value'],prediction=parsed,correct=parsed==sample['gold']['value'],
                 format_valid=parsed is not None,pair_ids=sample['pair_ids'],
-                unknown_but_determinate=sample['unknown_but_determinate'])
+                unknown_but_determinate=sample['unknown_but_determinate'],
+                origin=sample.get('origin', 'legacy'))
 
 
 def aggregate(records):
@@ -112,12 +115,20 @@ def aggregate(records):
     correct_unknown=sum(r['gold']==UNKNOWN and r['prediction']==UNKNOWN for r in records)
     complete=[rs for rs in pairs.values() if len(rs)==2]
     invariant=[r for r in records if r['unknown_but_determinate']]
+    origins = defaultdict(list)
+    for record in records:
+        origins[record.get('origin', 'legacy')].append(record)
+    false_unknown = sum(r['gold'] != UNKNOWN and r['prediction'] == UNKNOWN for r in records)
+    determinate_count = len(records) - true_unknown
     return macro,dict(primary='article_macro_accuracy',articles=by_article,micro_accuracy=acc(records),
         by_type={t:dict(count=len(rs),accuracy=acc(rs)) for t,rs in types.items()},
         format_valid_rate=sum(r['format_valid'] for r in records)/len(records),
         insufficient=dict(gold_count=true_unknown,predicted_count=predicted_unknown,correct=correct_unknown,
                           precision=correct_unknown/predicted_unknown if predicted_unknown else None,
-                          recall=correct_unknown/true_unknown if true_unknown else None),
+                          recall=correct_unknown/true_unknown if true_unknown else None,
+                          false_count=false_unknown,
+                          false_rate=false_unknown/determinate_count if determinate_count else None),
+        by_origin={origin: dict(count=len(group), accuracy=acc(group)) for origin, group in origins.items()},
         unknown_but_determinate=dict(count=len(invariant),accuracy=acc(invariant) if invariant else None),
         minimal_pairs=dict(complete=len(complete),partial=sum(len(rs)==1 for rs in pairs.values()),
                            both_correct=sum(all(r['correct'] for r in rs) for rs in complete)/len(complete) if complete else None),

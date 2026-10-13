@@ -1,0 +1,35 @@
+{
+  "dataset_repo": "RefalMachine/RuLaw-ProofBench",
+  "as_of": "2025-01-01",
+  "test_count": 505,
+  "demonstration_count": 20,
+  "files": {
+    "data/open/test.parquet": {
+      "sha256": "79643ceaf2aafb88ac158729aa1f279b7c497d0b5de095fbf0cfef6ad476d233",
+      "rows": 505
+    },
+    "data/open/train.parquet": {
+      "sha256": "97a6a56bb3f977fc23953ca68dc1ab1272a93875789ef693abcc69ec8a83bedf",
+      "rows": 20
+    },
+    "data/mcq/test.parquet": {
+      "sha256": "466691b31a948daea1648598995ce5cc30a78e7f694bb6e466d2137a60f37292",
+      "rows": 505
+    },
+    "data/mcq/train.parquet": {
+      "sha256": "91413a0284ecdb72cfef5ae2a32d72819ba87bdbbf70e6593dfd568e38524c66",
+      "rows": 20
+    }
+  },
+  "dataset_revision": "b8564ee5014ca3cb2f2bccd6feb3e4b22bdfb5aa",
+  "version": "expanded_v1",
+  "prompt_version": "expanded_v1",
+  "scorer_version": "normalized_exact_match_months_years_v1",
+  "demonstration_ids": [
+    "v2-3b3b4fa138be5488a6f9",
+    "v2-40b5b87e704a2c16f022",
+    "v2-f11ba975e9a6aa85ce74",
+    "v2-53953b76036d58175e83",
+    "v2-5d800c23c8b5407341ee"
+  ]
+}

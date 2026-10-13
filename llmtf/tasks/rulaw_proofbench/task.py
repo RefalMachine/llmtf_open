@@ -2,6 +2,7 @@
 
 import copy
 import hashlib
+import os
 from pathlib import Path
 
 from llmtf.base import PromptTooLongError, SimpleFewShotHFTask
@@ -15,19 +16,26 @@ class RuLawProofBench(SimpleFewShotHFTask):
     _max_task_new_tokens = 96
     dataset_config = "open"
 
-    def __init__(self, mode="closed", judge_model=None, data_dir=None, **kwargs):
+    def __init__(self, mode="closed", judge_model=None, data_dir=None, dataset_version="legacy", **kwargs):
         super().__init__(**kwargs)
         if mode not in ("closed", "grounded"):
             raise ValueError("Unknown RuLaw-ProofBench mode")
         self.mode = mode
+        if dataset_version not in ("legacy", "expanded"):
+            raise ValueError("Unknown RuLaw-ProofBench dataset version")
+        self.dataset_version = dataset_version
         self._judge_model = judge_model
-        self.data_dir = data_dir
+        self.data_dir = data_dir or (os.environ.get("RULAW_EXPANDED_DATA_DIR") if dataset_version == "expanded" else None)
+
+    def _manifest(self):
+        return manifest() if self.dataset_version == "legacy" else manifest(self.dataset_version)
 
     def task_name(self):
-        return "rulaw_proofbench/" + self.mode
+        prefix = "rulaw_proofbench" if self.dataset_version == "legacy" else "rulaw_proofbench_expanded"
+        return prefix + "/" + self.mode
 
     def dataset_args(self):
-        spec = manifest()
+        spec = self._manifest()
         return {
             "path": spec["dataset_repo"],
             "name": self.dataset_config,
@@ -45,17 +53,20 @@ class RuLawProofBench(SimpleFewShotHFTask):
 
         return {
             "mode": self.mode,
-            "dataset": manifest(),
+            "dataset": self._manifest(),
             "dataset_config": self.dataset_config,
             "implementation_sha256": {
                 name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
                 for name in ("task.py", "data.py", "scoring.py", "judge.py")
             },
             "semantic_judge": provenance(self._judge_model) if self._judge_model is not None else None,
-            "source_and_data_verification": "pinned_hub_revision_and_parquet_sha256",
+            "source_and_data_verification": ("pinned_hub_revision_and_parquet_sha256"
+                                             if self.dataset_version == "legacy"
+                                             else "versioned_manifest_and_parquet_sha256"),
             "primary": "article_macro_accuracy",
             "scorer": SCORER_NAME,
-            "few_shot_policy": "fixed_train_order_article_disjoint_exact_k",
+            "few_shot_policy": ("fixed_train_order_article_disjoint_exact_k" if self.dataset_version == "legacy"
+                                else "fixed_manifest_five_dependency_disjoint"),
             "answer_budget": self.max_task_new_tokens,
         }
 
@@ -74,15 +85,27 @@ class RuLawProofBench(SimpleFewShotHFTask):
         return messages
 
     def _load_dataset(self, model, max_prompt_len, max_sample_per_dataset, few_shot_count):
-        available = manifest()["demonstration_count"]
+        spec = self._manifest()
+        available = spec["demonstration_count"]
+        expanded = self.dataset_version == "expanded"
+        if expanded and (type(few_shot_count) is not int or few_shot_count not in (0, 5)):
+            raise ValueError("Expanded RuLaw-ProofBench supports only few_shot_count 0 or 5")
         if type(few_shot_count) is not int or not 0 <= few_shot_count <= available:
             raise ValueError(f"RuLaw-ProofBench requires few_shot_count between 0 and {available}")
-        rows = load_rows(self.dataset_config, "test", self.data_dir)
-        train = load_rows(self.dataset_config, "train", self.data_dir)
-        if len(train) != available or len(rows) != manifest()["test_count"]:
+        version_args = {"version": self.dataset_version} if expanded else {}
+        rows = load_rows(self.dataset_config, "test", self.data_dir, **version_args)
+        train = load_rows(self.dataset_config, "train", self.data_dir, **version_args)
+        if len(train) != available or len(rows) != spec["test_count"]:
             raise ValueError("Published split counts disagree with the pinned manifest")
-        validate_split_separation(rows, train)
-        demonstrations = train[:few_shot_count]
+        validate_split_separation(rows, train, dependencies=expanded)
+        if expanded:
+            ids = spec["demonstration_ids"]
+            by_id = {row["id"]: row for row in train}
+            if len(ids) != 5 or len(set(ids)) != 5 or not set(ids) <= set(by_id):
+                raise ValueError("Invalid fixed demonstration IDs")
+            demonstrations = [by_id[identity] for identity in ids] if few_shot_count else []
+        else:
+            demonstrations = train[:few_shot_count]
         prefix = []
         for demonstration in demonstrations:
             prefix.extend(self.create_messages(demonstration, with_answer=True))

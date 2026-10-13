@@ -4,22 +4,29 @@ import hashlib
 import json
 from pathlib import Path
 import unicodedata
+from urllib.parse import parse_qs, urlparse
 
 
-def manifest():
-    return json.loads(Path(__file__).with_name("manifest.json").read_text())
+def manifest(version="legacy"):
+    if version not in ("legacy", "expanded"):
+        raise ValueError("Unknown RuLaw-ProofBench dataset version")
+    name = "manifest.json" if version == "legacy" else "manifest_expanded.json"
+    path = Path(__file__).with_name(name)
+    if not path.is_file():
+        raise ValueError("Expanded RuLaw release is not frozen yet")
+    return json.loads(path.read_text())
 
 
 def question_key(text):
     return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
 
 
-def load_rows(config="open", split="test", data_dir=None):
+def load_rows(config="open", split="test", data_dir=None, version="legacy"):
     import pyarrow.parquet as pq
 
     if config not in ("open", "mcq") or split not in ("train", "test"):
         raise ValueError("Unknown RuLaw-ProofBench configuration or split")
-    spec = manifest()
+    spec = manifest() if version == "legacy" else manifest(version)
     filename = f"data/{config}/{split}.parquet"
     expected = spec["files"].get(filename)
     if expected is None:
@@ -27,6 +34,8 @@ def load_rows(config="open", split="test", data_dir=None):
             return []
         raise ValueError(f"Missing pinned split: {filename}")
     if data_dir is None:
+        if not spec.get("dataset_revision"):
+            raise ValueError("Local RuLaw release requires data_dir or RULAW_EXPANDED_DATA_DIR")
         from huggingface_hub import hf_hub_download
 
         path = hf_hub_download(
@@ -88,7 +97,14 @@ def load_rows(config="open", split="test", data_dir=None):
     return rows
 
 
-def validate_split_separation(test, train):
+def provision_key(url, article):
+    parsed = urlparse(url)
+    nd = parse_qs(parsed.query).get("nd")
+    identity = "pravo:" + nd[0] if parsed.hostname == "pravo.gov.ru" and nd and len(nd) == 1 else url
+    return identity, str(article)
+
+
+def validate_split_separation(test, train, dependencies=False):
     for key in ("id", "article_key"):
         if {row[key] for row in test} & {row[key] for row in train}:
             raise ValueError(f"Demonstration/test overlap: {key}")
@@ -96,3 +112,9 @@ def validate_split_separation(test, train):
         question_key(row["question"]) for row in train
     }:
         raise ValueError("Demonstration/test question overlap")
+    if dependencies:
+        def provisions(rows):
+            return {provision_key(ref["url"], ref["article"])
+                    for row in rows for ref in row["source_refs"]}
+        if provisions(test) & provisions(train):
+            raise ValueError("Demonstration/test normative dependency overlap")

@@ -386,3 +386,13 @@ for _mode in ('closed', 'grounded'):
         'params': {'mode': _mode},
         'include_in_all': False,
     }
+    TASK_REGISTRY['rulaw_proofbench_expanded/' + _mode] = {
+        'class': RuLawProofBench,
+        'params': {'mode': _mode, 'dataset_version': 'expanded', 'judge_model': llmaaj_model},
+        'include_in_all': False,
+    }
+    TASK_REGISTRY['rulaw_proofbench_expanded/mcq_' + _mode] = {
+        'class': RuLawProofBenchMCQ,
+        'params': {'mode': _mode, 'dataset_version': 'expanded'},
+        'include_in_all': False,
+    }

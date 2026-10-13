@@ -22,13 +22,14 @@ class RuLawProofBenchMCQ(RuLawProofBench):
         super().__init__(*args, **kwargs)
 
     def task_name(self):
-        return "rulaw_proofbench/mcq_" + self.mode
+        prefix = super().task_name().split("/")[0]
+        return prefix + "/mcq_" + self.mode
 
     def get_task_provenance(self):
         result = super().get_task_provenance()
         result.update(
-            answer_protocol="rulaw_mcq_v1",
-            choice_count="3_binary_else_4",
+            answer_protocol="rulaw_mcq_v1" if self.dataset_version == "legacy" else "rulaw_mcq_expanded_v1",
+            choice_count="3_binary_else_4" if self.dataset_version == "legacy" else "up_to_4_always_includes_unknown",
             mcq_task_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         )
         return result
