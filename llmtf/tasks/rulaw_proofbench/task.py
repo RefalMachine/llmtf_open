@@ -7,6 +7,7 @@ from pathlib import Path
 
 from llmtf.base import PromptTooLongError, SimpleFewShotHFTask
 from .data import load_rows, manifest, validate_split_separation
+from .prompts import PROMPT_VERSION, render_prompt
 from .scoring import SCORER_NAME, aggregate, score
 
 
@@ -51,7 +52,7 @@ class RuLawProofBench(SimpleFewShotHFTask):
     def get_task_provenance(self):
         from .judge import provenance
 
-        return {
+        result = {
             "mode": self.mode,
             "dataset": self._manifest(),
             "dataset_config": self.dataset_config,
@@ -69,10 +70,18 @@ class RuLawProofBench(SimpleFewShotHFTask):
                                 else "fixed_manifest_five_dependency_disjoint"),
             "answer_budget": self.max_task_new_tokens,
         }
+        if self.dataset_version == "expanded":
+            result.update(prompt_version=PROMPT_VERSION, assistant_prefill=None)
+            result["implementation_sha256"]["prompts.py"] = hashlib.sha256(
+                Path(__file__).with_name("prompts.py").read_bytes()
+            ).hexdigest()
+        return result
 
     def create_messages(self, sample, with_answer=False):
         prompt = sample["question"]
-        if self.mode == "grounded":
+        if self.dataset_version == "expanded":
+            prompt = render_prompt(sample, self.mode, multiple_choice=self.dataset_config == "mcq")
+        elif self.mode == "grounded":
             prompt = (
                 "Ниже приведён текст нормы и связанных положений для контрольного режима чтения.\n\n"
                 + sample["context"]
@@ -129,6 +138,8 @@ class RuLawProofBench(SimpleFewShotHFTask):
                 "demonstration_ids": [demo["id"] for demo in demonstrations],
                 "prompt_token_count": count,
             }
+            if expanded:
+                row["_rulaw_proofbench"].update(prompt_version=PROMPT_VERSION, assistant_prefill=None)
             result.append({"messages": messages, "sample": row})
         return result
 
@@ -137,7 +148,8 @@ class RuLawProofBench(SimpleFewShotHFTask):
         if self._judge_model is not None:
             result["llm_judge_accuracy"] = {
                 "id": sample["id"],
-                "question": sample["question"],
+                "question": (self.create_messages(sample)[0]["content"]
+                             if self.dataset_version == "expanded" else sample["question"]),
                 "reference": sample["gold"],
                 "prediction": y_pred,
                 "strict": result["score"],

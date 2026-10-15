@@ -28,7 +28,7 @@ class RuLawProofBenchMCQ(RuLawProofBench):
     def get_task_provenance(self):
         result = super().get_task_provenance()
         result.update(
-            answer_protocol="rulaw_mcq_v1" if self.dataset_version == "legacy" else "rulaw_mcq_expanded_v1",
+            answer_protocol="rulaw_mcq_v1" if self.dataset_version == "legacy" else "rulaw_mcq_expanded_v2_no_prefill",
             choice_count="3_binary_else_4" if self.dataset_version == "legacy" else "up_to_4_always_includes_unknown",
             mcq_task_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         )
@@ -43,6 +43,11 @@ class RuLawProofBenchMCQ(RuLawProofBench):
         return messages, samples
 
     def create_messages(self, sample, with_answer=False):
+        if self.dataset_version == "expanded":
+            messages = super().create_messages(sample)
+            if with_answer:
+                messages.append({"role": "assistant", "content": sample["mcq"]["gold_label"]})
+            return messages
         row = copy.deepcopy(sample)
         row["question"] = sample["mcq"]["question"]
         messages = super().create_messages(row)
