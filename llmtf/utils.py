@@ -328,6 +328,11 @@ class Multiset():
 
 
 def json_to_jinja(template_config):
+    """Render JSON text literally, without adding or trimming whitespace."""
+    def literal(text):
+        # Expressions protect configured newlines from Jinja's trim_blocks.
+        return "{{ " + json.dumps(text, ensure_ascii=False) + " }}"
+
     roles_mapping = {
         template_config.get("system_role", "system"): template_config.get("system_message_template", ""),
         template_config.get("user_role", "user"): template_config.get("user_message_template", ""),
@@ -336,22 +341,26 @@ def json_to_jinja(template_config):
 
     jinja_template = []
     if template_config.get("global_prefix"):
-        jinja_template.append(template_config["global_prefix"])
+        jinja_template.append(literal(template_config["global_prefix"]))
     jinja_template.append("{% for message in messages %}")
 
     for role, template in roles_mapping.items():
         if template:
-            formatted_template = template.replace("{role}", role).replace("{content}", "{{ message['content'] }}")
-            jinja_template.append(f"{{% if message['role'] == '{role}' %}}{formatted_template}{{% endif %}}")
- 
+            parts = template.replace("{role}", role).split("{content}")
+            formatted_template = "{{ message['content'] }}".join(literal(part) for part in parts)
+            jinja_template.append(
+                "{% if message['role'] == " + json.dumps(role, ensure_ascii=False) + " %}"
+                + formatted_template + "{% endif %}"
+            )
+
     jinja_template.append("{% endfor %}")
 
     if template_config.get("suffix"):
         jinja_template.append("{% if add_generation_prompt %}")
-        jinja_template.append(template_config["suffix"])
+        jinja_template.append(literal(template_config["suffix"]))
         jinja_template.append("{% endif %}")
 
     eos_token = template_config.get("eos_token")
     if eos_token and type(eos_token) == list:
         eos_token = eos_token[0]
-    return ("\n".join(jinja_template), eos_token)
+    return ("".join(jinja_template), eos_token)
