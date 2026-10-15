@@ -1,6 +1,7 @@
 """Construction orchestration with explicit per-stage inputs and saved decisions."""
 
 import fcntl
+import json
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -97,9 +98,30 @@ def build_from_sources(candidate, config, client, stage_dir, count, fragments, f
     context = dict(fragments=fragments, locator=candidate["locator"], target=candidate["target"], input_scope=input_scope)
     if feedback is not None:
         context["revision_feedback"] = feedback
-    primary = client.ask("formalize", context, lambda value: validate_card(value, fragments))
+    legacy_rows = []
+    previous_rows = []
+    initial_card = None
+    if config.get("legacy_run"):
+        legacy_root = Path(config["legacy_run"])
+        label = candidate["source"]["id"] + ":" + candidate["article"]
+        split_file = legacy_root / (candidate["source"]["split"] + ".jsonl")
+        previous_rows = [json.loads(line) for line in split_file.read_text().splitlines()]
+        previous_rows = [row for row in previous_rows if row["article_key"] == label]
+        old_stage = legacy_root / "stages" / digest(label)[:16]
+        accepted = old_stage / "accepted-attempt.json"
+        if feedback is None and accepted.exists():
+            old_attempt = old_stage / read_json(accepted)["path"]
+            # Reuse a formalization only for the exact same accepted input.
+            if read_json(old_attempt / "input-entry.json") == candidate:
+                initial_card = read_json(old_attempt / "primary.json")
+                legacy_rows = previous_rows
+                if not legacy_rows:
+                    initial_card = None
+    primary = initial_card if initial_card is not None else client.ask(
+        "formalize", context, lambda value: validate_card(value, fragments))
     write_json(stage_dir / "primary.json", primary)
     check_response(primary)
+    validate_card(primary, fragments)
     require(primary["target"] == candidate["target"], "Formalization changed the prepared target")
     # The second pass receives no first-pass predicates, constraints, branches or answers.
     def validate_reconstruction(value):
@@ -127,11 +149,19 @@ def build_from_sources(candidate, config, client, stage_dir, count, fragments, f
         part = client.ask("align", dict(fragments=fragments, primary_schema=schema(primary),
                           second_schema=schema(second), primary_worlds=batch), validate_alignment)
         write_json(stage_dir / "alignment-chunks" / f"{start:03d}.json", part)
+        if (config.get("prompt_protocol") == "expanded_v1" and part.get("reject")
+                and part.get("kind") != "input_gap"):
+            raise NeedsRevision(primary, dict(card_issues=[part["reject"]]))
         check_response(part)
         alignment["mapping"].extend(part["mapping"])
     write_json(stage_dir / "alignment.json", alignment)
     check_response(alignment)
-    comparison = compare(primary, second, alignment)
+    try:
+        comparison = compare(primary, second, alignment)
+    except Rejected as error:
+        if config.get("prompt_protocol") != "expanded_v1":
+            raise
+        raise NeedsRevision(primary, dict(card_issues=[str(error)])) from error
     write_json(stage_dir / "comparison.json", comparison)
     spec = candidate["source"]
     article_key = spec["id"] + ":" + candidate["article"]
@@ -141,7 +171,18 @@ def build_from_sources(candidate, config, client, stage_dir, count, fragments, f
                     input_package_sha256=config["input_package_sha256"], input_entry_sha256=digest(candidate),
                     source_refs=[dict(url=f["url"], article=f["article"]) for f in fragments],
                     context="\n\n".join(f["text"] for f in fragments))
-    rows = generate(primary, metadata, count, config["seed"])
+    rows = generate(primary, metadata, count, config["seed"], config.get("prompt_protocol", "legacy"),
+                    preferred_facts=[row["facts"] for row in legacy_rows])
+    old_by_id = {row["id"]: row for row in previous_rows}
+    if config.get("prompt_protocol") == "expanded_v1":
+        for row in rows:
+            row["origin"] = "retained" if row["id"] in old_by_id else "new"
+            if row["id"] in old_by_id:
+                require(row["gold"] == old_by_id[row["id"]]["gold"], "Retained case changed gold")
+                row["previous_id"] = row["id"]
+            elif previous_rows and row["rule_sha256"] not in {old["rule_sha256"] for old in previous_rows}:
+                row["origin"] = "revised_article"
+                row["previous_article_ids"] = sorted(old_by_id)
     write_json(stage_dir / "candidates.json", rows)
     blind_checks = blind_check(client, fragments, rows, primary["unit"], stage_dir)
     blind_accepted = adjudicate_disagreements(client, fragments, primary, rows, blind_checks, stage_dir)
@@ -190,10 +231,16 @@ def process_article(candidate, config, output, offline, progress):
     stage_dir.mkdir(parents=True, exist_ok=True)
     client = Client(stage_dir, config["api"], offline, frozen_root=output,
                     progress=lambda stage: progress.stage(label, stage))
-    count = config["questions_per_article"] if candidate["source"]["split"] == "test" else 1
+    count = (config["questions_per_article"] if candidate["source"]["split"] == "test"
+             else config.get("train_questions_per_article", 1))
     decision = dict(article=label, stage_dir=str(stage_dir.relative_to(output)))
     rows = []
     try:
+        if candidate["source"]["split"] == "train" and config.get("legacy_run"):
+            protected = [json.loads(line) for line in
+                         (Path(config["legacy_run"]) / "test.jsonl").read_text().splitlines()]
+            refs = [{"url": f["url"], "article": f["article"]} for f in candidate["fragments"]]
+            separate(protected, [dict(id="candidate", article_key=label, question="candidate", source_refs=refs)])
         rows = build_candidate(candidate, config, client, stage_dir, count)
         decision.update(status="accepted", count=len(rows))
     except (Rejected, RuntimeError, OSError, KeyError, TypeError, ValueError) as error:
@@ -223,7 +270,7 @@ def merge_rows(splits, split, rows, remaining):
 
 
 def process_group(selected, target, split, config, output, offline, progress, splits, decisions, workers):
-    """Prefetch a bounded reserve while merging strictly in input order."""
+    """Schedule articles independently, merging strictly in input order."""
     accepted = 0
     queue = deque()
     cursor = 0
@@ -235,6 +282,9 @@ def process_group(selected, target, split, config, output, offline, progress, sp
             window = workers
             if workers > 1 and target - accepted > workers * per_article:
                 window = 2 * workers
+            if config.get("prompt_protocol") == "expanded_v1":
+                # Expanded selection needs every article; a slow head must not idle workers.
+                window = len(selected)
             while cursor < len(selected) and len(queue) < window:
                 candidate = selected[cursor]
                 cursor += 1
@@ -271,7 +321,9 @@ def run(config_path, output, offline=False, workers=None, progress=True, input_p
     config_path, output = Path(config_path).resolve(), Path(output).resolve()
     config = read_json(config_path)
     allowed = {"as_of", "seed", "test_count", "train_count", "questions_per_article",
-               "max_card_revisions", "workers", "test_quotas", "api"}
+               "max_card_revisions", "workers", "test_quotas", "api", "prompt_protocol",
+               "train_questions_per_article", "legacy_run", "minimum_test_count", "minimum_test_articles",
+               "enforce_type_balance"}
     require(set(config) <= allowed, "Build config contains preparation fields; use a build config and --inputs")
     require(type(config["test_count"]) is int and config["test_count"] > 0 and
             type(config["train_count"]) is int and config["train_count"] >= 0, "Invalid requested sizes")
@@ -279,6 +331,7 @@ def run(config_path, output, offline=False, workers=None, progress=True, input_p
     workers = config.get("workers", 1) if workers is None else workers
     require(type(workers) is int and 1 <= workers <= 32, "workers must be between 1 and 32")
     config["workers"] = workers
+    expanded = config.get("prompt_protocol") == "expanded_v1"
     require(input_path is not None or offline, "Explicit prepared --inputs package required")
     sealed = load_packet(input_path if input_path is not None else output / "input-package.json")
     packet = sealed["packet"]
@@ -310,15 +363,44 @@ def run(config_path, output, offline=False, workers=None, progress=True, input_p
                       requested=dict(test=config["test_count"], train=config["train_count"]), decisions=decisions)
         try:
             # Fix demonstration dependencies first, before admitting test articles.
-            groups = [("train", None, config["train_count"])]
-            groups += [("test", key, n) for key, n in quotas.items()] if quotas else [("test", None, config["test_count"])]
+            if expanded:
+                groups = [("train", None, len(selected) * config.get("train_questions_per_article", 1)),
+                          ("test", None, len(selected) * config["questions_per_article"])]
+            else:
+                groups = [("train", None, config["train_count"])]
+                groups += [("test", key, n) for key, n in quotas.items()] if quotas else [("test", None, config["test_count"])]
             for split, source_id, target in groups:
                 group = [c for c in selected if c["source"]["split"] == split and
                          (source_id is None or c["source"]["id"] == source_id)]
                 process_group(group, target, split, effective, output, offline, display, splits, decisions, workers)
             separate(splits["test"], splits["train"])
+            if expanded:
+                from .selection import legacy_changes, select_release
+
+                for split, values in splits.items():
+                    (output / (split + "-pool.jsonl")).write_text(
+                        "".join(canonical(row) + "\n" for row in values), encoding="utf-8")
+                splits, selection = select_release(splits, config)
+                report["selection"] = selection
+                for decision in decisions:
+                    if decision["status"] == "accepted":
+                        decision["available_count"] = decision["count"]
+                        decision["count"] = sum(row["article_key"] == decision["article"]
+                                                for values in splits.values() for row in values)
+                report["protocol"] = "expanded_v1"
+                if config.get("legacy_run"):
+                    previous = {split: [json.loads(line) for line in
+                                (Path(config["legacy_run"]) / (split + ".jsonl")).read_text().splitlines()]
+                                for split in ("test", "train")}
+                    changes = legacy_changes(previous, splits, decisions)
+                    write_json(output / "legacy-changes.json", changes)
+                    report["legacy_changes"] = {
+                        split: {status: sum(item["split"] == split and item["status"] == status for item in changes)
+                                for status in ("retained", "excluded", "not_reviewed")} for split in previous}
             complete = all(len(splits[k]) == report["requested"][k] for k in splits)
             report["status"] = "complete" if complete else "shortfall"
+            if expanded:
+                report["status"] = "complete" if report["selection"]["ready"] else "shortfall"
             if any(d["status"] == "error" for d in decisions):
                 report["status"] = "failed"
         except (Exception, KeyboardInterrupt) as error:

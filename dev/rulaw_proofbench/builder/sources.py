@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import email
+import html
 from html.parser import HTMLParser
 import re
 import urllib.parse
@@ -64,16 +65,7 @@ class HTMLText(HTMLParser):
             self.parts.append(data.translate(DIGIT_TO_SUPER) if any(self.superscript_stack) else data)
 
 
-def extract(raw, content_type=""):
-    if raw.startswith(b"%PDF"):
-        try:
-            import fitz
-        except ImportError:
-            raise ValueError("PDF extraction requires PyMuPDF. Supply HTML/MIME or install it separately.") from None
-        with fitz.open(stream=raw, filetype="pdf") as doc:
-            text = "\n".join(page.get_text() for page in doc)
-        require(len(text.strip()) >= 100, "PDF has no usable text layer. OCR is not implemented")
-        return text
+def decode_document(raw, content_type=""):
     if b"MIME-Version:" in raw[:500] or b"multipart/related" in raw[:500]:
         parts = [part for part in email.message_from_bytes(raw).walk() if part.get_content_type() == "text/html"]
         require(len(parts) == 1, "Expected one HTML body in the web archive")
@@ -89,6 +81,41 @@ def extract(raw, content_type=""):
             text = raw.decode("utf-8-sig")
         except UnicodeDecodeError:
             text = raw.decode("cp1251")
+    return text
+
+
+def reference_links(raw, content_type, base_url):
+    """Preserve official amendment links separately from normative plain text."""
+    if raw.startswith(b"%PDF"):
+        return []
+    text = decode_document(raw, content_type)
+    links = {}
+    for href, label in re.findall(r'<a\b[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', text, re.I | re.S):
+        title = " ".join(html.unescape(re.sub(r"<[^>]+>", "", label)).split())
+        if not re.fullmatch(r"от \d{2}\.\d{2}\.\d{4} № ?\d+-ФЗ", title):
+            continue
+        url = urllib.parse.urljoin(base_url, html.unescape(href))
+        parsed = urllib.parse.urlsplit(url)
+        ids = urllib.parse.parse_qs(parsed.query).get("nd", [])
+        if parsed.hostname == "pravo.gov.ru" and len(ids) == 1 and ids[0].isdigit():
+            # The official portal's MIME export for the document linked in HTML.
+            export_url = "http://pravo.gov.ru/proxy/ips/?savertf=&nd=" + ids[0] + "&rdk=0"
+            metadata_url = "http://pravo.gov.ru/proxy/ips/?doc_itself=&vkart=card&nd=" + ids[0] + "&rdk=0"
+            links[export_url] = dict(title=title, url=export_url, link_url=url, metadata_url=metadata_url)
+    return list(links.values())
+
+
+def extract(raw, content_type=""):
+    if raw.startswith(b"%PDF"):
+        try:
+            import fitz
+        except ImportError:
+            raise ValueError("PDF extraction requires PyMuPDF. Supply HTML/MIME or install it separately.") from None
+        with fitz.open(stream=raw, filetype="pdf") as doc:
+            text = "\n".join(page.get_text() for page in doc)
+        require(len(text.strip()) >= 100, "PDF has no usable text layer. OCR is not implemented")
+        return text
+    text = decode_document(raw, content_type)
     if re.search(r"<html\b|<!doctype\s+html", text, re.I):
         require("</html>" in text.lower(), "Truncated HTML document")
         superscript_classes = re.findall(r"\.([\w-]+)\s*\{[^}]*vertical-align\s*:\s*super\b[^}]*\}", text, re.I)
@@ -183,7 +210,8 @@ class Sources:
             write_json(metadata_path, metadata)
         if spec.get("sha256"):
             require(digest(raw) == spec["sha256"], "Supplied source hash mismatch")
-        document = dict(id=identity, url=url, text=text, **{k: v for k, v in metadata.items() if k not in ("url",)})
+        document = dict(id=identity, url=url, text=text, reference_links=reference_links(raw, metadata["content_type"], url),
+                        **{k: v for k, v in metadata.items() if k not in ("url",)})
         self.documents[identity] = document
         return document
 

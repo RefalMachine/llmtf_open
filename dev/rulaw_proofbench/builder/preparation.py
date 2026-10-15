@@ -20,10 +20,23 @@ def source_header(document):
 
 def source_input(document, fragment=None):
     text = document["text"] if fragment is None else source_header(document) + "\n[Выбранная статья]\n" + fragment["text"] + "\n[Завершение документа]\n" + document["text"][-800:]
-    return dict(source_id=document["id"], url=document["url"], text=text,
+    result = dict(source_id=document["id"], url=document["url"], text=text,
                 coverage="full_document" if fragment is None else "header_and_article",
                 articles=[] if fragment is None else [fragment["article"]],
                 article_index={number: content.split("\n", 1)[0] for number, content in articles(document["text"]).items()})
+    if document.get("reference_links"):
+        result["reference_links"] = document["reference_links"]
+    return result
+
+
+def acquired_source_input(document):
+    """Expose a large acquired act by index before requesting whole articles."""
+    supplied = source_input(document)
+    available = articles(document["text"])
+    if len(document["text"]) > 45000 and available:
+        supplied.update(text=source_header(document), coverage="header_only", articles=[],
+                        article_index={number: text[:600] for number, text in available.items()})
+    return supplied
 
 
 def validate_review(review, fragments):
@@ -101,7 +114,18 @@ def prepare_sources(candidate, config, sources, client, stage_dir):
             documents.append(source_input(document, fragment))
         else:
             supplied = source_input(document)
+            if support.get("header_only"):
+                supplied.update(text=source_header(document), coverage="header_only", articles=[])
+            if support.get("passages"):
+                passages = support["passages"]
+                require(isinstance(passages, list) and all(isinstance(p, str) and p.strip()
+                        and document["text"].count(p) == 1 for p in passages),
+                        "Supporting passages must occur exactly once in the official document")
+                supplied.update(text=source_header(document) + "\n[Выбранные положения]\n"
+                                + "\n\n".join(passages) + "\n[Завершение документа]\n" + document["text"][-800:],
+                                coverage="selected_passages", articles=[])
             if support.get("articles"):
+                require(not support.get("passages"), "Choose supporting articles or passages, not both")
                 available = articles(document["text"])
                 numbers = [str(n) for n in support["articles"]]
                 require(set(numbers) <= set(available), "Supporting article missing")
@@ -109,7 +133,9 @@ def prepare_sources(candidate, config, sources, client, stage_dir):
                                 coverage="header_and_articles", articles=numbers)
             documents.append(supplied)
     for attempt in range(config.get("max_source_rounds", 2) + 1):
-        require(sum(len(d["text"]) for d in documents) <= 150000, "Source-review input too large")
+        size = sum(len(d["text"]) for d in documents)
+        limit = config.get("max_source_chars", 150000)
+        require(size <= limit, f"Source-review input too large: {size} characters, limit {limit}")
         review = client.ask("source_review", dict(as_of=config["as_of"], article=candidate["article"],
                           locator=candidate["locator"], target=candidate["target"], documents=documents),
                           lambda value: validate_review(value, documents))
@@ -127,6 +153,7 @@ def prepare_sources(candidate, config, sources, client, stage_dir):
             require(number in available, "Dependency article not extracted")
             supplied["text"] += "\n" + available[number]
             supplied["articles"].append(number)
+            supplied["coverage"] = "header_and_articles"
             added = True
         if added and review["status"] == "accept":
             require(attempt < config.get("max_source_rounds", 2), "Unreviewed dependencies at source round limit")
@@ -151,7 +178,7 @@ def prepare_sources(candidate, config, sources, client, stage_dir):
             return list(unique.values()), packet
         require(review["status"] == "needs_sources" and (review["requests"] or added), "Sources rejected: " + review["reason"])
         require(attempt < config.get("max_source_rounds", 2), "Source acquisition round limit reached")
-        require(len(review["requests"]) <= 5, "Too many additional source requests")
+        require(len(review["requests"]) <= 10, "Too many additional source requests")
         for request in review["requests"]:
             if request.get("source_id"):
                 require(request["source_id"] in sources.documents, "Requested unknown source_id")
@@ -171,9 +198,10 @@ def prepare_sources(candidate, config, sources, client, stage_dir):
                         if number not in supplied["articles"]:
                             supplied["text"] += "\n" + available[number]
                             supplied["articles"].append(number)
+                    supplied["coverage"] = "header_and_articles"
                 continue
             if document["id"] not in {d["source_id"] for d in documents}:
-                documents.append(source_input(document))
+                documents.append(acquired_source_input(document))
     raise AssertionError("Unreachable")
 
 
@@ -208,6 +236,8 @@ def prepare_article(candidate, config, sources, output, offline, progress):
 def run(config_path, output, offline=False, workers=None, progress=True):
     config_path, output = Path(config_path).resolve(), Path(output).resolve()
     config = read_json(config_path)
+    require(type(config.get("max_source_chars", 150000)) is int
+            and config.get("max_source_chars", 150000) > 0, "max_source_chars must be a positive integer")
     workers = config.get("workers", 1) if workers is None else workers
     require(type(workers) is int and 1 <= workers <= 32, "workers must be between 1 and 32")
     config["workers"] = workers
@@ -228,6 +258,8 @@ def run(config_path, output, offline=False, workers=None, progress=True):
                 sources.fetch(spec)
             display.active.clear()
             selected = candidates(config, sources, client)
+            if config.get("prompt_protocol") == "expanded_v1":
+                write_json(output / "request-ids.json", client.trace)
             labels = [(c["source"]["id"], c["article"]) for c in selected]
             require(len(labels) == len(set(labels)), "Duplicate selected article or split overlap")
             write_json(output / "selection.json", selected)

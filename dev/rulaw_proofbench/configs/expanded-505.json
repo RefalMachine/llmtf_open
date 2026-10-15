@@ -1,0 +1,30 @@
+{
+  "as_of": "2025-01-01",
+  "seed": 555,
+  "prompt_protocol": "expanded_v1",
+  "test_count": 505,
+  "minimum_test_count": 505,
+  "minimum_test_articles": 71,
+  "enforce_type_balance": false,
+  "train_count": 20,
+  "questions_per_article": 10,
+  "train_questions_per_article": 20,
+  "max_card_revisions": 2,
+  "workers": 4,
+  "legacy_run": "dev/rulaw_artifacts/runs/full-300-v2",
+  "api": {
+    "base_url": "http://127.0.0.1:8080/v1",
+    "api_key_env": "RULAW_API_KEY",
+    "profile": "subscription",
+    "cache_identity": "wire",
+    "model": "gpt-6.1-sol",
+    "timeout_seconds": 330,
+    "request_options": {
+      "reasoning": {"effort": "high"},
+      "max_tokens": 12000
+    },
+    "stage_overrides": {
+      "disagreement_review": {"model": "gpt-6-astra"}
+    }
+  }
+}

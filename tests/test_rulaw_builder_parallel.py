@@ -28,6 +28,25 @@ def row(number):
 
 
 class ParallelTests(unittest.TestCase):
+    def test_expanded_build_keeps_workers_busy_beyond_the_legacy_reserve(self):
+        last_started = threading.Event()
+
+        def build(item, *args):
+            number = int(item["article"])
+            if number == 0:
+                self.assertTrue(last_started.wait(timeout=3), "Slow head stalled required articles")
+            elif number == 11:
+                last_started.set()
+            return [row(number)], dict(article=f"law:{number}", status="accepted", count=1)
+
+        with tempfile.TemporaryDirectory() as tmp, patch(
+                "dev.rulaw_proofbench.builder.pipeline.process_article", side_effect=build):
+            splits = dict(test=[], train=[])
+            process_group([candidate(i) for i in range(12)], 12, "test",
+                          dict(prompt_protocol="expanded_v1", questions_per_article=1),
+                          Path(tmp), False, Progress(False), splits, [], 2)
+            self.assertEqual([r["id"] for r in splits["test"]], [str(i) for i in range(12)])
+
     def test_idle_worker_starts_reserved_article_before_slow_head_finishes(self):
         reserved_started = threading.Event()
         lock = threading.Lock()

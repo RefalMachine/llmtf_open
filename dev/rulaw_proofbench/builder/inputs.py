@@ -10,7 +10,9 @@ def check_inputs(config_path):
     config_path = Path(config_path).resolve()
     config = read_json(config_path)
     directory = (config_path.parent / config.get("input_dir", ".")).resolve()
-    manifest = read_json(Path(__file__).parents[1] / "source_manifest.json")
+    manifest_path = config.get("source_manifest")
+    manifest = read_json(config_path.parent / manifest_path if manifest_path
+                         else Path(__file__).parents[1] / "source_manifest.json")
     pinned = {d["filename"]: d for d in manifest["documents"]}
     checked = {}
     candidates = {"test": 0, "train": 0}

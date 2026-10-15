@@ -53,6 +53,19 @@ def same(left, right):
 def freeze_run(output, config, phase, allow_transport_update=False, **inputs):
     """Freeze the implementation and explicit inputs before any model request."""
     package = Path(__file__).parent
+    if config.get("prompt_protocol") == "expanded_v1":
+        # Expanded runs need stable inputs and prompts, not a private code copy.
+        bundle = output / "prompts.yaml"
+        prompt_bytes = bundle.read_bytes() if bundle.exists() else (package / "prompts.yaml").read_bytes()
+        identity = dict(config=config, phase=phase,
+                        prompt_bundle_sha256=digest(prompt_bytes), **inputs)
+        manifest = output / "build-input.json"
+        if manifest.exists():
+            require(read_json(manifest) == identity, "Run inputs changed; use a new output directory")
+        else:
+            write_json(manifest, identity)
+            bundle.write_bytes(prompt_bytes)
+        return identity
     code = {str(p.relative_to(package)): digest(p.read_bytes()) for p in sorted(package.rglob("*"))
             if p.suffix in (".py", ".yaml")}
     identity = dict(config=config, implementation=code, phase=phase, **inputs)

@@ -31,6 +31,31 @@ def http_error(status, headers=None):
 
 
 class RetryTests(unittest.TestCase):
+    def test_wire_cache_binds_model_and_transport_not_stripped_options(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {}, clear=True):
+            root = Path(tmp)
+            settings = dict(model="gpt-6.1-sol", base_url="http://127.0.0.1:8080/v1",
+                            profile="subscription", cache_identity="wire",
+                            request_options=dict(max_tokens=100, reasoning=dict(effort="high")))
+            first = Client(root, settings)
+            first.key = "fixture-private-key"
+            messages = [dict(role="user", content="case")]
+            with patch.object(first.opener, "open", return_value=body()):
+                first.complete(messages)
+            path = next(root.glob("requests/*.json"))
+            before = path.read_bytes()
+            settings["request_options"]["max_tokens"] = 200
+            cached = Client(root, settings, offline=True)
+            self.assertEqual(cached.complete(messages), '{"ok":true}')
+            self.assertEqual(path.read_bytes(), before)
+            settings["model"] = "gpt-6-astra"
+            with self.assertRaisesRegex(Rejected, "missing an API response"):
+                Client(root, settings, offline=True).complete(messages)
+            settings["model"] = "gpt-6.1-sol"
+            settings["profile"] = "generic"
+            with self.assertRaisesRegex(Rejected, "missing an API response"):
+                Client(root, settings, offline=True).complete(messages)
+
     def client(self, root):
         client = Client(root, dict(model="test/model", request_options=dict(max_tokens=100)))
         client.key = "test-private-key"
@@ -127,6 +152,19 @@ class RetryTests(unittest.TestCase):
                         client.complete([dict(role="user", content="test")])
                     self.assertEqual(send.call_count, 1)
                     sleep.assert_not_called()
+
+    def test_gateway_failures_retry_only_with_opt_in(self):
+        for status in (502, 503, 504):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as tmp:
+                client = self.client(Path(tmp))
+                client.retry_failed = True
+                with patch.object(client.opener, "open", side_effect=[http_error(status), body()]) as send, \
+                        patch("dev.rulaw_proofbench.builder.client.time.sleep") as sleep:
+                    self.assertEqual(client.complete([dict(role="user", content="test")]), '{"ok":true}')
+                    self.assertEqual(send.call_count, 2)
+                    sleep.assert_called_once_with(30)
+                saved = read_json(next(Path(tmp).glob("requests/*.json")))
+                self.assertEqual(saved["failed_attempts"][0]["error"]["http_status"], status)
 
     def test_retry_after_accepts_date_and_rejects_invalid_delays(self):
         for value in ("bad", "-10", "nan", "inf", "Wed, 01 Jan 2020 00:00:00 GMT"):

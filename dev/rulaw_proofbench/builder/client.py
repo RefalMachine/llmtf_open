@@ -53,7 +53,7 @@ class Client:
         runtime_url = os.environ.get("RULAW_API_BASE", "")
         self.api_url = check_url(runtime_url or self.url).rstrip("/")
         require(not urllib.parse.urlsplit(self.api_url).query, "API base URL cannot contain a query")
-        self.profile = os.environ.get("RULAW_API_PROFILE", "generic") if runtime_url else "generic"
+        self.profile = os.environ.get("RULAW_API_PROFILE", settings.get("profile", "generic"))
         require(self.profile in {"generic", "subscription"}, "RULAW_API_PROFILE must be generic or subscription")
         require(self.profile != "subscription" or self.api_url != "https://openrouter.ai/api/v1",
                 "Subscription profile requires the subscription adapter URL")
@@ -132,12 +132,21 @@ class Client:
         payload = dict(model=model_id, messages=messages, **options,
                        response_format={"type": "json_object"}, provider={"require_parameters": True},
                        plugins=[{"id": name, "enabled": False} for name in ("web", "response-healing", "context-compression")])
-        identity = digest(dict(url=self.url, payload=payload))
+        wire = self.transport_payload(payload, stage)
+        # New runs bind cache identity to what the server actually receives.
+        # Legacy transport repair keeps its historical identity explicitly.
+        wire_cache = self.settings.get("cache_identity") == "wire"
+        identity = digest(dict(url=self.api_url if wire_cache else self.url,
+                               payload=wire if wire_cache else payload))
         path = self.root / "requests" / (identity + ".json")
         self.trace.append(identity)
         if path.exists():
             record = read_json(path)
-            require(record["request"] == payload, "Request cache mismatch")
+            if wire_cache:
+                require(record.get("transport_request", record["request"]) == wire
+                        and record["endpoint"] == self.api_url + "/chat/completions", "Wire request cache mismatch")
+            else:
+                require(record["request"] == payload, "Request cache mismatch")
         else:
             record = dict(request=payload, endpoint=self.url + "/chat/completions")
         if "response" in record:
@@ -148,7 +157,6 @@ class Client:
             require(not path.exists() or self.retry_failed,
                     "Previous request failed or was interrupted. Resume the same run with --retry-failed")
             require(bool(self.key), "Runtime API key is missing")
-            wire = self.transport_payload(payload, stage)
             response = self.send(path, record, wire)
         require(not response.get("error"), "API returned an error response")
         choices = response.get("choices", [])
@@ -210,12 +218,13 @@ class Client:
             except urllib.error.HTTPError as error:
                 record["error"] = self.http_error_info(error)
                 record["finished_at"] = datetime.now(timezone.utc).isoformat()
-                if error.code == 429 and attempt < len(self.retry_delays):
+                retryable = error.code == 429 or (self.retry_failed and error.code in (502, 503, 504))
+                if retryable and attempt < len(self.retry_delays):
                     delay = max(self.retry_delays[attempt], self.retry_after(error.headers))
                     record["error"]["retry_delay_seconds"] = delay
                     write_json(path, record)
                     error.close()
-                    self.progress(f"HTTP 429: пауза {delay:g} с, повтор {attempt + 1}/{len(self.retry_delays)}")
+                    self.progress(f"HTTP {error.code}: пауза {delay:g} с, повтор {attempt + 1}/{len(self.retry_delays)}")
                     time.sleep(delay)
                     continue
                 write_json(path, record)
@@ -247,8 +256,10 @@ class Client:
         self.progress(stage)
         manifest = self.frozen_root / "build-input.json"
         if manifest.exists():
-            hashes = read_json(manifest)["implementation"]
-            require(digest(self.prompt_path.read_bytes()) == hashes["prompts.yaml"], "Frozen prompt bundle changed")
+            saved = read_json(manifest)
+            expected = (saved["implementation"]["prompts.yaml"] if "implementation" in saved
+                        else saved["prompt_bundle_sha256"])
+            require(digest(self.prompt_path.read_bytes()) == expected, "Frozen prompt bundle changed")
         prompts = load_prompts(self.prompt_path)
         prompt = prompts[stage]
         system = prompts["system"]

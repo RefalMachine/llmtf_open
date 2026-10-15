@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ARG CUDA_VERSION=12.9.2
+ARG HF_REFRESH_BASE_IMAGE=refalmachine/llmtf@sha256:c0a958e8206db8e5b2052a68077680fc20b6cf6d5e49b7805361340a564515cf
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS hf-builder
 
@@ -63,7 +64,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Keep the CUDA development toolkit in the runtime profile.  Triton/FLA and
 # vLLM's FlashInfer integration JIT-compile kernels for the active GPU; the
 # CUDA runtime image alone does not provide nvcc.
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS hf
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS hf-clean
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -92,3 +93,25 @@ LABEL org.opencontainers.image.title="llmtf Hugging Face CUDA environment" \
 
 WORKDIR /workdir
 CMD ["/bin/bash"]
+
+# A maintenance target for common-dependency removals only. Reuse the verified
+# GPU binaries; fail instead of resolving new packages or changing runtime pins.
+# Build the default hf target when CUDA, torch or kernel dependencies change.
+FROM ${HF_REFRESH_BASE_IMAGE} AS hf-refresh
+
+COPY requirements/profiles/common.txt \
+     requirements/profiles/api.txt \
+     requirements/profiles/hf.txt \
+     requirements/profiles/constraints-cu129.txt \
+     /tmp/requirements/
+
+RUN python -m pip uninstall -y fasttext-langdetect fasttext-predict \
+    && python -m pip install --no-index --no-deps \
+        -c /tmp/requirements/constraints-cu129.txt \
+        -r /tmp/requirements/hf.txt \
+    && python -m pip check \
+    && python -c "import importlib.metadata as m; names = {d.metadata['Name'].lower() for d in m.distributions()}; assert not names.intersection({'fasttext-langdetect', 'fasttext-predict'})" \
+    && python -c "import causal_conv1d, fla, flash_attn, numpy, torch, transformers; assert int(numpy.__version__.split('.')[0]) == 2; assert torch.version.cuda.startswith('12.9'); assert transformers.__version__ == '5.9.0'; assert torch.__version__ == '2.11.0+cu129'; assert flash_attn.__version__ == '2.7.4.post1'"
+
+# Keep a normal invocation a clean build from the CUDA base.
+FROM hf-clean AS hf

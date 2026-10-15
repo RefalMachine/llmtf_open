@@ -1,0 +1,14 @@
+{
+  "version": "expanded_few_shot_v1",
+  "as_of": "2025-01-01",
+  "train_count": 20,
+  "train_article_count": 15,
+  "train_content_sha256": "a2ab3f09a467979d260279c1df37544a8c8588229f680491c3ff09380461e835",
+  "demonstration_ids": [
+    "v2-3b3b4fa138be5488a6f9",
+    "v2-40b5b87e704a2c16f022",
+    "v2-f11ba975e9a6aa85ce74",
+    "v2-53953b76036d58175e83",
+    "v2-5d800c23c8b5407341ee"
+  ]
+}

@@ -16,9 +16,12 @@ def verify(root, expected_bundle):
     require(bundle_hash == digest(Path(expected_bundle).read_bytes()), "Run uses a different YAML version")
     if (root / "build-input.json").exists():
         manifest = read_json(root / "build-input.json")
-        expected_hash = manifest["implementation"]["prompts.yaml"]
-        require(digest((root / "implementation" / "prompts.yaml").read_bytes()) == expected_hash,
-                "Implementation YAML snapshot changed")
+        if "implementation" in manifest:
+            expected_hash = manifest["implementation"]["prompts.yaml"]
+            require(digest((root / "implementation" / "prompts.yaml").read_bytes()) == expected_hash,
+                    "Implementation YAML snapshot changed")
+        else:
+            expected_hash = manifest["prompt_bundle_sha256"]
         settings = manifest["config"]["api"]
     else:
         manifest = read_json(root / "probe-input.json")
@@ -36,6 +39,17 @@ def verify(root, expected_bundle):
     repairs = 0
     reasoning_tokens = 0
     paths = sorted(root.glob("**/requests/*.json"))
+    historical_cached = 0
+    if manifest.get("config", {}).get("prompt_protocol") == "expanded_v1":
+        traces = list(root.glob("stages/*/request-ids.json"))
+        if manifest.get("phase") == "prepare":
+            require((root / "request-ids.json").is_file(), "Missing selection request trace")
+            traces.append(root / "request-ids.json")
+        active = {trace.parent / "requests" / (identity + ".json")
+                  for trace in traces for identity in read_json(trace)}
+        require(active and active <= set(paths), "Missing active request journals")
+        historical_cached = len(paths) - len(active)
+        paths = sorted(active)
     require(bool(paths), "No actual requests to verify")
     for path in paths:
         record = read_json(path)
@@ -74,6 +88,13 @@ def verify(root, expected_bundle):
         require(payload.get("reasoning", {}).get("effort") == "high", "High reasoning was not requested")
         require("tools" not in payload and "tool_choice" not in payload, "Unexpected tools in request")
         wire = record.get("transport_request", payload)
+        if settings.get("cache_identity") == "wire":
+            endpoint = record["endpoint"].removesuffix("/chat/completions")
+            require(path.stem == digest(dict(url=endpoint, payload=wire)), "Wire cache identity changed")
+            expected_model = override.get("model", settings["model"])
+            if record.get("transport_profile") == "subscription":
+                expected_model = expected_model.removeprefix("openai/")
+            require(wire["model"] == expected_model, "Expanded run changed the configured model")
         if record.get("transport_profile") == "subscription":
             expected = dict(model=wire.get("model"), messages=payload["messages"])
             if "effort" in payload.get("reasoning", {}):
@@ -100,6 +121,7 @@ def verify(root, expected_bundle):
         reasoning_tokens += record["response"].get("usage", {}).get("completion_tokens_details", {}).get("reasoning_tokens", 0) or 0
         counts[stage] += 1
     return dict(verified=True, prompt_bundle_sha256=bundle_hash, requests=len(paths),
+                historical_cached_requests=historical_cached,
                 stages=dict(sorted(counts.items())), repair_requests=repairs,
                 transports=[dict(endpoint=endpoint, model=model, profile=profile, requests=count)
                             for (endpoint, model, profile), count in sorted(transports.items())],

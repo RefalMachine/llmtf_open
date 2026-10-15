@@ -9,6 +9,8 @@ def main():
     p.add_argument('--model',required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--base',action='store_true');p.add_argument('--limit',type=int,default=8)
     p.add_argument('--mcq',action='store_true')
+    p.add_argument('--expanded', action='store_true')
+    p.add_argument('--data-dir', type=Path)
     p.add_argument('--few-shot-count', type=int)
     p.add_argument('--modes',nargs='+',choices=('closed','grounded'),default=['closed','grounded'])
     p.add_argument('--thinking',action='store_true')
@@ -17,6 +19,11 @@ def main():
     p.add_argument('--no-prefix-caching',action='store_true')
     p.add_argument('--api-base',default='http://127.0.0.1:18765')
     a=p.parse_args()
+    if a.data_dir is not None:
+        if not a.expanded:
+            p.error('--data-dir is supported for the local expanded release')
+        import os
+        os.environ['RULAW_EXPANDED_DATA_DIR'] = str(a.data_dir.resolve())
     if a.few_shot_count is None:
         a.few_shot_count = 5 if a.base and a.mcq else 0
     if a.base and a.thinking:p.error('--thinking requires the hybrid instruct model')
@@ -51,7 +58,8 @@ def main():
     model.generation_config.num_return_sequences=1
     try:
         summary=Evaluator().evaluate(model,str(a.output),
-            datasets_names=['rulaw_proofbench/'+('mcq_' if a.mcq else '')+mode for mode in a.modes],
+            datasets_names=[('rulaw_proofbench_expanded/' if a.expanded else 'rulaw_proofbench/')
+                            +('mcq_' if a.mcq else '')+mode for mode in a.modes],
             few_shot_count=a.few_shot_count,max_sample_per_dataset=a.limit,batch_size=1 if a.backend=='hf' else 8,
             enable_thinking=a.thinking)
         if summary.exit_code:raise RuntimeError(f'RuLaw-ProofBench failed: {summary.failed}')

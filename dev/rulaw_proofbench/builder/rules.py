@@ -11,7 +11,7 @@ from .common import canonical, digest, require, same
 
 UNKNOWN = "недостаточно данных"
 OUTSIDE = "не следует из указанной нормы"
-UNITS = {"none", "days", "calendar_days", "hours", "hours_per_week", "fraction"}
+UNITS = {"none", "days", "calendar_days", "hours", "hours_per_week", "fraction", "months", "years"}
 CATEGORIES = {"да", "нет", "ничтожна", "до отмены", "1 год", OUTSIDE}
 
 
@@ -66,6 +66,12 @@ def domains(card):
     return {p["key"]: p["domain"] for p in card["predicates"]}
 
 
+def partial_domains(card):
+    """Unknown is optional evidence, never a value in a complete legal world."""
+    return {p["key"]: p["domain"] + ([None] if p.get("unknown_allowed", True) else [])
+            for p in card["predicates"]}
+
+
 def admissible(card, world):
     return all(evaluate(expr, world) for expr in card["constraints"])
 
@@ -114,7 +120,9 @@ def validate_card(card, fragments):
     require(isinstance(card["predicates"], list) and 1 <= len(card["predicates"]) <= 5, "Expected 1..5 predicates")
     keys = []
     for pred in card["predicates"]:
-        require(set(pred) == {"key", "meaning", "domain", "phrases", "unknown_phrase", "evidence"}, "Predicate fields do not match contract")
+        required = {"key", "meaning", "domain", "phrases", "unknown_phrase", "evidence"}
+        require(required <= set(pred) <= required | {"unknown_allowed"}, "Predicate fields do not match contract")
+        require(type(pred.get("unknown_allowed", True)) is bool, "unknown_allowed must be boolean")
         require(isinstance(pred["key"], str) and re.fullmatch(r"[a-z][a-z0-9_]{0,39}", pred["key"]), "Invalid predicate key")
         keys.append(pred["key"])
         values = pred["domain"]
@@ -133,7 +141,7 @@ def validate_card(card, fragments):
     require(len(set(keys)) == len(keys), "Duplicate predicate key")
     space = domains(card)
     require(math.prod(len(v) for v in space.values()) <= 256, "Complete domain exceeds 256")
-    require(math.prod(len(v) + 1 for v in space.values()) <= 2048, "Partial domain exceeds 2048")
+    require(math.prod(len(v) for v in partial_domains(card).values()) <= 2048, "Partial domain exceeds 2048")
     require(isinstance(card["constraints"], list), "Invalid constraints")
     require(isinstance(card["branches"], list) and card["branches"], "No branches")
     branch_ids = []
@@ -164,6 +172,9 @@ def solve(card, facts, worlds=None):
     require(set(facts) == set(space), "Facts must name every predicate")
     for key, value in facts.items():
         require(value is None or any(same(value, option) for option in space[key]), "Fact outside domain")
+    for pred in card["predicates"]:
+        require(facts[pred["key"]] is not None or pred.get("unknown_allowed", True),
+                "Required known fact is missing: " + pred["key"])
     traces = []
     for world in complete_worlds(card) if worlds is None else worlds:
         if compatible(world, facts):
@@ -200,7 +211,7 @@ def compare(primary, second, mapping):
                             agree=set(answers) == {first_answer}))
     space = domains(primary)
     partial_count = 0
-    for values in product(*[values + [None] for values in space.values()]):
+    for values in product(*partial_domains(primary).values()):
         facts = dict(zip(space, values))
         matching = [result for result in results if compatible(result["facts"], facts)]
         if not matching:
@@ -213,7 +224,7 @@ def compare(primary, second, mapping):
                 limitation="Alignment is LLM-authored. Partial checks share primary domains and constraints.")
 
 
-def render(card, facts, title, article, as_of):
+def case_text(card, facts, title, article, as_of):
     text = [f"{title}, статья {article}. Применяется выбранное положение в состоянии на {as_of}.", card["scope"]]
     for pred in card["predicates"]:
         value = facts[pred["key"]]
@@ -223,16 +234,56 @@ def render(card, facts, title, article, as_of):
             index = next(i for i, option in enumerate(pred["domain"]) if same(value, option))
             text.append(pred["phrases"][index])
     text.append(card["target"])
-    instruction = "Дайте только короткий ответ без объяснения. Если допустимые дополнения неизвестных условий дают разные ответы, ответьте «недостаточно данных»."
-    if card["answer_kind"] == "binary":
-        instruction += " Ответьте «да» или «нет», если данных достаточно. Отсутствие указанного следствия по названной норме означает «нет»."
-    elif any(b["value"] == OUTSIDE for b in card["branches"]):
-        instruction += " Если при известных условиях запрошенное следствие не устанавливается, ответьте «не следует из указанной нормы»."
-    text.append(instruction + " Ответ касается только названной нормы.")
     return "\n".join(text)
 
 
-def mcq(card, gold, question, identity, seed):
+def instruction(card, multiple_choice=False):
+    """Public answer contract: independent of a case's gold and hidden category."""
+    text = (
+        "Применяйте нормативные положения, указанные в условии, включая названные связанные положения. "
+        "Используйте только заданные факты и допустимые условием варианты. "
+        "Не подставляйте неизвестные обстоятельства по умолчанию: «не указано» не означает «нет». "
+        "Если хотя бы два допустимых уточнения неизвестных обстоятельств дают разные ответы, "
+        "ответ — «недостаточно данных». Если во всех допустимых уточнениях ответ одинаков, "
+        "дайте этот ответ, даже если некоторые обстоятельства неизвестны. "
+        "Недостаточность данных означает неоднозначность фактов, а не неуверенность в знании нормы. "
+    )
+    if card["answer_kind"] == "binary":
+        text += "«Нет» означает, что запрошенное следствие не наступает при всех допустимых уточнениях. "
+    else:
+        text += ("«Не следует из указанной нормы» означает, что при заданных условиях запрошенное "
+                 "следствие не устанавливается указанными положениями. Это не синоним недостаточности данных. ")
+    if card["unit"] != "none":
+        units = {"days": "днях", "calendar_days": "календарных днях", "hours": "часах",
+                 "hours_per_week": "часах в неделю", "months": "месяцах", "years": "годах",
+                 "fraction": "долях единицы"}
+        if multiple_choice:
+            text += "Числа в вариантах ответа выражены в " + units[card["unit"]] + ". "
+            return text + "Выберите один вариант и ответьте только его буквой:"
+        text += ("Числовой ответ укажите в " + units[card["unit"]]
+                 + " цифрами: целое число, точная десятичная или обыкновенная дробь. ")
+        if card["unit"] == "fraction":
+            text += "Доли можно записывать в процентах. "
+        text += "Не округляйте; не переводите годы и месяцы в дни. "
+    if multiple_choice:
+        return text + "Выберите один вариант и ответьте только его буквой:"
+    return text + "Выведите только короткий ответ без объяснения и без префикса «Ответ:»."
+
+
+def render(card, facts, title, article, as_of, protocol="legacy"):
+    body = case_text(card, facts, title, article, as_of)
+    if protocol == "expanded_v1":
+        return body + "\n\n" + instruction(card)
+    require(protocol == "legacy", "Unknown prompt protocol")
+    legacy_instruction = "Дайте только короткий ответ без объяснения. Если допустимые дополнения неизвестных условий дают разные ответы, ответьте «недостаточно данных»."
+    if card["answer_kind"] == "binary":
+        legacy_instruction += " Ответьте «да» или «нет», если данных достаточно. Отсутствие указанного следствия по названной норме означает «нет»."
+    elif any(b["value"] == OUTSIDE for b in card["branches"]):
+        legacy_instruction += " Если при известных условиях запрошенное следствие не устанавливается, ответьте «не следует из указанной нормы»."
+    return body + "\n" + legacy_instruction + " Ответ касается только названной нормы."
+
+
+def mcq(card, gold, question, identity, seed, protocol="legacy", body=None):
     values = sorted({branch["value"] for branch in card["branches"]} | {UNKNOWN})
     # No LLM-written or arbitrary numeric distractors: only declared outcomes.
     require(len(values) >= 2, "MCQ needs distinct outcomes")
@@ -240,18 +291,26 @@ def mcq(card, gold, question, identity, seed):
     rng = random.Random(f"{seed}:{identity}")
     rng.shuffle(others)
     selected = [gold] + others[:3]
+    if protocol == "expanded_v1":
+        require(body is not None, "Expanded MCQ requires the explicit case body")
+        selected = list(dict.fromkeys([gold, UNKNOWN]))
+        selected += [value for value in others if value not in selected][:4 - len(selected)]
+    else:
+        require(protocol == "legacy", "Unknown MCQ protocol")
     rng.shuffle(selected)
     options = [dict(label=chr(65 + index), text=value, value=value) for index, value in enumerate(selected)]
+    prompt = (body + "\n\n" + instruction(card, multiple_choice=True) if protocol == "expanded_v1" else
+              question.rsplit("\n", 1)[0] + "\nЕсли допустимые дополнения неизвестных условий дают разные ответы, выберите «недостаточно данных». Ответ касается только названной нормы. Выберите один вариант и ответьте только его буквой:")
     return dict(id=identity, options=options, choice_count=len(options),
                 gold_label=next(o["label"] for o in options if o["value"] == gold),
-                question=question.rsplit("\n", 1)[0] + "\nЕсли допустимые дополнения неизвестных условий дают разные ответы, выберите «недостаточно данных». Ответ касается только названной нормы. Выберите один вариант и ответьте только его буквой:\n" + "\n".join(o["label"] + ". " + o["text"] for o in options))
+                question=prompt + "\n" + "\n".join(o["label"] + ". " + o["text"] for o in options))
 
 
-def generate(card, metadata, count, seed):
+def generate(card, metadata, count, seed, protocol="legacy", preferred_facts=()):
     space = domains(card)
     worlds = complete_worlds(card)
     buckets = {"complete": [], "unknown_determinate": [], "unknown_ambiguous": []}
-    for values in product(*[values + [None] for values in space.values()]):
+    for values in product(*partial_domains(card).values()):
         facts = dict(zip(space, values))
         if not any(compatible(world, facts) for world in worlds):
             continue
@@ -263,6 +322,11 @@ def generate(card, metadata, count, seed):
     for items in buckets.values():
         rng.shuffle(items)
     selected = []
+    for facts in preferred_facts:
+        for category, items in buckets.items():
+            index = next((i for i, item in enumerate(items) if same(item[0], facts)), None)
+            if index is not None and len(selected) < count:
+                selected.append((category, items.pop(index)))
     # Round robin covers complete, unknown-but-determinate, ambiguous cases when available.
     while len(selected) < count and any(buckets.values()):
         for category, items in buckets.items():
@@ -271,11 +335,14 @@ def generate(card, metadata, count, seed):
     rows = []
     for category, (facts, answer, traces) in selected:
         identity = "v2-" + digest(dict(article=metadata["article_key"], card=card, facts=facts))[:20]
-        question = render(card, facts, metadata["title"], metadata["article"], metadata["as_of"])
+        question = render(card, facts, metadata["title"], metadata["article"], metadata["as_of"], protocol)
         row = dict(id=identity, **metadata, rule_sha256=digest(card), facts=facts, question=question,
                    gold=dict(value=answer, unit=card["unit"]), proof=traces,
                    question_type=category, unknown_but_determinate=category == "unknown_determinate", pair_ids=[])
-        row["mcq"] = mcq(card, answer, question, identity, seed)
+        body = case_text(card, facts, metadata["title"], metadata["article"], metadata["as_of"])
+        row["mcq"] = mcq(card, answer, question, identity, seed, protocol, body)
+        if protocol != "legacy":
+            row.update(prompt_version=protocol, case_text=body, answer_kind=card["answer_kind"])
         rows.append(row)
     for i, left in enumerate(rows):
         for right in rows[i + 1:]:
